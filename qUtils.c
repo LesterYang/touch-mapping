@@ -77,7 +77,7 @@ char *q_strlcpy(char *b, const char *s, size_t l)
     b[k] = 0;
     return b;
 }
-ssize_t q_read(int fd, void *buf, size_t count, int *type)
+ssize_t q_read(int fd, void *buf, size_t count)
 {
     for (;;) {
         ssize_t r;
@@ -114,18 +114,13 @@ ssize_t q_write(int fd, const void *buf, size_t count, int *type)
     }
 }
 
-ssize_t q_loop_read(int fd, void *data, size_t size, int *type)
+ssize_t q_loop_read(int fd, void *data, size_t size)
 {
     ssize_t ret = 0;
-    int _type;
 
-    if (!type) {
-        _type = 0;
-        type = &_type;
-    }
     while (size > 0) {
         ssize_t r;
-        if ((r = q_read(fd, data, size, type)) < 0)
+        if ((r = q_read(fd, data, size)) < 0)
             return r;
         if (r == 0)
             break;
@@ -191,7 +186,7 @@ q_thread* q_thread_new(q_thread_func_t thread_func, void *userdata)
 	t=(q_thread *)q_malloc(sizeof(q_thread));
 	t->thread_func = thread_func;
 	t->userdata = userdata;
-	t->joined = FALSE;
+	t->joined = q_false;
 
 	q_atomic_set(&t->running,0);
 	if (pthread_create(&t->id, NULL, internal_thread_func, t) < 0) {
@@ -223,7 +218,7 @@ int q_thread_join(q_thread *t)
 {
 	if (t->joined)
 	        return -1;
-	t->joined = TRUE;
+	t->joined = q_true;
 	return pthread_join(t->id, NULL);
 }
 
@@ -283,9 +278,9 @@ q_bool q_mutex_try_lock(q_mutex *m)
 
     if ((r = pthread_mutex_trylock(&m->mutex)) != 0) {
         q_assert(r == EBUSY);
-        return FALSE;
+        return q_false;
     }
-    return TRUE;
+    return q_true;
 }
 
 void q_mutex_unlock(q_mutex *m)

@@ -26,12 +26,6 @@
 #define mark_input 0
 
 
-struct sInputEvDev
-{
-  const char *evDevName;
-  int fd;
-};
-
 #if 1 // test on ubuntu
 
 struct sInputEvDev srcEvDev[] = {
@@ -44,6 +38,7 @@ struct sInputEvDev srcEvDev[] = {
 };
 
 struct sInputEvDev destEvDev[] = {
+    {      NULL,      0},
     {      NULL,      0}
 };
 
@@ -122,8 +117,6 @@ void tm_inputDeinit()
 
     tm_inputCloseEvents();
 
-    usleep(50);
-
     if (qInputData.thread){
         q_thread_free(qInputData.thread);
         qInputData.thread = NULL;
@@ -154,7 +147,7 @@ int tm_inputInitEvents()
     }
 
     if (idx > 0)
-        qInputData.flag.openInput = TRUE;
+        qInputData.flag.openInput = q_true;
 
     return idx;
 }
@@ -181,7 +174,7 @@ void tm_inputCloseEvents()
         }
     }
 
-    qInputData.flag.openInput = FALSE;
+    qInputData.flag.openInput = q_false;
     return;
 }
 
@@ -199,7 +192,7 @@ void tm_inputCleanStdin()
 
     while (0 < select(stdout, &fds, NULL, NULL, &tv))
     {
-        while (q_read(stdin, buf, 8, 0)) {;}
+        while (q_read(stdin, buf, 8)) {;}
         FD_ZERO (&fds);
         FD_SET (stdin, &fds);
         tv.tv_sec  = 0;
@@ -231,6 +224,7 @@ int tm_inputAddFd(fd_set * fdsp)
 
 int tm_inputParseDev()
 {
+    q_bool trans = q_false;
     int i, j;
     char buf[sizeof(struct input_event)] = {0};
     struct input_event *inEvent = (struct input_event *)buf;
@@ -246,12 +240,16 @@ int tm_inputParseDev()
         if (!(FD_ISSET(srcEvDev[i].fd, &qInputData.evfds)))
             continue;
 
-        j = read (srcEvDev[i].fd, buf, sizeof(struct input_event));
+        j = q_loop_read(srcEvDev[i].fd, buf, sizeof(struct input_event));
 
+        if(j == (int)sizeof(struct input_event))
+            break;
+        /*
         if ( (j == 0) || (j == -1) || ((int)sizeof(struct input_event) > j) )
             continue;
         else
             break;
+            */
     }
 
     q_dbg("dev %d => type : %2x, code : %2x, value : %2x",i ,inEvent->type, inEvent->code, inEvent->value);
@@ -274,17 +272,17 @@ int tm_inputParseDev()
             switch (inEvent->code)
             {
                 case ABS_X:
-                    break;
                 case ABS_Y:
-                    break;
                 case ABS_MT_POSITION_X:
-                    break;
                 case ABS_MT_POSITION_Y:
+                    trans = q_true;
                     break;
             }
         default:
             break;
     }
+
+    tm_send_event(inEvent, destEvDev, trans);
     return 0;
 }
 
@@ -296,7 +294,7 @@ static void tm_inputThread(void *data)
     {
         tm_inputAddFd ( &qInputData.evfds );
         tv.tv_sec  = 0;
-        tv.tv_usec = 100000;
+        tv.tv_usec = 50000;
 
         while ( 0 < select((qInputData.maxfd)+1, &qInputData.evfds, NULL, NULL, &tv) )
         {
@@ -306,7 +304,7 @@ static void tm_inputThread(void *data)
                 break;
             }
 
-            if(qInputData.flag.openInput == FALSE)
+            if(qInputData.flag.openInput == q_false)
                 break;
 
             tm_inputAddFd(&qInputData.evfds);

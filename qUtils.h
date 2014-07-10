@@ -11,15 +11,13 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 typedef int q_bool;
 
-#ifndef FALSE
-#define FALSE ((q_bool) 0)
-#endif
-#ifndef TRUE
-#define TRUE (!FALSE)
-#endif
+
+#define q_false ((q_bool) 0)
+#define q_true (!q_false)
 
 #define Q_MAX_ALLOC_SIZE (1024*1024*64)  //64MB
 
@@ -33,7 +31,7 @@ typedef int q_bool;
 #define Q_PRETTY_FUNCTION ""
 #endif
 
-#define q_nothing() do {} while (FALSE)
+#define q_nothing() do {} while (q_false)
 
 #ifdef Q_ASSERT
 #define q_assert(expr)                                                                            \
@@ -121,9 +119,9 @@ char *q_strlcpy(char *b, const char *s, size_t l);
 // ===============================================
 // read and write
 // ===============================================
-ssize_t q_read(int fd, void *buf, size_t count, int *type);
+ssize_t q_read(int fd, void *buf, size_t count);
 ssize_t q_write(int fd, const void *buf, size_t count, int *type);
-ssize_t q_loop_read(int fd, void *data, size_t size, int *type);
+ssize_t q_loop_read(int fd, void *data, size_t size);
 ssize_t q_loop_write(int fd, const void*data, size_t size, int *type);
 
 
@@ -355,13 +353,13 @@ void 		q_show_queue(q_queue* q);
 static inline q_bool q_isempty_queue(q_queue* q)
 {
 	q_assert(q);
-	return (q->front == q->rear) ? TRUE:FALSE ;
+	return (q->front == q->rear) ? q_true:q_false ;
 }
 
 static inline q_bool q_isfull_queue(q_queue* q)
 {
 	q_assert(q);
-	return (q->front == (q->rear + 1)%(q->len_buf) ) ? TRUE:FALSE ;
+	return (q->front == (q->rear + 1)%(q->len_buf) ) ? q_true:q_false ;
 }
 
 #endif /* QSIFUNC_H_ */

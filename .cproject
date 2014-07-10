@@ -33,6 +33,10 @@
 								<option id="gnu.c.compiler.option.warnings.pedantic.803582538" name="Pedantic (-pedantic)" superClass="gnu.c.compiler.option.warnings.pedantic" value="false" valueType="boolean"/>
 								<option id="gnu.c.compiler.option.warnings.pedantic.error.1304954418" name="Pedantic warnings as errors (-pedantic-errors)" superClass="gnu.c.compiler.option.warnings.pedantic.error" value="false" valueType="boolean"/>
 								<option id="gnu.c.compiler.option.warnings.toerrors.1214478147" name="Warnings as errors (-Werror)" superClass="gnu.c.compiler.option.warnings.toerrors" value="true" valueType="boolean"/>
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1638067676" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="Q_ASSERT"/>
+									<listOptionValue builtIn="false" value="_GNU_SOURCE"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1175906219" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.173215590" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug">

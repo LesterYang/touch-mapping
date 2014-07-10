@@ -7,8 +7,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define Q_ASSERT
-
 #include "qUtils.h"
 #include "tmMap.h"
 #include "tmInput.h"
@@ -25,6 +23,8 @@ const char* tm_errorno_str(qerrno no)
         case eEAlloc:       return "allocate error";
         case eEOpen:        return "Open file error";
         case eEPoint:       return "Points are out of rage";
+        case eEParam:       return "Parameter error";
+        case eESwap:        return "Need to swap x,y";
         default:            break;
     }
     return "unknown";
@@ -171,7 +171,9 @@ qerrno tm_create(struct sTmData** p_tm)
 
     tm_update_conf(tm);
 
-    tm->mutex = q_mutex_new(TRUE, TRUE);
+    tm->mutex = q_mutex_new(q_true, q_true);
+
+    tm->queue = q_create_queue(MAX_QUEUE);
 
     return eENoErr;
 }
@@ -182,6 +184,8 @@ void tm_destroy(struct sTmData* tm)
 
     if(tm->mutex)
         q_mutex_free(tm->mutex);
+
+    q_destroy_queue(tm->queue);
 
     q_free(tm);
     tm=NULL;
@@ -257,4 +261,70 @@ qerrno tm_transfer(short* x, short* y, struct sTmData* tm, unsigned char panel, 
         return eEDevU;
 
     return __tm_transfer(x, y, &tm->panel[panel], &tm->fb[fb]);
+}
+
+qerrno __tm_transfer_value(short* val, tm_code code, struct sTmData_dev* src, struct sTmData_dev* dest)
+{
+    short per, out_x, out_y;
+
+    if(code == eTmCodeX)
+    {
+        per = tm_calculate_permille(*val, src->min_x, src->max_x, src->horizontal != dest->horizontal);
+        if((out_x = tm_calculate_output(per, dest->min_x, dest->max_x)) == -1)
+            return eEPoint;
+    }
+    else if(code == eTmCodeY)
+    {
+        per = tm_calculate_permille(*val, src->min_y, src->max_y, src->vertical != dest->vertical);
+        if((out_y = tm_calculate_output(per, dest->min_y, dest->max_y)) == -1)
+            return eEPoint;;
+    }
+    else
+        return eEParam;
+
+    if(src->swap != dest->swap)
+    {
+        return eESwap;
+    }
+
+    return eENoErr;
+}
+
+qerrno tm_transfer_x(short* val, struct sTmData* tm, unsigned char panel, unsigned char fb)
+{
+    if (panel > MAX_DEV_NUM || fb > MAX_DEV_NUM)
+        return eEDevN;
+
+    if(tm->panel[panel].used == -1 || tm->fb[fb].used == -1)
+        return eEDevU;
+
+    return __tm_transfer_value(val, eTmCodeX, &tm->panel[panel], &tm->fb[fb]);
+}
+
+qerrno tm_transfer_ev(struct input_event *ev, struct sTmData* tm, unsigned char panel, unsigned char fb)
+{
+    tm_code code = eTmCodeNone;
+    short val = (short)ev->value;
+
+
+
+    if (panel > MAX_DEV_NUM || fb > MAX_DEV_NUM)
+        return eEDevN;
+
+    if(tm->panel[panel].used == -1 || tm->fb[fb].used == -1)
+        return eEDevU;
+
+
+    if(__tm_transfer_value(&val, code, &tm->panel[panel], &tm->fb[fb]) == eESwap)
+    {
+        ;
+    }
+
+    return eENoErr;
+}
+
+void tm_send_event(struct input_event *ev, struct sInputEvDev* target,  q_bool transfer)
+{
+
+    return;
 }
