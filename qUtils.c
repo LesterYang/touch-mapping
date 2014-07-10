@@ -11,13 +11,13 @@
 #include <sys/socket.h>
 #include <inttypes.h>
 #include <sys/errno.h>
-#include "qFunc.h"
+#include "qUtils.h"
 
-void* qsi_malloc(size_t size)
+void* q_malloc(size_t size)
 {
     void *p;
 
-    if (size > 0 && size < QSI_MAX_ALLOC_SIZE){
+    if (size > 0 && size < Q_MAX_ALLOC_SIZE){
     	if (!(p = malloc(size))){
     		fprintf(stderr, "qsiFinc : malloc error");
     		return NULL;
@@ -30,11 +30,11 @@ void* qsi_malloc(size_t size)
     return p;
 }
 
-void* qsi_calloc(size_t size)
+void* q_calloc(size_t size)
 {
     void *p;
 
-    if (size > 0 && size < QSI_MAX_ALLOC_SIZE){
+    if (size > 0 && size < Q_MAX_ALLOC_SIZE){
     	if (!(p =  calloc(1, size))){
     		fprintf(stderr, "qsiFinc : calloc error");
     		return NULL;
@@ -47,27 +47,27 @@ void* qsi_calloc(size_t size)
     return p;
 }
 
-void qsi_free(void *p)
+void q_free(void *p)
 {
     if (!p)
         return;
     free(p);
 }
 
-char* qsi_strdup(const char *s)
+char* q_strdup(const char *s)
 {
     if (!s)
         return NULL;
     else {
     	int l;
     	l=strlen(s)+1;
-        char *r = (char*)qsi_calloc(l);
+        char *r = (char*)q_calloc(l);
         memcpy(r, s, l);
         return r;
     }
 }
 
-char *qsi_strlcpy(char *b, const char *s, size_t l)
+char *q_strlcpy(char *b, const char *s, size_t l)
 {
     size_t k;
     k = strlen(s);
@@ -77,7 +77,7 @@ char *qsi_strlcpy(char *b, const char *s, size_t l)
     b[k] = 0;
     return b;
 }
-ssize_t qsi_read(int fd, void *buf, size_t count, int *type)
+ssize_t q_read(int fd, void *buf, size_t count, int *type)
 {
     for (;;) {
         ssize_t r;
@@ -88,7 +88,7 @@ ssize_t qsi_read(int fd, void *buf, size_t count, int *type)
     }
 }
 
-ssize_t qsi_write(int fd, const void *buf, size_t count, int *type)
+ssize_t q_write(int fd, const void *buf, size_t count, int *type)
 {
     if (!type || *type == 0) {
         ssize_t r;
@@ -114,7 +114,7 @@ ssize_t qsi_write(int fd, const void *buf, size_t count, int *type)
     }
 }
 
-ssize_t qsi_loop_read(int fd, void *data, size_t size, int *type)
+ssize_t q_loop_read(int fd, void *data, size_t size, int *type)
 {
     ssize_t ret = 0;
     int _type;
@@ -125,7 +125,7 @@ ssize_t qsi_loop_read(int fd, void *data, size_t size, int *type)
     }
     while (size > 0) {
         ssize_t r;
-        if ((r = qsi_read(fd, data, size, type)) < 0)
+        if ((r = q_read(fd, data, size, type)) < 0)
             return r;
         if (r == 0)
             break;
@@ -136,7 +136,7 @@ ssize_t qsi_loop_read(int fd, void *data, size_t size, int *type)
     return ret;
 }
 
-ssize_t qsi_loop_write(int fd, const void *data, size_t size, int *type)
+ssize_t q_loop_write(int fd, const void *data, size_t size, int *type)
 {
     ssize_t ret = 0;
     int _type;
@@ -147,7 +147,7 @@ ssize_t qsi_loop_write(int fd, const void *data, size_t size, int *type)
     }
     while (size > 0) {
         ssize_t r;
-        if ((r = qsi_write(fd, data, size, type)) < 0)
+        if ((r = q_write(fd, data, size, type)) < 0)
             return r;
 
         if (r == 0)
@@ -159,7 +159,7 @@ ssize_t qsi_loop_write(int fd, const void *data, size_t size, int *type)
     return ret;
 }
 
-int qsi_close(int fd)
+int q_close(int fd)
 {
     for (;;) {
         int r;
@@ -173,52 +173,53 @@ int qsi_close(int fd)
 
 static void* internal_thread_func(void *userdata)
 {
-    qsi_thread *t = (qsi_thread *)userdata;
-    qsi_assert(t);
+    q_thread *t = (q_thread *)userdata;
+    q_assert(t);
 
     t->id = pthread_self();
-    qsi_atomic_inc(&t->running);
+    q_atomic_inc(&t->running);
     t->thread_func(t->userdata);
-    qsi_atomic_sub(2, &t->running);
+    q_atomic_sub(2, &t->running);
     return NULL;
 }
 
-qsi_thread* qsi_thread_new(qsi_thread_func_t thread_func, void *userdata)
+q_thread* q_thread_new(q_thread_func_t thread_func, void *userdata)
 {
-	qsi_assert(thread_func);
+	q_assert(thread_func);
 
-	qsi_thread *t;
-	t=(qsi_thread *)qsi_malloc(sizeof(qsi_thread));
+	q_thread *t;
+	t=(q_thread *)q_malloc(sizeof(q_thread));
 	t->thread_func = thread_func;
 	t->userdata = userdata;
 	t->joined = FALSE;
 
-	qsi_atomic_set(&t->running,0);
+	q_atomic_set(&t->running,0);
 	if (pthread_create(&t->id, NULL, internal_thread_func, t) < 0) {
-        qsi_free(t);
+        q_free(t);
         fprintf (stderr, "qsiFunc : thread_new error\n");
         return NULL;
     }
-    qsi_atomic_inc(&t->running);
+    q_atomic_inc(&t->running);
 	return t;
 }
 
-void qsi_thread_delet(qsi_thread *t)
+void q_thread_delet(q_thread *t)
 {
-	qsi_assert(t);
-	qsi_free(t);
+	q_assert(t);
+	pthread_detach(t->id);
+	q_free(t);
 	t = NULL;
 }
 
-void qsi_thread_free(qsi_thread *t)
+void q_thread_free(q_thread *t)
 {
-	qsi_assert(t);
-	qsi_thread_join(t);
-	qsi_free(t);
+	q_assert(t);
+	q_thread_join(t);
+	q_free(t);
 	t = NULL;
 }
 
-int qsi_thread_join(qsi_thread *t)
+int q_thread_join(q_thread *t)
 {
 	if (t->joined)
 	        return -1;
@@ -226,143 +227,145 @@ int qsi_thread_join(qsi_thread *t)
 	return pthread_join(t->id, NULL);
 }
 
-void* qsi_thread_get_data(qsi_thread *t)
+void* q_thread_get_data(q_thread *t)
 {
-    qsi_assert(t);
+    q_assert(t);
     return t->userdata;
 }
 
-qsi_mutex* qsi_mutex_new(q_bool recursive, q_bool inherit_priority)
+q_mutex* q_mutex_new(q_bool recursive, q_bool inherit_priority)
 {
-	qsi_mutex *m;
+	q_mutex *m;
 	pthread_mutexattr_t attr;
 	int r;
 
-	m = (qsi_mutex *)qsi_calloc(sizeof(qsi_mutex));
+	memset(&attr, 0, sizeof(pthread_mutexattr_t));
 
-	qsi_assert(pthread_mutexattr_init(&attr) == 0);
+	m = (q_mutex *)q_calloc(sizeof(q_mutex));
+
+	q_assert(pthread_mutexattr_init(&attr) == 0);
 
 	if (recursive)
-		qsi_assert(pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) == 0);
+		q_assert(pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) == 0);
 
 	if (inherit_priority)
-		qsi_assert(pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT) == 0);
+		q_assert(pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT) == 0);
 
     if ((r = pthread_mutex_init(&m->mutex, &attr))) {
         //back to normal mutexes.
-        qsi_assert((r == ENOTSUP) && inherit_priority);
+        q_assert((r == ENOTSUP) && inherit_priority);
 
-        qsi_assert(pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_NONE) == 0);
-        qsi_assert(pthread_mutex_init(&m->mutex, &attr) == 0);
+        q_assert(pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_NONE) == 0);
+        q_assert(pthread_mutex_init(&m->mutex, &attr) == 0);
     }
 
     return m;
 }
 
-void qsi_mutex_free(qsi_mutex *m)
+void q_mutex_free(q_mutex *m)
 {
-	qsi_assert(m);
-    qsi_assert(pthread_mutex_destroy(&m->mutex) == 0);
-    qsi_free(m);
+	q_assert(m);
+    q_assert(pthread_mutex_destroy(&m->mutex) == 0);
+    q_free(m);
     m = NULL;
 }
 
-void qsi_mutex_lock(qsi_mutex *m)
+void q_mutex_lock(q_mutex *m)
 {
-	qsi_assert(m);
-	qsi_assert(pthread_mutex_lock(&m->mutex) == 0);
+	q_assert(m);
+	q_assert(pthread_mutex_lock(&m->mutex) == 0);
 }
 
-q_bool qsi_mutex_try_lock(qsi_mutex *m)
+q_bool q_mutex_try_lock(q_mutex *m)
 {
     int r;
-    qsi_assert(m);
+    q_assert(m);
 
     if ((r = pthread_mutex_trylock(&m->mutex)) != 0) {
-        qsi_assert(r == EBUSY);
+        q_assert(r == EBUSY);
         return FALSE;
     }
     return TRUE;
 }
 
-void qsi_mutex_unlock(qsi_mutex *m)
+void q_mutex_unlock(q_mutex *m)
 {
-	qsi_assert(m);
-	qsi_assert(pthread_mutex_unlock(&m->mutex) == 0);
+	q_assert(m);
+	q_assert(pthread_mutex_unlock(&m->mutex) == 0);
 }
 
-qsi_cond *qsi_cond_new()
+q_cond *q_cond_new()
 {
-	qsi_cond *c;
-	c = (qsi_cond *)qsi_malloc(sizeof(qsi_cond));
-	qsi_assert(pthread_cond_init(&c->cond, NULL) == 0);
+	q_cond *c;
+	c = (q_cond *)q_malloc(sizeof(q_cond));
+	q_assert(pthread_cond_init(&c->cond, NULL) == 0);
 	return c;
 }
 
-void qsi_cond_free(qsi_cond *c)
+void q_cond_free(q_cond *c)
 {
-	qsi_assert(c);
-	qsi_assert(pthread_cond_destroy(&c->cond) == 0);
-	qsi_free(c);
+	q_assert(c);
+	q_assert(pthread_cond_destroy(&c->cond) == 0);
+	q_free(c);
 }
 
-void qsi_cond_signal(qsi_cond *c, int broadcast)
+void q_cond_signal(q_cond *c, int broadcast)
 {
-	qsi_assert(c);
+	q_assert(c);
 
 	if (broadcast)
-		qsi_assert(pthread_cond_broadcast(&c->cond) == 0);
+		q_assert(pthread_cond_broadcast(&c->cond) == 0);
 	else
-		qsi_assert(pthread_cond_signal(&c->cond) == 0);
+		q_assert(pthread_cond_signal(&c->cond) == 0);
 }
 
-int qsi_cond_wait(qsi_cond *c, qsi_mutex *m)
+int q_cond_wait(q_cond *c, q_mutex *m)
 {
-    qsi_assert(c);
-    qsi_assert(m);
+    q_assert(c);
+    q_assert(m);
     return pthread_cond_wait(&c->cond, &m->mutex);
 }
 
-qsi_semaphore* 	qsi_semaphore_new(unsigned value)
+q_semaphore* 	q_semaphore_new(unsigned value)
 {
-	qsi_semaphore* s;
-	s = (qsi_semaphore*)qsi_malloc(sizeof(qsi_semaphore));
-	qsi_assert(sem_init(&s->sem, 0, value) == 0);
+	q_semaphore* s;
+	s = (q_semaphore*)q_malloc(sizeof(q_semaphore));
+	q_assert(sem_init(&s->sem, 0, value) == 0);
 	return s;
 }
 
-void qsi_semaphore_free(qsi_semaphore *s)
+void q_semaphore_free(q_semaphore *s)
 {
-	qsi_assert(s);
-	qsi_assert(sem_destroy(&s->sem) == 0);
-	qsi_free(s);
+	q_assert(s);
+	q_assert(sem_destroy(&s->sem) == 0);
+	q_free(s);
 	s = NULL;
 }
 
-void qsi_semaphore_post(qsi_semaphore *s)
+void q_semaphore_post(q_semaphore *s)
 {
-	qsi_assert(s);
-	qsi_assert(sem_post(&s->sem) == 0);
+	q_assert(s);
+	q_assert(sem_post(&s->sem) == 0);
 }
 
-void qsi_semaphore_wait(qsi_semaphore *s)
+void q_semaphore_wait(q_semaphore *s)
 {
     int ret;
-    qsi_assert(s);
+    q_assert(s);
 
     do {
         ret = sem_wait(&s->sem);
     } while (ret < 0 && errno == EINTR);
 
-    qsi_assert(ret == 0);
+    q_assert(ret == 0);
 }
 
-qsi_queue* qsi_create_q(int size)
+q_queue* q_create_queue(int size)
 {
-	qsi_queue *q;
+	q_queue *q;
 
-	q = (qsi_queue *)qsi_malloc(sizeof(qsi_queue));
-	q->buf = (char *)qsi_calloc(size);
+	q = (q_queue *)q_malloc(sizeof(q_queue));
+	q->buf = (char *)q_calloc(size);
 	
 	q->front = -1;
 	q->rear = -1;
@@ -371,51 +374,51 @@ qsi_queue* qsi_create_q(int size)
 	return q;
 }
 
-void qsi_destroy_q(qsi_queue* q)
+void q_destroy_queue(q_queue* q)
 {
-	qsi_assert(q);
+	q_assert(q);
 
-	qsi_free(q->buf);
-	qsi_free(q);
+	q_free(q->buf);
+	q_free(q);
 	q = NULL;
 }
 
-int qsi_get_q(qsi_queue* q, char* buf, size_t len)
+int q_get_queue(q_queue* q, char* buf, size_t len)
 {
-	qsi_assert(q);
-	qsi_assert(buf);
+	q_assert(q);
+	q_assert(buf);
 
 	uint32_t i;
 	
 	for (i=0 ;i<len ;i++){
-		if(qsi_pop_q(q, buf+i))
+		if(q_pop_queue(q, buf+i))
 			break;
 	}
 
 	return i;
 }
 
-int qsi_set_q(qsi_queue* q, char* buf, size_t len, q_bool expand)
+int q_set_queue(q_queue* q, char* buf, size_t len, q_bool expand)
 {
-	qsi_assert(q);
-	qsi_assert(buf);
+	q_assert(q);
+	q_assert(buf);
 
 	uint32_t i;
 
 	for (i=0 ;i<len ;i++){
-		qsi_add_q(q, buf+i, expand);
+		q_add_queue(q, buf+i, expand);
 	}
 
 	return i;
 }
 
-int qsi_add_q(qsi_queue* q, char* item, q_bool expand)
+int q_add_queue(q_queue* q, char* item, q_bool expand)
 {
-	qsi_assert(q);
+	q_assert(q);
 
-	if (qsi_isfull_q(q)){
+	if (q_isfull_queue(q)){
 		if (expand)
-			qsi_expand_q(q);
+			q_expand_queue(q);
 		else
 			return -1;
 	}
@@ -425,11 +428,11 @@ int qsi_add_q(qsi_queue* q, char* item, q_bool expand)
 	return 0;
 }
 
-int qsi_pop_q(qsi_queue* q, char* item)
+int q_pop_queue(q_queue* q, char* item)
 {
-	qsi_assert(q);
+	q_assert(q);
 
-	if (qsi_isempty_q(q)){
+	if (q_isempty_queue(q)){
 		fprintf(stderr, "q is empty\n");
 		return -1;
 	}
@@ -440,11 +443,11 @@ int qsi_pop_q(qsi_queue* q, char* item)
 	return 0;
 }
 
-int qsi_peek_q(qsi_queue* q, char* item, int idx)
+int q_peek_queue(q_queue* q, char* item, int idx)
 {
-	qsi_assert(q);
+	q_assert(q);
 
-	if (qsi_isempty_q(q)){
+	if (q_isempty_queue(q)){
 		fprintf(stderr, "q is empty\n");
 		return -1;
 	}
@@ -459,17 +462,17 @@ int qsi_peek_q(qsi_queue* q, char* item, int idx)
 	return 0;
 }
 
-size_t qsi_size_q(qsi_queue* q)
+size_t q_size_queue(q_queue* q)
 {
 	return (size_t)((q->rear - q->front + q->len_buf) % q->len_buf);
 }
 
-void qsi_expand_q(qsi_queue* q)
+void q_expand_queue(q_queue* q)
 {
-	qsi_assert(q);
+	q_assert(q);
 
 	char* buf;
-	buf = (char *)qsi_calloc(2*(q->len_buf));
+	buf = (char *)q_calloc(2*(q->len_buf));
 
 	int start = (q->front + 1) % q->len_buf;
 
@@ -485,13 +488,13 @@ void qsi_expand_q(qsi_queue* q)
 	q->rear = q->len_buf -2;
 	q->len_buf *= 2;
 
-	qsi_free(q->buf);
+	q_free(q->buf);
 	q->buf = buf;
 }
 
-void qsi_show_q(qsi_queue* q)
+void q_show_queue(q_queue* q)
 {
-	if (!qsi_isempty_q(q)){
+	if (!q_isempty_queue(q)){
 		int i, len;
 		printf("buf size:%d front: buf[%d] rear: buf[%d]\n",q->len_buf,q->front,q->rear);
 		printf("buf: ");

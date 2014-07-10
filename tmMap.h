@@ -1,5 +1,5 @@
 /*
- * qts.h
+ * tmMap.h
  *
  *  Created on: Jun 17, 2014
  *      Author: root
@@ -11,7 +11,7 @@
 #include <stdio.h>
 
 
-#define DEFAULT_TSQSI_CONF  "/mnt/hgfs/Win_7/workspace-cpp2/libqts/qsi_ts.conf"
+#define QSI_TM_CONF         "/mnt/hgfs/Win_7/workspace-cpp2/touch-mapping/qsi_tm.conf"
 #define BUF_SIZE            (256)
 #define MAX_DEV_NUM         (5)
 #define MULTIPLE            (4096)
@@ -28,11 +28,11 @@ typedef enum qerrno{
 }qerrno;
 
 
-// struct tsqsi_dev :
+// struct sTmData_dev :
 // horizontal is 0 if event value increments from left to right
 // vertical is 0 if event value increments from top to bottom
 // swap is 0 if x is horizontal
-struct tsqsi_dev
+struct sTmData_dev
 {
     short min_x;
     short max_x;
@@ -42,24 +42,24 @@ struct tsqsi_dev
     char horizontal;
     char vertical;
     char used;
-    unsigned char name_len;
-    char* name;
 };
 
-struct tsqsi
+struct sTmData
 {
     int fd;
     FILE *fr;
-    struct tsqsi_dev panel[MAX_DEV_NUM];
-    struct tsqsi_dev fb[MAX_DEV_NUM];
+    q_mutex* mutex;
+    struct sTmData_dev panel[MAX_DEV_NUM];
+    struct sTmData_dev fb[MAX_DEV_NUM];
 };
 
-const char* tsqsi_errorno_str(qerrno no);
-qerrno      tsqsi_create(struct tsqsi** p_ts);
-void        tsqsi_destroy(struct tsqsi* ts);
-short       tsqsi_calculate_permille(short val, short min, short max, char reverse);
-short       tsqsi_calculate_output(short permille, short min, short max);
-qerrno      __tsqsi_transfer(short* x, short* y, struct tsqsi_dev* src, struct tsqsi_dev* dest);
-qerrno      tsqsi_transfer(short* x, short* y, struct tsqsi* ts, unsigned char panel, unsigned char fb);
+const char* tm_errorno_str(qerrno no);
+qerrno      tm_create(struct sTmData** p_tm);
+void        tm_destroy(struct sTmData* tm);
+qerrno      tm_update_conf(struct sTmData* tm);
+short       tm_calculate_permille(short val, short min, short max, char reverse);
+short       tm_calculate_output(short permille, short min, short max);
+qerrno      __tm_transfer(short* x, short* y, struct sTmData_dev* src, struct sTmData_dev* dest);
+qerrno      tm_transfer(short* x, short* y, struct sTmData* tm, unsigned char panel, unsigned char fb);
 
 #endif /* QTS_H_ */

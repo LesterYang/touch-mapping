@@ -1,5 +1,5 @@
 /*
- * qts.c
+ * tmMap.c
  *
  *  Created on: Jun 17, 2014
  *      Author: root
@@ -7,9 +7,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "qts.h"
+#define Q_ASSERT
 
-const char* tsqsi_errorno_str(qerrno no)
+#include "qUtils.h"
+#include "tmMap.h"
+#include "tmInput.h"
+
+const char* tm_errorno_str(qerrno no)
 {
     switch(no)
     {
@@ -26,32 +30,24 @@ const char* tsqsi_errorno_str(qerrno no)
     return "unknown";
 }
 
-qerrno tsqsi_create(struct tsqsi** p_ts)
+qerrno tm_update_conf(struct sTmData* tm)
 {
-    struct tsqsi* ts;
-    struct tsqsi_dev* dev;
+    struct sTmData_dev* dev;
     char* conf_file;
     char* param;
     char buf[BUF_SIZE], alloc=0;
     int id;
     char is_fb;
 
-    if(!( *p_ts=(struct tsqsi*)calloc(1, sizeof(struct tsqsi)) ))
-    {
-       return eEAlloc;
-    }
-
-    ts = *p_ts;
-
     for(id = 0; id < MAX_DEV_NUM; id++)
     {
-        ts->fb[id].used = -1;
-        ts->panel[id].used = -1;
+        tm->fb[id].used = -1;
+        tm->panel[id].used = -1;
     }
 
-    if ( (conf_file = getenv("TSQSI_CONF")) == NULL )
+    if ( (conf_file = getenv("QSI_TM_CONF")) == NULL )
     {
-        if((conf_file = strdup(DEFAULT_TSQSI_CONF)) == NULL)
+        if((conf_file = strdup(QSI_TM_CONF)) == NULL)
             return eEAlloc;
 
         alloc = 1;
@@ -59,19 +55,19 @@ qerrno tsqsi_create(struct tsqsi** p_ts)
 
     printf("configure file: %s\n", conf_file);
 
-    ts->fr = fopen(conf_file, "r");
+    tm->fr = fopen(conf_file, "r");
 
-    if(ts->fr == NULL)
+    if(tm->fr == NULL)
     {
         perror("");
         return eEOpen;
     }
 
-    while( !feof(ts->fr))
+    while( !feof(tm->fr))
     {
         memset(buf, 0, BUF_SIZE);
 
-        if(fgets(buf, BUF_SIZE, ts->fr) == NULL)
+        if(fgets(buf, BUF_SIZE, tm->fr) == NULL)
             continue;
 
         if(buf[0] == '#' || buf[0] == 0 || buf[BUF_SIZE - 2] != 0)
@@ -96,20 +92,13 @@ qerrno tsqsi_create(struct tsqsi** p_ts)
             continue;
 
         if(is_fb)
-            dev = &ts->fb[id];
+            dev = &tm->fb[id];
         else
-            dev = &ts->panel[id];
+            dev = &tm->panel[id];
+
+        dev->used = id;
 
         if((param = strtok(NULL," ")) != NULL)
-        {
-            if((dev->name = strdup(param)) == NULL)
-                continue;
-
-            dev->used = id;
-            dev->name_len = (unsigned char)strlen(dev->name);
-        }
-
-        if(param != NULL && (param = strtok(NULL," ")) != NULL)
         {
             dev->min_x = (short)atoi(param);
         }
@@ -143,10 +132,9 @@ qerrno tsqsi_create(struct tsqsi** p_ts)
         {
             dev->swap = (short)atoi(param);
 #if 1
-            printf("set %5s %d : %6s, x %4d ~ %4d, y %4d ~ %4d, h %d, v %d, s %d\n"
+            printf("set %5s %d : x %4d ~ %4d, y %4d ~ %4d, h %d, v %d, s %d\n"
                     ,(is_fb) ? "fb" : "panel"
                     ,id
-                    ,dev->name
                     ,dev->min_x
                     ,dev->max_x
                     ,dev->min_y
@@ -158,45 +146,49 @@ qerrno tsqsi_create(struct tsqsi** p_ts)
         }
         else
         {
-            free(dev->name);
             dev->used = -1;
-
         }
     }
 
     if(alloc)
-        free(conf_file);
+        q_free(conf_file);
 
-    fclose(ts->fr);
+    fclose(tm->fr);
 
     return eENoErr;
 }
 
-void tsqsi_destroy(struct tsqsi* ts)
+qerrno tm_create(struct sTmData** p_tm)
 {
-    int i;
+    struct sTmData* tm;
 
-    if(ts)
+    if(!( *p_tm=(struct sTmData*)q_calloc(sizeof(struct sTmData)) ))
     {
-        for(i = 0; i < MAX_DEV_NUM; i++)
-        {
-            if(ts->fb[i].used != -1)
-            {
-                ts->fb[i].used = -1;
-                free(ts->fb[i].name);
-            }
-            if(ts->panel[i].used != -1)
-            {
-                ts->panel[i].used = -1;
-                free(ts->panel[i].name);
-            }
-        }
-        free(ts);
+       return eEAlloc;
     }
+
+    tm = *p_tm;
+
+    tm_update_conf(tm);
+
+    tm->mutex = q_mutex_new(TRUE, TRUE);
+
+    return eENoErr;
+}
+
+void tm_destroy(struct sTmData* tm)
+{
+    q_assert(tm);
+
+    if(tm->mutex)
+        q_mutex_free(tm->mutex);
+
+    q_free(tm);
+    tm=NULL;
 }
 
 
-short tsqsi_calculate_permille(short val, short min, short max, char reverse)
+short tm_calculate_permille(short val, short min, short max, char reverse)
 {
     int permille;
 
@@ -213,7 +205,7 @@ short tsqsi_calculate_permille(short val, short min, short max, char reverse)
     return (short)permille;
 }
 
-short tsqsi_calculate_output(short permille, short min, short max)
+short tm_calculate_output(short permille, short min, short max)
 {
     short output;
 
@@ -230,14 +222,14 @@ short tsqsi_calculate_output(short permille, short min, short max)
     return output;
 };
 
-qerrno __tsqsi_transfer(short* x, short* y, struct tsqsi_dev* src, struct tsqsi_dev* dest)
+qerrno __tm_transfer(short* x, short* y, struct sTmData_dev* src, struct sTmData_dev* dest)
 {
     short per, out_x, out_y;
 
-    per = tsqsi_calculate_permille(*x, src->min_x, src->max_x, src->horizontal != dest->horizontal);
-    out_x = tsqsi_calculate_output(per, dest->min_x, dest->max_x);
-    per = tsqsi_calculate_permille(*y, src->min_y, src->max_y, src->vertical != dest->vertical);
-    out_y = tsqsi_calculate_output(per, dest->min_y, dest->max_y);
+    per = tm_calculate_permille(*x, src->min_x, src->max_x, src->horizontal != dest->horizontal);
+    out_x = tm_calculate_output(per, dest->min_x, dest->max_x);
+    per = tm_calculate_permille(*y, src->min_y, src->max_y, src->vertical != dest->vertical);
+    out_y = tm_calculate_output(per, dest->min_y, dest->max_y);
 
     if(out_x == -1 || out_y == -1)
         return eEPoint;
@@ -256,13 +248,13 @@ qerrno __tsqsi_transfer(short* x, short* y, struct tsqsi_dev* src, struct tsqsi_
     return eENoErr;
 }
 
-qerrno tsqsi_transfer(short* x, short* y, struct tsqsi* ts, unsigned char panel, unsigned char fb)
+qerrno tm_transfer(short* x, short* y, struct sTmData* tm, unsigned char panel, unsigned char fb)
 {
     if (panel > MAX_DEV_NUM || fb > MAX_DEV_NUM)
         return eEDevN;
 
-    if(ts->panel[panel].used == -1 || ts->fb[fb].used == -1)
+    if(tm->panel[panel].used == -1 || tm->fb[fb].used == -1)
         return eEDevU;
 
-    return __tsqsi_transfer(x, y, &ts->panel[panel], &ts->fb[fb]);
+    return __tm_transfer(x, y, &tm->panel[panel], &tm->fb[fb]);
 }
