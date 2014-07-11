@@ -17,6 +17,8 @@
 
 struct sTmData* tm;
 
+uint8_t  g_header[Queue_HdrLen]={Queue_Hdr0, Queue_Hdr1};
+
 #if 1 // test on ubuntu
 
 struct sEventDev srcEvDev[] = {
@@ -143,13 +145,56 @@ void tm_set_dev_param(struct sEventDev* evDev, struct sTmDataDev* dataDev)
     }
 }
 
-void tm_save_event(struct input_event *ev, struct sEventDev *srcEv, tm_op_code op)
+void tm_save_event(sInputEv *ev, struct sEventDev *srcEv, tm_op_code op)
 {
-    q_dbg("dev %d => type : %2x, code : %2x, value : %2x",srcEv->dev ,ev->type, ev->code, ev->value);
+    q_dbg("save %d => type : %2x, code : %2x, value : %2x",srcEv->dev ,ev->type, ev->code, ev->value);
 
-
+    q_set_queue(tm->queue, g_header, sizeof(g_header), q_true);
+    q_set_queue(tm->queue, ev, sizeof(sInputEv), q_true);
+    q_set_queue(tm->queue, &srcEv, sizeof(struct sEventDev *), q_true);
+    q_set_queue(tm->queue, &op, sizeof(tm_op_code), q_true);
 
     return;
+}
+
+void tm_send_event(sInputEv *ev, struct sEventDev *srcEv, tm_op_code op)
+{
+    q_dbg("send %d => type : %2x, code : %2x, value : %2x",srcEv->dev ,ev->type, ev->code, ev->value);
+    return;
+}
+
+void tm_parse_event()
+{
+    char* buf;
+    char hdr;
+    tm_op_code op;
+    struct sEventDev *srcEv;
+    sInputEv ev;
+
+
+
+    while(q_size_queue(tm->queue) != 0)
+    {
+        if( q_pop_queue(tm->queue, &hdr) || hdr != (char)Queue_Hdr0 )
+            continue;
+
+        if( q_pop_queue(tm->queue, &hdr) || hdr != (char)Queue_Hdr1 )
+            continue;
+
+        buf = (char*)&ev;
+        if(q_get_queue(tm->queue, buf, sizeof(sInputEv)) != sizeof(sInputEv))
+            break;
+
+        buf = (char*)&srcEv;
+        if(q_get_queue(tm->queue, buf, sizeof(struct sEventDev *)) != sizeof(struct sEventDev *))
+            break;
+
+        buf = (char*)&op;
+        if(q_get_queue(tm->queue, buf, sizeof(tm_op_code)) != sizeof(tm_op_code))
+            break;
+
+        tm_send_event(&ev, srcEv, op);
+    }
 }
 
 int main(int argc, char* argv[])
@@ -194,6 +239,13 @@ int main(int argc, char* argv[])
     tm_check_per(x,y,&tm->fb[f]);
 
 #endif
+    int count=0;
+    while((++count) < 50)
+    {
+        if(q_size_queue(tm->queue) != 0)
+            tm_parse_event();
+        usleep(100000);
+    }
     sleep(5);
 
 //  close socket ..

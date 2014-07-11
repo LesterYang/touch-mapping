@@ -342,9 +342,9 @@ typedef struct q_queue {
 q_queue* 	q_create_queue(int size);
 void 		q_destroy_queue(q_queue* q);
 int 		q_get_queue(q_queue* q, char* buf, size_t len);
-int 		q_set_queue(q_queue* q, char* buf, size_t len, q_bool expand);
+int 		q_set_queue(q_queue* q, void* buf, size_t len, q_bool expand);
 int 		q_pop_queue(q_queue* q, char* item);
-int 		q_add_queue(q_queue* q, char* item, q_bool expand);
+int 		q_add_queue(q_queue* q, void* item, q_bool expand);
 int 		q_peek_queue(q_queue* q, char* item, int idx);
 size_t 		q_size_queue(q_queue* q);
 void 		q_expand_queue(q_queue* q);

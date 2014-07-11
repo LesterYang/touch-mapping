@@ -101,37 +101,37 @@ qerrno tm_update_conf(struct sTmData* tm)
 
         if((param = strtok(NULL," ")) != NULL)
         {
-            dev->min_x = (short)atoi(param);
+            dev->min_x = (int16_t)atoi(param);
         }
 
         if(param != NULL && (param = strtok(NULL," ")) != NULL)
         {
-            dev->max_x = (short)atoi(param);
+            dev->max_x = (int16_t)atoi(param);
         }
 
         if(param != NULL && (param = strtok(NULL," ")) != NULL)
         {
-            dev->min_y = (short)atoi(param);
+            dev->min_y = (int16_t)atoi(param);
         }
 
         if(param != NULL && (param = strtok(NULL," ")) != NULL)
         {
-            dev->max_y = (short)atoi(param);
+            dev->max_y = (int16_t)atoi(param);
         }
 
         if(param != NULL && (param = strtok(NULL," ")) != NULL)
         {
-            dev->horizontal = (short)atoi(param);
+            dev->horizontal = (int16_t)atoi(param);
         }
 
         if(param != NULL && (param = strtok(NULL," ")) != NULL)
         {
-            dev->vertical = (short)atoi(param);
+            dev->vertical = (int16_t)atoi(param);
         }
 
         if(param != NULL && (param = strtok(NULL," ")) != NULL)
         {
-            dev->swap = (short)atoi(param);
+            dev->swap = (int16_t)atoi(param);
 #if 1
             printf("set %5s %d : x %4d ~ %4d, y %4d ~ %4d, h %d, v %d, s %d\n"
                     ,(is_fb) ? "fb" : "panel"
@@ -193,7 +193,7 @@ void tm_destroy(struct sTmData* tm)
 }
 
 
-short tm_calculate_permille(short val, short min, short max, char reverse)
+int16_t tm_calculate_permille(int16_t val, int16_t min, int16_t max, char reverse)
 {
     int permille;
 
@@ -207,19 +207,19 @@ short tm_calculate_permille(short val, short min, short max, char reverse)
     if(reverse)
         permille = MULTIPLE - permille;
 
-    return (short)permille;
+    return (int16_t)permille;
 }
 
-short tm_calculate_output(short permille, short min, short max)
+int16_t tm_calculate_output(int16_t permille, int16_t min, int16_t max)
 {
-    short output;
+    int16_t output;
 
     //printf("min %d max %d per %d : %d %d\n",min,max,permille,permille <= 0, max <= min);
 
     if(permille < 0 || max <= min)
         return -1;
 
-    output = min + (short)((permille * ((int)max - min)) / MULTIPLE);
+    output = min + (int16_t)((permille * ((int)max - min)) / MULTIPLE);
 
     if(output > max)
         return -1;
@@ -227,9 +227,9 @@ short tm_calculate_output(short permille, short min, short max)
     return output;
 };
 
-qerrno __tm_transfer(short* x, short* y, struct sTmDataDev* src, struct sTmDataDev* dest)
+qerrno __tm_transfer(int16_t* x, int16_t* y, struct sTmDataDev* src, struct sTmDataDev* dest)
 {
-    short per, out_x, out_y;
+    int16_t per, out_x, out_y;
 
     per = tm_calculate_permille(*x, src->min_x, src->max_x, src->horizontal != dest->horizontal);
     out_x = tm_calculate_output(per, dest->min_x, dest->max_x);
@@ -253,7 +253,7 @@ qerrno __tm_transfer(short* x, short* y, struct sTmDataDev* src, struct sTmDataD
     return eENoErr;
 }
 
-qerrno tm_transfer(short* x, short* y, struct sTmData* tm, unsigned char panel, unsigned char fb)
+qerrno tm_transfer(int16_t* x, int16_t* y, struct sTmData* tm, unsigned char panel, unsigned char fb)
 {
     if (panel > eTmDevNum || fb > eTmDevNum)
         return eEDevN;
@@ -264,9 +264,9 @@ qerrno tm_transfer(short* x, short* y, struct sTmData* tm, unsigned char panel, 
     return __tm_transfer(x, y, &tm->panel[panel], &tm->fb[fb]);
 }
 
-qerrno __tm_transfer_value(short* val, tm_event_code code, struct sTmDataDev* src, struct sTmDataDev* dest)
+qerrno __tm_transfer_value(int16_t* val, tm_event_code code, struct sTmDataDev* src, struct sTmDataDev* dest)
 {
-    short per, out_x, out_y;
+    int16_t per, out_x, out_y;
 
     if(code == eTmEventX)
     {
@@ -291,7 +291,7 @@ qerrno __tm_transfer_value(short* val, tm_event_code code, struct sTmDataDev* sr
     return eENoErr;
 }
 
-qerrno tm_transfer_x(short* val, struct sTmData* tm, unsigned char panel, unsigned char fb)
+qerrno tm_transfer_x(int16_t* val, struct sTmData* tm, unsigned char panel, unsigned char fb)
 {
     if (panel > eTmDevNum || fb > eTmDevNum)
         return eEDevN;
@@ -305,7 +305,7 @@ qerrno tm_transfer_x(short* val, struct sTmData* tm, unsigned char panel, unsign
 qerrno tm_transfer_ev(sInputEv *ev, struct sTmData* tm, unsigned char panel, unsigned char fb)
 {
     tm_event_code code = eTmEventNone;
-    short val = (short)ev->value;
+    int16_t val = (int16_t)ev->value;
 
 
 
@@ -322,13 +322,6 @@ qerrno tm_transfer_ev(sInputEv *ev, struct sTmData* tm, unsigned char panel, uns
     }
 
     return eENoErr;
-}
-
-
-void tm_send_event(sInputEv *ev, tm_dev from,  tm_op_code op)
-{
-
-    return;
 }
 
 

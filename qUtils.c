@@ -393,7 +393,7 @@ int q_get_queue(q_queue* q, char* buf, size_t len)
 	return i;
 }
 
-int q_set_queue(q_queue* q, char* buf, size_t len, q_bool expand)
+int q_set_queue(q_queue* q, void* buf, size_t len, q_bool expand)
 {
 	q_assert(q);
 	q_assert(buf);
@@ -407,7 +407,7 @@ int q_set_queue(q_queue* q, char* buf, size_t len, q_bool expand)
 	return i;
 }
 
-int q_add_queue(q_queue* q, char* item, q_bool expand)
+int q_add_queue(q_queue* q, void* item, q_bool expand)
 {
 	q_assert(q);
 
@@ -419,7 +419,7 @@ int q_add_queue(q_queue* q, char* item, q_bool expand)
 	}
 
 	q->rear = (q->rear + 1 ) % q->len_buf;
-	q->buf[q->rear] = *item;
+	q->buf[q->rear] = *(char*)item;
 	return 0;
 }
 

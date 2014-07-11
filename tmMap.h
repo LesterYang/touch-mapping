@@ -9,12 +9,13 @@
 #define QTS_H_
 
 #include <stdio.h>
+#include <stdint.h>
 #include <linux/input.h>
 
 #define QSI_TM_CONF         "/mnt/hgfs/Win_7/workspace-cpp2/touch-mapping/qsi_tm.conf"
 #define BUF_SIZE            (256)
 #define MULTIPLE            (4096)
-#define MAX_QUEUE           (256)
+#define MAX_QUEUE           (512)
 
 typedef struct input_event sInputEv;
 
@@ -88,10 +89,10 @@ struct sInputEvDev
 // swap is 0 if x is horizontal
 struct sTmDataDev
 {
-    short min_x;
-    short max_x;
-    short min_y;
-    short max_y;
+    int16_t min_x;
+    int16_t max_x;
+    int16_t min_y;
+    int16_t max_y;
     char swap;
     char horizontal;
     char vertical;
@@ -112,30 +113,21 @@ struct sEventDev
       };
 };
 
-struct sTmData
-{
-    int fd;
-    FILE *fr;
-    q_mutex* mutex;
-    q_queue* queue;
-    struct sTmDataDev panel[eTmDevNum];
-    struct sTmDataDev fb[eTmDevNum];
-};
+struct sTmData;
 
 const char* tm_errorno_str(qerrno no);
 qerrno      tm_create(struct sTmData** p_tm);
 void        tm_destroy(struct sTmData* tm);
 qerrno      tm_update_conf(struct sTmData* tm);
-short       tm_calculate_permille(short val, short min, short max, char reverse);
-short       tm_calculate_output(short permille, short min, short max);
-qerrno      __tm_transfer(short* x, short* y, struct sTmDataDev* src, struct sTmDataDev* dest);
-qerrno      tm_transfer(short* x, short* y, struct sTmData* tm, unsigned char panel, unsigned char fb);
+int16_t     tm_calculate_permille(int16_t val, int16_t min, int16_t max, char reverse);
+int16_t     tm_calculate_output(int16_t permille, int16_t min, int16_t max);
+qerrno      __tm_transfer(int16_t* x, int16_t* y, struct sTmDataDev* src, struct sTmDataDev* dest);
+qerrno      tm_transfer(int16_t* x, int16_t* y, struct sTmData* tm, unsigned char panel, unsigned char fb);
 
-qerrno      __tm_transfer_value(short* val, tm_event_code code, struct sTmDataDev* src, struct sTmDataDev* dest);
+qerrno      __tm_transfer_value(int16_t* val, tm_event_code code, struct sTmDataDev* src, struct sTmDataDev* dest);
 qerrno      tm_transfer_ev(sInputEv *ev, struct sTmData* tm, unsigned char panel, unsigned char fb);
 
-void        tm_save_event(sInputEv *ev, struct sEventDev *srcEv, tm_op_code op);
-void        tm_send_event(sInputEv *ev, tm_dev from, tm_op_code op);
+
 
 qerrno      tm_set_direction(struct sTmData* tm, tm_dev source, tm_ap target_ap);
 
