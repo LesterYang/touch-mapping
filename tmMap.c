@@ -8,6 +8,7 @@
 #include <stdlib.h>
 
 #include "qUtils.h"
+#include "tm.h"
 #include "tmMap.h"
 #include "tmInput.h"
 

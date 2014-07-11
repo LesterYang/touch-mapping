@@ -11,6 +11,7 @@
 #include <fcntl.h>
 
 #include "qUtils.h"
+#include "tm.h"
 #include "tmMap.h"
 #include "tmInput.h"
 
@@ -57,10 +58,7 @@ struct sEventDev destEvDev[] = {
 };
 #endif
 
-qerrno  tm_init(void);
-void    tm_deinit(void);
-void    tm_shutdown(int signum);
-void    tm_set_dev_param(struct sEventDev* evDev, struct sTmDataDev* dataDev);
+
 
 void tm_check_per(short x, short y, struct sTmDataDev* dev)
 {
