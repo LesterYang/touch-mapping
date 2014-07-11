@@ -22,43 +22,7 @@
 #include "tmMap.h"
 #include "tmInput.h"
 
-
 #define mark_input 0
-
-
-#if 1 // test on ubuntu
-
-struct sInputEvDev srcEvDev[] = {
-    { "/dev/input/event0",       -1},
-    { "/dev/input/event1",       -1},
-    { "/dev/input/event2",       -1},
-    { "/dev/input/mouse0",       -1},
-    { "/dev/input/mouse1",       -1},
-    {      NULL,      0}
-};
-
-struct sInputEvDev destEvDev[] = {
-    {      NULL,      0},
-    {      NULL,      0}
-};
-
-#else
-struct sInputEvDev srcEvDev[] = {
-    { "/dev/input/event0",       -1},
-    { "/dev/input/event1",       -1},
-    { "/dev/input/event2",       -1},
-    { "/dev/input/event3",       -1},
-    {      NULL,      0}
-};
-
-struct sInputEvDev destEvDev[] = {
-    { "/dev/input/event20",       -1},
-    { "/dev/input/event21",       -1},
-    { "/dev/input/event22",       -1},
-    { "/dev/input/event23",       -1},
-    {      NULL,      0}
-};
-#endif
 
 typedef struct sInputData {
     fd_set skfds;
@@ -75,7 +39,7 @@ typedef struct sInputData {
 }sInputData;
 
 sInputData qInputData;
-
+struct sEventDev *srcEv;
 
 int  tm_inputInitEvents();
 void tm_inputCloseEvents();
@@ -84,12 +48,14 @@ int  tm_inputAddFd (fd_set * fdsp);
 int  tm_inputParseDev();
 static void tm_inputThread(void *data);
 
-int tm_inputInit()
+int tm_inputInit(struct sEventDev* evDev)
 {
 #if mark_input
     return 0;
 #endif
+    q_assert(evDev);
 
+    srcEv = evDev;
     memset(&qInputData, 0, sizeof(qInputData));
 
     if ( tm_inputInitEvents() < 1 )
@@ -130,20 +96,12 @@ int tm_inputInitEvents()
 
     tm_inputCleanStdin();
 
-    for(idx=0; destEvDev[idx].evDevName != NULL; idx++)
+    for(idx=0; srcEv[idx].evDevPath != NULL; idx++)
     {
-        if((destEvDev[idx].fd = open (destEvDev[idx].evDevName, O_RDONLY )) < 0)
+        if((srcEv[idx].fd = open (srcEv[idx].evDevPath, O_RDONLY )) < 0)
             continue;
 
-        q_dbg("Opened %s as target device [counter %d]",destEvDev[idx].evDevName, idx);
-    }
-
-    for(idx=0; srcEvDev[idx].evDevName != NULL; idx++)
-    {
-        if((srcEvDev[idx].fd = open (srcEvDev[idx].evDevName, O_RDONLY )) < 0)
-            continue;
-
-        q_dbg("Opened %s as event device [counter %d]",srcEvDev[idx].evDevName, idx);
+        q_dbg("Opened %s as event device [counter %d]",srcEv[idx].evDevPath, idx);
     }
 
     if (idx > 0)
@@ -156,20 +114,11 @@ void tm_inputCloseEvents()
 {
     int idx;
 
-    for(idx=0; destEvDev[idx].evDevName != NULL; idx++)
+    for(idx=0; srcEv[idx].evDevPath != NULL; idx++)
     {
-        if (destEvDev[idx].fd >= 0)
+        if (srcEv[idx].fd >= 0)
         {
-            q_close(destEvDev[idx].fd);
-            q_dbg("Closed target device [counter %d]", idx);
-        }
-    }
-
-    for(idx=0; srcEvDev[idx].evDevName != NULL; idx++)
-    {
-        if (srcEvDev[idx].fd >= 0)
-        {
-            q_close(srcEvDev[idx].fd);
+            q_close(srcEv[idx].fd);
             q_dbg("Closed event device [counter %d]", idx);
         }
     }
@@ -209,13 +158,13 @@ int tm_inputAddFd(fd_set * fdsp)
 
     maxfd = -1;
 
-    for(idx=0; srcEvDev[idx].evDevName != NULL; idx++)
+    for(idx=0; srcEv[idx].evDevPath != NULL; idx++)
     {
-        if (srcEvDev[idx].fd >= 0)
+        if (srcEv[idx].fd >= 0)
         {
-            FD_SET(srcEvDev[idx].fd, fdsp);
-            if (srcEvDev[idx].fd > maxfd)
-                maxfd = srcEvDev[idx].fd;
+            FD_SET(srcEv[idx].fd, fdsp);
+            if (srcEv[idx].fd > maxfd)
+                maxfd = srcEv[idx].fd;
         }
     }
 
@@ -224,48 +173,42 @@ int tm_inputAddFd(fd_set * fdsp)
 
 int tm_inputParseDev()
 {
-    q_bool trans = q_false;
+    tm_op_code op = eTmOpCodeNone;
+    struct sEventDev *src_dev= NULL;
     int i, j;
-    char buf[sizeof(struct input_event)] = {0};
-    struct input_event *inEvent = (struct input_event *)buf;
+    char buf[sizeof(sInputEv)] = {0};
+    sInputEv *inEvent = (sInputEv *)buf;
 
     if (&qInputData.evfds == NULL)
         return -1;
 
-    for(i=0; srcEvDev[i].evDevName != NULL; i++)
+    for(i=0; srcEv[i].evDevPath != NULL; i++)
     {
-        if (srcEvDev[i].fd < 0)
+        if (srcEv[i].fd < 0)
             continue;
 
-        if (!(FD_ISSET(srcEvDev[i].fd, &qInputData.evfds)))
+        if (!(FD_ISSET(srcEv[i].fd, &qInputData.evfds)))
             continue;
 
-        j = q_loop_read(srcEvDev[i].fd, buf, sizeof(struct input_event));
+        if(qInputData.flag.openInput == q_false)
+            return 0;
 
-        if(j == (int)sizeof(struct input_event))
+        j = q_loop_read(srcEv[i].fd, buf, sizeof(sInputEv));
+
+        if(j == (int)sizeof(sInputEv))
             break;
-        /*
-        if ( (j == 0) || (j == -1) || ((int)sizeof(struct input_event) > j) )
-            continue;
-        else
-            break;
-            */
     }
 
-    q_dbg("dev %d => type : %2x, code : %2x, value : %2x",i ,inEvent->type, inEvent->code, inEvent->value);
+    src_dev = &srcEv[i];
 
     switch (inEvent->type)
     {
         case EV_SYN:
+            op = eTmOpCodeEnd;
             break;
         case EV_KEY:
-            switch (inEvent->code)
-            {
-                case BTN_TOUCH:
-                    break;
-                default:
-                    break;
-            }
+            if(inEvent->code == BTN_TOUCH && inEvent->value)
+                op = eTmOpCodeStart;
             break;
 
         case EV_ABS:
@@ -275,30 +218,33 @@ int tm_inputParseDev()
                 case ABS_Y:
                 case ABS_MT_POSITION_X:
                 case ABS_MT_POSITION_Y:
-                    trans = q_true;
+                    op = eTmOpCodeTrans;
+                    break;
+                default:
                     break;
             }
         default:
             break;
     }
 
-    tm_send_event(inEvent, destEvDev, trans);
+    tm_save_event(inEvent, src_dev, op);
     return 0;
 }
 
 static void tm_inputThread(void *data)
 {
     struct timeval tv;
+    int ret;
 
-    while (qInputData.flag.openInput)
+    while(qInputData.flag.openInput)
     {
-        tm_inputAddFd ( &qInputData.evfds );
+        tm_inputAddFd( &qInputData.evfds );
         tv.tv_sec  = 0;
         tv.tv_usec = 50000;
 
-        while ( 0 < select((qInputData.maxfd)+1, &qInputData.evfds, NULL, NULL, &tv) )
+        while( (ret = select((qInputData.maxfd)+1, &qInputData.evfds, NULL, NULL, &tv)) >= 0)
         {
-            if ( 0 > tm_inputParseDev() )
+            if( ret > 0 && tm_inputParseDev() < 0)
             {
                 fprintf(stderr, "IO thread failed\n");
                 break;

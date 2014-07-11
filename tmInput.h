@@ -8,11 +8,7 @@
 #ifndef QINPUT_H_
 #define QINPUT_H_
 
-#define MAXEVDEVS (8)
-#define EVDEVNAME "/dev/input/event%d"
-
-
-int  tm_inputInit();
+int  tm_inputInit(struct sEventDev* evDev);
 void tm_inputDeinit();
 
 #endif /* QINPUT_H_ */

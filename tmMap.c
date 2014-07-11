@@ -32,14 +32,14 @@ const char* tm_errorno_str(qerrno no)
 
 qerrno tm_update_conf(struct sTmData* tm)
 {
-    struct sTmData_dev* dev;
+    struct sTmDataDev* dev;
     char* conf_file;
     char* param;
     char buf[BUF_SIZE], alloc=0;
     int id;
     char is_fb;
 
-    for(id = 0; id < MAX_DEV_NUM; id++)
+    for(id = 0; id < eTmDevNum; id++)
     {
         tm->fb[id].used = -1;
         tm->panel[id].used = -1;
@@ -88,7 +88,7 @@ qerrno tm_update_conf(struct sTmData* tm)
 
         id = param[0] - '0';
 
-        if(id < 0 || id >= MAX_DEV_NUM)
+        if(id < 0 || id >= eTmDevNum)
             continue;
 
         if(is_fb)
@@ -226,7 +226,7 @@ short tm_calculate_output(short permille, short min, short max)
     return output;
 };
 
-qerrno __tm_transfer(short* x, short* y, struct sTmData_dev* src, struct sTmData_dev* dest)
+qerrno __tm_transfer(short* x, short* y, struct sTmDataDev* src, struct sTmDataDev* dest)
 {
     short per, out_x, out_y;
 
@@ -254,7 +254,7 @@ qerrno __tm_transfer(short* x, short* y, struct sTmData_dev* src, struct sTmData
 
 qerrno tm_transfer(short* x, short* y, struct sTmData* tm, unsigned char panel, unsigned char fb)
 {
-    if (panel > MAX_DEV_NUM || fb > MAX_DEV_NUM)
+    if (panel > eTmDevNum || fb > eTmDevNum)
         return eEDevN;
 
     if(tm->panel[panel].used == -1 || tm->fb[fb].used == -1)
@@ -263,17 +263,17 @@ qerrno tm_transfer(short* x, short* y, struct sTmData* tm, unsigned char panel, 
     return __tm_transfer(x, y, &tm->panel[panel], &tm->fb[fb]);
 }
 
-qerrno __tm_transfer_value(short* val, tm_code code, struct sTmData_dev* src, struct sTmData_dev* dest)
+qerrno __tm_transfer_value(short* val, tm_event_code code, struct sTmDataDev* src, struct sTmDataDev* dest)
 {
     short per, out_x, out_y;
 
-    if(code == eTmCodeX)
+    if(code == eTmEventX)
     {
         per = tm_calculate_permille(*val, src->min_x, src->max_x, src->horizontal != dest->horizontal);
         if((out_x = tm_calculate_output(per, dest->min_x, dest->max_x)) == -1)
             return eEPoint;
     }
-    else if(code == eTmCodeY)
+    else if(code == eTmEventY)
     {
         per = tm_calculate_permille(*val, src->min_y, src->max_y, src->vertical != dest->vertical);
         if((out_y = tm_calculate_output(per, dest->min_y, dest->max_y)) == -1)
@@ -292,23 +292,23 @@ qerrno __tm_transfer_value(short* val, tm_code code, struct sTmData_dev* src, st
 
 qerrno tm_transfer_x(short* val, struct sTmData* tm, unsigned char panel, unsigned char fb)
 {
-    if (panel > MAX_DEV_NUM || fb > MAX_DEV_NUM)
+    if (panel > eTmDevNum || fb > eTmDevNum)
         return eEDevN;
 
     if(tm->panel[panel].used == -1 || tm->fb[fb].used == -1)
         return eEDevU;
 
-    return __tm_transfer_value(val, eTmCodeX, &tm->panel[panel], &tm->fb[fb]);
+    return __tm_transfer_value(val, eTmEventX, &tm->panel[panel], &tm->fb[fb]);
 }
 
-qerrno tm_transfer_ev(struct input_event *ev, struct sTmData* tm, unsigned char panel, unsigned char fb)
+qerrno tm_transfer_ev(sInputEv *ev, struct sTmData* tm, unsigned char panel, unsigned char fb)
 {
-    tm_code code = eTmCodeNone;
+    tm_event_code code = eTmEventNone;
     short val = (short)ev->value;
 
 
 
-    if (panel > MAX_DEV_NUM || fb > MAX_DEV_NUM)
+    if (panel > eTmDevNum || fb > eTmDevNum)
         return eEDevN;
 
     if(tm->panel[panel].used == -1 || tm->fb[fb].used == -1)
@@ -323,8 +323,23 @@ qerrno tm_transfer_ev(struct input_event *ev, struct sTmData* tm, unsigned char 
     return eENoErr;
 }
 
-void tm_send_event(struct input_event *ev, struct sInputEvDev* target,  q_bool transfer)
+
+void tm_send_event(sInputEv *ev, tm_dev from,  tm_op_code op)
 {
 
     return;
+}
+
+
+qerrno tm_set_direction(struct sTmData* tm, tm_dev source, tm_ap target_ap)
+{
+   // int idx;
+    tm_dev target = eTmDevNone;
+
+    if (target == eTmDevNone || tm->fb[target].used < 0 || tm->panel[source].used < 0)
+        return eEDevU;
+
+    q_dbg("set panel %2d -> fb %2d ",source, target);
+
+    return eENoErr;
 }
