@@ -86,3 +86,4 @@ Icon
 *.log
 *.sql
 *.sqlite
+/Debug/

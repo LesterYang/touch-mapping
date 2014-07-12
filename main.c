@@ -15,9 +15,24 @@
 #include "tmMap.h"
 #include "tmInput.h"
 
-struct sTmData* tm;
-
+struct sTmData* tm = NULL;
+tm_main_status g_status = eTmStatusNone;
 uint8_t  g_header[Queue_HdrLen]={Queue_Hdr0, Queue_Hdr1};
+
+
+struct sStatusInfo{
+	tm_main_status status;
+	const char* str;
+};
+
+struct sStatusInfo statusInfo[] = {
+    {eTmStatusNone,			"None"},
+	{eTmStatusInputeInit,	"InputeInit"},
+	{eTmStatusSocketInit,	"SocketInit"},
+	{eTmStatusLoop,			"MainLoop"},
+	{eTmStatusDeinit,		"Deinit"},
+	{eTmStatusError,		"Error"},
+};
 
 #if 1 // test on ubuntu
 
@@ -69,6 +84,13 @@ void tm_check_per(short x, short y, struct sTmDataDev* dev)
     printf("x %2d%% y %2d%%\n",(perx*100)/MULTIPLE, (pery*100)/MULTIPLE);
 }
 
+void tm_switch_main_status(tm_main_status status)
+{
+	q_dbg("status : %10s -> %s", statusInfo[g_status].str, statusInfo[status].str);
+	g_status = status;
+
+}
+
 qerrno tm_init()
 {
     int i, j;
@@ -83,7 +105,8 @@ qerrno tm_init()
         return err_no;
     }
 
-    tm_inputInit(srcEvDev);
+    if(tm_inputInit(srcEvDev))
+    	return eEOpen;
 
     for(i=0; destEvDev[i].evDevPath != NULL; i++)
     {
@@ -149,6 +172,9 @@ void tm_save_event(sInputEv *ev, struct sEventDev *srcEv, tm_op_code op)
 {
     q_dbg("save %d => type : %2x, code : %2x, value : %2x",srcEv->dev ,ev->type, ev->code, ev->value);
 
+	if(g_status != eTmStatusLoop)
+		return;
+
     q_set_queue(tm->queue, g_header, sizeof(g_header), q_true);
     q_set_queue(tm->queue, ev, sizeof(sInputEv), q_true);
     q_set_queue(tm->queue, &srcEv, sizeof(struct sEventDev *), q_true);
@@ -170,8 +196,6 @@ void tm_parse_event()
     tm_op_code op;
     struct sEventDev *srcEv;
     sInputEv ev;
-
-
 
     while(q_size_queue(tm->queue) != 0)
     {
@@ -202,13 +226,61 @@ int main(int argc, char* argv[])
 
 // fork ....
 
-    if(tm_init() != eENoErr)
-        return 0;
+	int count = 0; // for test
+	g_status = eTmStatusInputeInit;
+
+	while(1)
+	{
+		switch(g_status)
+		{
+			case eTmStatusInputeInit:
+			    if(tm_init() != eENoErr)
+			        return 0;
+			    tm_switch_main_status(eTmStatusSocketInit);
+			    break;
+
+			case eTmStatusSocketInit:
+				tm_switch_main_status(eTmStatusLoop);
+				break;
+
+			case eTmStatusLoop:
+
+#if 1 // for test
+			    while((++count) < 50)
+			    {
+			        if(q_size_queue(tm->queue) != 0)
+			            tm_parse_event();
+			        usleep(100000);
+			    }
+			    //sleep(5);
+			    tm_switch_main_status(eTmStatusDeinit);
+#endif
+				break;
+
+			case eTmStatusDeinit:
+				//  close socket ..
+				tm_deinit();
+				break;
+
+			case eTmStatusError:
+				tm_switch_main_status(eTmStatusDeinit);
+				break;
+
+			default:
+				tm_switch_main_status(eTmStatusError);
+				break;
+		}
+	}
+
+
+
+
+
 
 // socket init ...
 // while loop...
 
-#if 1 // test points
+#if 0 // test points
     short x,y;
     unsigned char p,f;
     qerrno err_no;
@@ -239,17 +311,7 @@ int main(int argc, char* argv[])
     tm_check_per(x,y,&tm->fb[f]);
 
 #endif
-    int count=0;
-    while((++count) < 50)
-    {
-        if(q_size_queue(tm->queue) != 0)
-            tm_parse_event();
-        usleep(100000);
-    }
-    sleep(5);
 
-//  close socket ..
-    tm_deinit();
 
     return 0;
 }

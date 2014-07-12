@@ -70,6 +70,7 @@ int tm_inputInit(struct sEventDev* evDev)
     if ( qInputData.maxfd <= 0 )
     {
         qerror("Failed to organize event input");
+        return 1;
     }
 
     qInputData.thread = q_thread_new(tm_inputThread, NULL);
@@ -81,7 +82,6 @@ void tm_inputDeinit()
 #if mark_input
     return;
 #endif
-
     tm_inputCloseEvents();
 
     if (qInputData.thread){

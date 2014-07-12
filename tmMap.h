@@ -12,7 +12,8 @@
 #include <stdint.h>
 #include <linux/input.h>
 
-#define QSI_TM_CONF         "/mnt/hgfs/Win_7/workspace-cpp2/touch-mapping/qsi_tm.conf"
+//#define QSI_TM_CONF         "/mnt/hgfs/Win_7/workspace-cpp2/touch-mapping/qsi_tm.conf"
+#define QSI_TM_CONF 		"/Space/eclipse_cpp/workspace/touch-mapping/qsi_tm.conf"
 #define BUF_SIZE            (256)
 #define MULTIPLE            (4096)
 #define MAX_QUEUE           (512)

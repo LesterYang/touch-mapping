@@ -14,6 +14,15 @@
 #define Queue_Hdr0      (0xff)
 #define Queue_Hdr1      (0x55)
 
+typedef enum tm_main_status{
+	eTmStatusNone,
+    eTmStatusInputeInit,
+    eTmStatusSocketInit,
+    eTmStatusLoop,
+    eTmStatusDeinit,
+    eTmStatusError,
+}tm_main_status;
+
 struct sTmData
 {
     int fd;
