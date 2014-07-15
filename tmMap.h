@@ -62,13 +62,12 @@ typedef enum tm_event_code{
     eTmEventNone,
     eTmEventX,
     eTmEventY,
-    eTmEventMtX,
-    eTmEventMtY
 }tm_event_code;
 
 typedef enum tm_op_code{
     eTmOpCodeNone,
-    eTmOpCodeTrans,
+    eTmOpCodeTransX,
+    eTmOpCodeTransY,
     eTmOpCodeStart,
     eTmOpCodeEnd,
     eTmOpCodeMtStart,
@@ -84,11 +83,11 @@ struct sInputEvDev
   tm_ap  displayAp;
 };
 
-// struct sTmDataDev :
+// struct sTmDevParam :
 // horizontal is 0 if event value increments from left to right
 // vertical is 0 if event value increments from top to bottom
 // swap is 0 if x is horizontal
-struct sTmDataDev
+struct sTmDevParam
 {
     int16_t min_x;
     int16_t max_x;
@@ -106,7 +105,7 @@ struct sEventDev
     int                 fd;
     tm_dev              dev;
     tm_ap               ap;
-    struct sTmDataDev*  paramDev;
+    struct sTmDevParam*  paramDev;
 
       union{
         struct sEventDev* sourceDev;
@@ -122,14 +121,9 @@ void        tm_destroy(struct sTmData* tm);
 qerrno      tm_update_conf(struct sTmData* tm);
 int16_t     tm_calculate_permille(int16_t val, int16_t min, int16_t max, char reverse);
 int16_t     tm_calculate_output(int16_t permille, int16_t min, int16_t max);
-qerrno      __tm_transfer(int16_t* x, int16_t* y, struct sTmDataDev* src, struct sTmDataDev* dest);
+qerrno      __tm_transfer(int16_t* x, int16_t* y, struct sTmDevParam* src, struct sTmDevParam* dest);
 qerrno      tm_transfer(int16_t* x, int16_t* y, struct sTmData* tm, unsigned char panel, unsigned char fb);
 
-qerrno      __tm_transfer_value(int16_t* val, tm_event_code code, struct sTmDataDev* src, struct sTmDataDev* dest);
-qerrno      tm_transfer_ev(sInputEv *ev, struct sTmData* tm, unsigned char panel, unsigned char fb);
-
-
-
-qerrno      tm_set_direction(struct sTmData* tm, tm_dev source, tm_ap target_ap);
+qerrno      tm_transfer_value(int16_t* val, tm_event_code code, struct sTmDevParam* src, struct sTmDevParam* dest);
 
 #endif /* QTS_H_ */

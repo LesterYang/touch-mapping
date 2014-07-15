@@ -33,7 +33,7 @@ const char* tm_errorno_str(qerrno no)
 
 qerrno tm_update_conf(struct sTmData* tm)
 {
-    struct sTmDataDev* dev;
+    struct sTmDevParam* dev;
     char* conf_file;
     char* param;
     char buf[BUF_SIZE], alloc=0;
@@ -227,7 +227,7 @@ int16_t tm_calculate_output(int16_t permille, int16_t min, int16_t max)
     return output;
 };
 
-qerrno __tm_transfer(int16_t* x, int16_t* y, struct sTmDataDev* src, struct sTmDataDev* dest)
+qerrno __tm_transfer(int16_t* x, int16_t* y, struct sTmDevParam* src, struct sTmDevParam* dest)
 {
     int16_t per, out_x, out_y;
 
@@ -264,7 +264,7 @@ qerrno tm_transfer(int16_t* x, int16_t* y, struct sTmData* tm, unsigned char pan
     return __tm_transfer(x, y, &tm->panel[panel], &tm->fb[fb]);
 }
 
-qerrno __tm_transfer_value(int16_t* val, tm_event_code code, struct sTmDataDev* src, struct sTmDataDev* dest)
+qerrno tm_transfer_value(int16_t* val, tm_event_code code, struct sTmDevParam* src, struct sTmDevParam* dest)
 {
     int16_t per, out_x, out_y;
 
@@ -287,53 +287,6 @@ qerrno __tm_transfer_value(int16_t* val, tm_event_code code, struct sTmDataDev* 
     {
         return eESwap;
     }
-
-    return eENoErr;
-}
-
-qerrno tm_transfer_x(int16_t* val, struct sTmData* tm, unsigned char panel, unsigned char fb)
-{
-    if (panel > eTmDevNum || fb > eTmDevNum)
-        return eEDevN;
-
-    if(tm->panel[panel].used == -1 || tm->fb[fb].used == -1)
-        return eEDevU;
-
-    return __tm_transfer_value(val, eTmEventX, &tm->panel[panel], &tm->fb[fb]);
-}
-
-qerrno tm_transfer_ev(sInputEv *ev, struct sTmData* tm, unsigned char panel, unsigned char fb)
-{
-    tm_event_code code = eTmEventNone;
-    int16_t val = (int16_t)ev->value;
-
-
-
-    if (panel > eTmDevNum || fb > eTmDevNum)
-        return eEDevN;
-
-    if(tm->panel[panel].used == -1 || tm->fb[fb].used == -1)
-        return eEDevU;
-
-
-    if(__tm_transfer_value(&val, code, &tm->panel[panel], &tm->fb[fb]) == eESwap)
-    {
-        ;
-    }
-
-    return eENoErr;
-}
-
-
-qerrno tm_set_direction(struct sTmData* tm, tm_dev source, tm_ap target_ap)
-{
-   // int idx;
-    tm_dev target = eTmDevNone;
-
-    if (target == eTmDevNone || tm->fb[target].used < 0 || tm->panel[source].used < 0)
-        return eEDevU;
-
-    q_dbg("set panel %2d -> fb %2d ",source, target);
 
     return eENoErr;
 }

@@ -159,6 +159,8 @@ int tm_inputAddFd(fd_set * fdsp)
 
     maxfd = -1;
 
+    fprintf(stderr, "set FD\n");
+
     for(idx=0; srcEv[idx].evDevPath != NULL; idx++)
     {
         if (srcEv[idx].fd >= 0)
@@ -216,10 +218,12 @@ int tm_inputParseDev()
             switch (inEvent->code)
             {
                 case ABS_X:
-                case ABS_Y:
                 case ABS_MT_POSITION_X:
+                    op = eTmOpCodeTransX;
+                    break;
+                case ABS_Y:
                 case ABS_MT_POSITION_Y:
-                    op = eTmOpCodeTrans;
+                    op = eTmOpCodeTransY;
                     break;
                 default:
                     break;
@@ -245,10 +249,9 @@ static void tm_inputThread(void *data)
 
         while( (ret = select((qInputData.maxfd)+1, &qInputData.evfds, NULL, NULL, &tv)) >= 0)
         {
-            if( ret > 0 && tm_inputParseDev() < 0)
+            if(ret > 0)
             {
-                fprintf(stderr, "IO thread failed\n");
-                break;
+                tm_inputParseDev();
             }
 
             if(qInputData.flag.openInput == q_false)
