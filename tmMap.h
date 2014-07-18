@@ -12,8 +12,8 @@
 #include <stdint.h>
 #include <linux/input.h>
 
-//#define QSI_TM_CONF         "/mnt/hgfs/Win_7/workspace-cpp2/touch-mapping/qsi_tm.conf"
-#define QSI_TM_CONF 		"/Space/eclipse_cpp/workspace/touch-mapping/qsi_tm.conf"
+#define QSI_TM_CONF         "/mnt/hgfs/Win_7/workspace-cpp2/touch-mapping/qsi_tm.conf"
+//#define QSI_TM_CONF 		"/Space/eclipse_cpp/workspace/touch-mapping/qsi_tm.conf"
 #define BUF_SIZE            (256)
 #define MULTIPLE            (4096)
 #define MAX_QUEUE           (512)
@@ -75,13 +75,6 @@ typedef enum tm_op_code{
 }tm_op_code;
 
 
-struct sInputEvDev
-{
-  const char *evDevPath;
-  int fd;
-  tm_dev displayDev;
-  tm_ap  displayAp;
-};
 
 // struct sTmDevParam :
 // horizontal is 0 if event value increments from left to right

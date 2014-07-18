@@ -41,7 +41,6 @@ struct sStatusInfo statusInfo[] = {
     {eTmStatusExit,         "Exit"},
 };
 
-
 #if 1 // test on ubuntu
 
 struct sEventDev srcEvDev[] = {
