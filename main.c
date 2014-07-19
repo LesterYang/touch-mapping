@@ -16,6 +16,13 @@ void tm_check_per(short x, short y, struct sTmDevParam* dev)
     printf("x %2d%% y %2d%%\n",(perx*100)/MULTIPLE, (pery*100)/MULTIPLE);
 }
 
+void tm_shutdown(int signum)
+{
+    tm_deinit();
+    exit(signum);
+}
+
+
 int main(int argc, char* argv[])
 {
 

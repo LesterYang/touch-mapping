@@ -1,16 +1,17 @@
 /*
- * _tmMap.h
+ * tmMapping.h
  *
  *  Created on: Jul 18, 2014
  *      Author: root
  */
 
-#ifndef TMMAP_H_
-#define TMMAP_H_
+#ifndef TMMAPPING_H_
+#define TMMAPPING_H_
 
 #include <stdio.h>
 #include <stdint.h>
 #include <linux/input.h>
+#include "_tm.h"
 
 #define QSI_TM_CONF         "/mnt/hgfs/Win_7/workspace-cpp2/touch-mapping/qsi_tm.conf"
 #define BUF_SIZE            (256)
@@ -24,6 +25,7 @@ typedef enum _tm_op_event       tm_op_event_t;
 
 typedef struct input_event      tm_input_event_t;
 typedef struct _tm_event_info   tm_event_info_t;
+typedef struct _tm_panel_info	tm_panel_info_t;
 typedef struct _tm_fb_param     tm_fb_param_t;
 typedef struct _tm_trans_matrix tm_trans_matrix_t;
 typedef struct _tm_config       tm_config_t;
@@ -40,7 +42,7 @@ enum _tm_ap{
     TM_AP_NONE = -1
 };
 
-enum _tm_dev{
+enum _tm_panel{
     TM_PANEL_FRONT,
     TM_PANEL_LEFT,
     TM_PANEL_RIGHT,
@@ -68,6 +70,8 @@ struct _tm_fb_param
 {
     int16_t x;
     int16_t y;
+	char horizontal;
+    char vertical;
     char swap;
     char used;
 };
@@ -80,23 +84,30 @@ struct _tm_trans_matrix
 
 struct _tm_event_info
 {
-    tm_event_type_t     type;
-    const char*         event_path;
-    int                 fd;
-    tm_dev              dev;
-    tm_ap               ap;
-
-    union{
-        struct{
-            tm_fb_param_t* fb_param;
-            tm_event_info_t* src_event;
-        };
-        struct{
-            tm_trans_matrix_t* trans_matrix;
-            tm_event_info_t* dest_event;
-        };
-    };
+	tm_ap_t         ap;
+    const char*     event_input_path;
+	int             fd_in;
+	const char*     event_onput_path;
+	int             fd_out;
+    tm_fb_param_t*  fb_param;           // Global array in tmMap.c,  tm_fb_param_t fb_param[TM_PANEL_NUM]
 };
 
+struct _tm_panel_info
+{
+	tm_panel_t          panel;
+	tm_event_info_t*    current;        // Global array in tm.c, tm_event_info_t event[TM_AP_NUM]
+	tm_trans_matrix_t*  trans_matrix;   // Global array in tmMap.c,  tm_trans_matrix_t cal[TM_PANEL_NUM]
+	tm_panel_info_t*    dest_panel;
+}
 
-#endif /* TMMAP_H_ */
+
+
+const char* tm_err_str(tm_errno_t no);
+tm_errno_t  tm_mapping_create_handler(tm_handler_t** p_tm);
+void        tm_mapping_destroy_handler(tm_handler_t* tm);
+tm_errno_t  tm_mapping_update_conf();      // update tm_trans_matrix_t cal[TM_PANEL_NUM]
+
+tm_errno_t  tm_mapping_transfer(int16_t *x, int16_t *y, tm_panel_info_t* src);
+
+
+#endif /* TMMAPPING_H_ */

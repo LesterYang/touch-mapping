@@ -9,7 +9,7 @@
 #define TM_H_
 
 #include <stdint.h>
-#include "_tmMap.h"
+#include "tmMapping.h"
 #include "qUtils.h"
 
 #define TM_HDR_LEN    (2)
@@ -51,8 +51,14 @@ struct _tm_handler
     q_mutex* mutex;
     q_queue* queue;
     tm_status_t status;
-    tm_fb_param_t fb[TM_PANEL_NUM];
+	tm_panel_t panel[TM_PANEL_NUM];
 };
+
+void        tm_switch_main_status(tm_status_t status);
+tm_status_t tm_get_main_status();
+tm_errno_t  tm_init(void);
+void        tm_deinit(void);
+void        tm_set_direction(tm_panel_t source, tm_panel_t target);
 
 
 #endif /* TM_H_ */

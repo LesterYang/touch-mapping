@@ -87,3 +87,19 @@ Icon
 *.sql
 *.sqlite
 /Debug/
+
+
+
+# SourceInsight #
+#################
+*.IAB
+*.IAD
+*.IMB
+*.IMD
+*.PFI
+*.PO
+*.PR
+*.PRI
+*.PS
+*.SearchResults
+*.WK3

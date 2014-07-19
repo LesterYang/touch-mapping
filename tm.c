@@ -159,12 +159,6 @@ void tm_deinit()
     tm_inputDeinit();
 }
 
-void tm_shutdown(int signum)
-{
-    tm_deinit();
-    exit(signum);
-}
-
 void tm_set_dev_param(struct sEventDev* evDev, struct sTmDevParam* paramDev)
 {
     int i;
@@ -213,7 +207,7 @@ void tm_save_event(sInputEv *ev, struct sEventDev *srcEv, tm_op_code op)
     q_set_queue(tm->queue, &srcEv, sizeof(struct sEventDev *), q_true);
     q_set_queue(tm->queue, &op, sizeof(tm_op_code), q_true);
 
-   q_mutex_unlock(tm->mutex);
+    q_mutex_unlock(tm->mutex);
 
     return;
 }
