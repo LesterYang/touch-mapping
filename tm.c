@@ -5,14 +5,138 @@
  *      Author: root
  */
 #include <stdlib.h>
-#include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "qUtils.h"
 #include "tm.h"
-#include "tmMap.h"
+#include "qUtils.h"
+#include "tmMapping.h"
 #include "tmInput.h"
+
+#if 1
+
+typedef struct _tm_info
+{
+    q_mutex*            mutex;
+    tm_status_t*        status;
+    tm_event_info_t*    event;
+    tm_panel_info_t*    panel;
+}tm_info_t;
+
+tm_info_t tm;
+
+tm_event_info_t g_event[] = {
+    {TM_AP_QSI,     "/dev/input/event0", -1, "/dev/input/event20", -1, NULL},
+    {TM_AP_QSI_L,   "/dev/input/event1", -1, "/dev/input/event21", -1, NULL},
+    {TM_AP_QSI_R,   "/dev/input/event2", -1, "/dev/input/event22", -1, NULL},
+    {TM_AP_NAVI,    "/dev/input/event3", -1, "/dev/input/event23", -1, NULL},
+    {TM_AP_MONITOR, "/dev/input/event4", -1, "/dev/input/event24", -1, NULL},
+    {TM_AP_NONE,                   NULL,  0,                 NULL,   0, NULL}
+};
+
+tm_panel_info_t g_panel[] = {
+    {TM_PANEL_FRONT, NULL, NULL, NULL},
+    {TM_PANEL_LEFT,  NULL, NULL, NULL},
+    {TM_PANEL_RIGHT, NULL, NULL, NULL},
+    {TM_PANEL_NONE,  NULL, NULL, NULL}
+};
+
+
+
+const char* tm_err_str(tm_errno_t no)
+{
+    switch(no)
+    {
+        case TM_ERRNO_SUCCESS:      return " No error";
+        case TM_ERRNO_NO_DEV:       return " No such device";
+        case TM_ERRNO_DEV_PARAM:    return " Parameter of device error";
+        case TM_ERRNO_DEV_NUM:      return " Bad device number";
+        case TM_ERRNO_ALLOC:        return " Allocate error";
+        case TM_ERRNO_OPEN:         return " Open file error";
+        case TM_ERRNO_POINT:        return " Points are out of rage";
+        case TM_ERRNO_PARAM:        return " Function parameter error";
+        case TM_ERRNO_SWAP:         return " Need to swap xy";
+        default:            break;
+    }
+    return "unknown";
+}
+
+void tm_set_default()
+{
+
+}
+
+
+
+tm_errno_t tm_init()
+{
+    tm_errno_t err_no;
+
+    tm.event = g_event;
+    tm.panel = g_panel;
+    tm.mutex = q_mutex_new(q_true, q_true);
+
+    if((err_no = tm_mapping_create_handler()) != TM_ERRNO_SUCCESS)
+    {
+        q_dbg("tm_create : %s", tm_err_str(err_no));
+        return err_no;
+    }
+
+    if((err_no = tm_input_init(tm.panel, tm.event)) != TM_ERRNO_SUCCESS)
+    {
+        q_dbg("tm_create : %s", tm_err_str(err_no));
+        return err_no;
+    }
+
+    // set default direction
+    tm.panel[TM_PANEL_FRONT].dest_panel = &tm.panel[TM_PANEL_FRONT];
+    tm.panel[TM_PANEL_FRONT].current    = &tm.event[TM_AP_QSI];
+    tm.panel[TM_PANEL_LEFT].dest_panel  = &tm.panel[TM_PANEL_LEFT];
+    tm.panel[TM_PANEL_LEFT].current     = &tm.event[TM_AP_QSI_L];
+    tm.panel[TM_PANEL_RIGHT].dest_panel = &tm.panel[TM_PANEL_RIGHT];
+    tm.panel[TM_PANEL_RIGHT].current    = &tm.event[TM_AP_QSI_R];
+
+
+    return TM_ERRNO_SUCCESS;
+}
+
+void tm_deinit()
+{
+    tm_mapping_destroy_handler();
+    tm_input_deinit();
+}
+
+void tm_bind_panel_ap(tm_panel_t panel, tm_panel_t ap)
+{
+    tm.panel[panel].current = &tm.event[ap];
+}
+
+void tm_set_direction(tm_panel_t source, tm_panel_t target)
+{
+    tm.panel[source].dest_panel = &tm.panel[target];
+}
+
+void tm_set_status(tm_status_t status)
+{
+    q_mutex_lock(tm.mutex);
+    *tm.status = status;
+    q_mutex_unlock(tm.mutex);
+}
+
+void tm_bind_status(tm_status_t* status)
+{
+    tm.status = status;
+}
+
+
+tm_errno_t tm_transfer(int16_t *x, int16_t *y, tm_panel_info_t* panel)
+{
+    return tm_mapping_transfer(x, y, panel->param, panel->current->fb_param, panel->dest_panel->current->fb_param);
+}
+
+#else
+
+
 
 struct sTmData* tm = NULL;
 
@@ -289,3 +413,4 @@ void tm_parse_event()
 
 
 }
+#endif

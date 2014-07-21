@@ -11,46 +11,24 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <linux/input.h>
-#include "_tm.h"
+#include "qUtils.h"
+#include "tmError.h"
 
 #define QSI_TM_CONF         "/mnt/hgfs/Win_7/workspace-cpp2/touch-mapping/qsi_tm.conf"
 #define BUF_SIZE            (256)
 #define MULTIPLE            (4096)
 #define MAX_QUEUE           (512)
 
-typedef enum _tm_ap             tm_ap_t;
-typedef enum _tm_panel          tm_panel_t;
+#define CAL_MATRIX_ROW      (2)
+#define CAL_MATRIX_COL      (3)
+
 typedef enum _tm_event_type     tm_event_type_t;
 typedef enum _tm_op_event       tm_op_event_t;
 
-typedef struct input_event      tm_input_event_t;
-typedef struct _tm_event_info   tm_event_info_t;
-typedef struct _tm_panel_info	tm_panel_info_t;
 typedef struct _tm_fb_param     tm_fb_param_t;
 typedef struct _tm_trans_matrix tm_trans_matrix_t;
+typedef struct _tm_linear       tm_linear_t;
 typedef struct _tm_config       tm_config_t;
-
-enum _tm_ap{
-    TM_AP_QSI,
-    TM_AP_QSI_L,
-    TM_AP_QSI_R,
-    TM_AP_NAVI,
-    TM_AP_MONITOR,
-
-    TM_AP_MAX,
-    TM_AP_NUM = TM_AP_MAX,
-    TM_AP_NONE = -1
-};
-
-enum _tm_panel{
-    TM_PANEL_FRONT,
-    TM_PANEL_LEFT,
-    TM_PANEL_RIGHT,
-
-    TM_PANEL_MAX,
-    TM_PANEL_NUM = TM_PANEL_MAX,
-    TM_PANEL_NONE = -1
-};
 
 enum _tm_event_type{
     TM_EVENT_TYPE_SOURCE,
@@ -68,46 +46,38 @@ enum _tm_op_event{
 
 struct _tm_fb_param
 {
+    int name;
     int16_t x;
     int16_t y;
 	char horizontal;
     char vertical;
     char swap;
-    char used;
 };
 
 struct _tm_trans_matrix
 {
-    element[3][2];
+    int element[CAL_MATRIX_ROW][CAL_MATRIX_COL];
+};
+
+struct _tm_config
+{
+    int name;
+    tm_trans_matrix_t trans_matrix;
+    int scaling;
+    int swap;
+
+    struct{
+        int offset;
+        int mult;
+        int div;
+    }pressure;
 };
 
 
-struct _tm_event_info
-{
-	tm_ap_t         ap;
-    const char*     event_input_path;
-	int             fd_in;
-	const char*     event_onput_path;
-	int             fd_out;
-    tm_fb_param_t*  fb_param;           // Global array in tmMap.c,  tm_fb_param_t fb_param[TM_PANEL_NUM]
-};
-
-struct _tm_panel_info
-{
-	tm_panel_t          panel;
-	tm_event_info_t*    current;        // Global array in tm.c, tm_event_info_t event[TM_AP_NUM]
-	tm_trans_matrix_t*  trans_matrix;   // Global array in tmMap.c,  tm_trans_matrix_t cal[TM_PANEL_NUM]
-	tm_panel_info_t*    dest_panel;
-}
-
-
-
-const char* tm_err_str(tm_errno_t no);
-tm_errno_t  tm_mapping_create_handler(tm_handler_t** p_tm);
-void        tm_mapping_destroy_handler(tm_handler_t* tm);
-tm_errno_t  tm_mapping_update_conf();      // update tm_trans_matrix_t cal[TM_PANEL_NUM]
-
-tm_errno_t  tm_mapping_transfer(int16_t *x, int16_t *y, tm_panel_info_t* src);
+tm_errno_t      tm_mapping_create_handler();
+void            tm_mapping_destroy_handler();
+tm_errno_t      tm_mapping_update_conf();
+tm_errno_t      tm_mapping_transfer(int16_t *x, int16_t *y, tm_config_t* config, tm_fb_param_t*  src_fb, tm_fb_param_t*  dest_fb);
 
 
 #endif /* TMMAPPING_H_ */

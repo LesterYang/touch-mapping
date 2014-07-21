@@ -18,10 +18,45 @@
 #include <sys/errno.h>
 #include <linux/input.h>
 
+#include "tmInput.h"
 #include "qUtils.h"
 #include "tm.h"
-#include "tmMap.h"
-#include "tmInput.h"
+#include "tmMapping.h"
+
+
+
+#if 1
+
+tm_input_handler_t tm_input[TM_PANEL_NUM];
+
+void tm_input_thread_func(void *data);
+
+tm_errno_t tm_input_init(tm_panel_info_t* panel, tm_event_info_t* event)
+{
+    return TM_ERRNO_SUCCESS;
+}
+
+void tm_input_deinit()
+{
+
+}
+
+void tm_send_event(tm_panel_info_t* tm_input)
+{
+
+}
+
+void tm_input_parse_event(tm_input_handler_t* tm_input)
+{
+
+}
+
+void tm_input_thread_func(void *data)
+{
+
+}
+
+#else
 
 #define mark_input 0
 
@@ -263,3 +298,4 @@ static void tm_inputThread(void *data)
         }
     }
 }
+#endif

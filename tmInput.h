@@ -8,11 +8,12 @@
 #ifndef TMINPUT_H_
 #define TMINPUT_H_
 
+#include "tm.h"
+#include "tmError.h"
 #include "tmMapping.h"
 
 typedef enum _tm_input_status tm_input_status_t;
 typedef struct _tm_input_handler tm_input_handler_t;
-
 
 typedef struct input_event tm_input_event_t;
 
@@ -35,23 +36,20 @@ struct _tm_input_handler {
 };
 
 
-
+#if 0
 int  tm_inputInit(struct sEventDev* evDev);
 void tm_inputDeinit();
+#endif
 
-
-int  tm_input_init(tm_panel_info_t* panel, tm_event_info_t* event);
+tm_errno_t  tm_input_init(tm_panel_info_t* panel, tm_event_info_t* event);
 void tm_input_deinit();
 void tm_send_event(tm_panel_info_t* tm_input); // Global array in tmInput.c, tm_input_handler_t tm_input[TM_PANEL_NUM]
 void tm_input_parse_event(tm_input_handler_t* tm_input);
-
 
 int  tm_input_init_events(tm_panel_info_t* tm_input);
 void tm_input_close_events(tm_panel_info_t* tm_input);
 void tm_input_clean_stdin(tm_panel_info_t* tm_input);
 int  tm_input_add_fd (tm_panel_info_t* tm_input, fd_set * fdsp);
-static void tm_input_thread_func(void *data);
-
 
 
 #endif /* TMINPUT_H_ */

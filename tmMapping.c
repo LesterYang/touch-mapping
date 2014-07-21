@@ -7,10 +7,156 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "tmMapping.h"
 #include "qUtils.h"
 #include "tm.h"
-#include "tmMap.h"
 #include "tmInput.h"
+
+#if 1
+
+typedef struct _tm_handler
+{
+    q_mutex*        mutex;
+    q_queue*        queue;
+    tm_config_t*    cal;
+    tm_fb_param_t*  fb_param;
+}tm_handler_t;
+
+tm_handler_t tm_handler;
+
+tm_fb_param_t g_fb_param[] = {
+    {TM_PANEL_FRONT,    800, 480, 0, 0, 0},
+    {TM_PANEL_LEFT,    1000, 600, 0, 0, 0},
+    {TM_PANEL_RIGHT,   1000, 600, 0, 0, 0},
+    {TM_PANEL_NONE,       0,   0, 0, 0, 0}
+};
+
+tm_config_t g_cal[] = {
+    {TM_PANEL_FRONT, {{{1, 0, 0}, {0, 1, 0}}}, 1, 0, {0, 1, 1}},
+    {TM_PANEL_LEFT,  {{{1, 0, 0}, {0, 1, 0}}}, 1, 0, {0, 1, 1}},
+    {TM_PANEL_RIGHT, {{{1, 0, 0}, {0, 1, 0}}}, 1, 0, {0, 1, 1}},
+    {TM_PANEL_NONE,  {{{0, 0, 0}, {0, 0, 0}}}, 0, 0, {0, 0, 0}}
+};
+
+
+tm_errno_t  tm_mapping_create_handler()
+{
+    tm_handler.fb_param = g_fb_param;
+    tm_handler.cal = g_cal;
+
+    //tm_mapping_set_default_param();
+    tm_mapping_update_conf();
+
+    tm_handler.mutex = q_mutex_new(q_true, q_true);
+    tm_handler.queue = q_create_queue(MAX_QUEUE);
+
+    return TM_ERRNO_SUCCESS;
+}
+
+void tm_mapping_destroy_handler()
+{
+    q_mutex_free(tm_handler.mutex);
+    q_destroy_queue(tm_handler.queue);
+}
+
+tm_errno_t tm_mapping_update_conf()
+{
+    int n, idx = -1, row, col;
+    tm_trans_matrix_t matrix;
+    tm_config_t* cal;
+    FILE *fr;
+    char buf[BUF_SIZE];
+    char *conf_file = NULL;
+    char *default_conf = QSI_TM_CONF;
+    char *param;
+    int matrix_num = CAL_MATRIX_ROW * CAL_MATRIX_COL;
+
+    if ( (conf_file = getenv("QSI_TM_CONF")) == NULL )
+        conf_file = default_conf;
+
+    q_dbg("configure file is %s", conf_file);
+
+    fr = fopen(conf_file, "r");
+
+    if(fr == NULL)
+    {
+        qerror("open configuration");
+        return TM_ERRNO_NO_DEV;
+    }
+
+    while( !feof(fr) )
+    {
+        memset(buf, 0, BUF_SIZE);
+        if(fgets(buf, BUF_SIZE, fr) == NULL)
+            continue;
+
+        if(buf[0] == '#' || buf[0] == 0 || buf[BUF_SIZE - 2] != 0)
+            continue;
+
+        if((param = strtok(buf," ")) == NULL || (strlen(param) != 1))
+            continue;
+
+        idx = param[0] - '0';
+
+        if (idx < 0 || idx >= TM_PANEL_NUM)
+            continue;
+
+        cal = &tm_handler.cal[idx];
+
+        for(n=0; n<matrix_num; n++)
+        {
+            if((param = strtok(NULL," ")) == NULL)
+                break;
+
+            row = n/CAL_MATRIX_COL;
+            col = n%CAL_MATRIX_COL;
+            matrix.element[row][col] = atoi(param);
+        }
+
+        if((n == matrix_num) && ((param = strtok(NULL," ")) != NULL))
+        {
+            cal->scaling = atoi(param);
+            memcpy(&cal->trans_matrix, &matrix, sizeof(tm_trans_matrix_t));
+        }
+
+#if 0 //test
+        fprintf(stderr, "b %d : %2d %2d %2d %2d %2d %2d %2d\n",
+                idx,
+                tm_handler.cal[idx].trans_matrix.element[0][0],
+                tm_handler.cal[idx].trans_matrix.element[0][1],
+                tm_handler.cal[idx].trans_matrix.element[0][2],
+                tm_handler.cal[idx].trans_matrix.element[0][3],
+                tm_handler.cal[idx].trans_matrix.element[0][4],
+                tm_handler.cal[idx].trans_matrix.element[0][5],
+                tm_handler.cal[idx].scaling);
+
+        fprintf(stderr, "f %d : %2d %2d %2d %2d %2d\n",
+                idx,
+                tm_handler.fb_param[idx].x,
+                tm_handler.fb_param[idx].y,
+                tm_handler.fb_param[idx].horizontal,
+                tm_handler.fb_param[idx].vertical,
+                tm_handler.fb_param[idx].swap);
+
+
+        fprintf(stderr,"=====\n");
+#endif
+
+    }
+
+    fclose(fr);
+    return TM_ERRNO_SUCCESS;
+}
+
+tm_errno_t tm_mapping_transfer(int16_t *x, int16_t *y,
+        tm_config_t* config, tm_fb_param_t*  src_fb, tm_fb_param_t*  dest_fb)
+{
+    return TM_ERRNO_SUCCESS;
+}
+
+#else
+
+
 
 const char* tm_errorno_str(qerrno no)
 {
@@ -30,6 +176,9 @@ const char* tm_errorno_str(qerrno no)
     }
     return "unknown";
 }
+
+
+
 
 qerrno tm_update_conf(struct sTmData* tm)
 {
@@ -290,3 +439,4 @@ qerrno tm_transfer_value(int16_t* val, tm_event_code code, struct sTmDevParam* s
 
     return eENoErr;
 }
+#endif
