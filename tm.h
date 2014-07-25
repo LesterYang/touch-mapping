@@ -78,13 +78,14 @@ struct _tm_panel_info                   // Global array in tm.c, tm_panel_info_t
 
 
 const char* tm_err_str(tm_errno_t no);
+void        tm_set_default_direction();
 tm_errno_t  tm_init(void);
 void        tm_deinit(void);
 void        tm_bind_panel_ap(tm_panel_t panel, tm_panel_t ap);
 void        tm_set_direction(tm_panel_t source, tm_panel_t target);
 void        tm_set_status(tm_status_t status);
 void        tm_bind_status(tm_status_t* status);
-
-tm_errno_t  tm_transfer(int16_t *x, int16_t *y, tm_panel_info_t* panel);
+void        tm_bind_param();
+tm_errno_t  tm_transfer(int *x, int *y, tm_panel_info_t* panel);
 
 #endif /* TM_H_ */

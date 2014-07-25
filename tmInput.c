@@ -23,22 +23,107 @@
 #include "tm.h"
 #include "tmMapping.h"
 
-
-
 #if 1
 
-tm_input_handler_t tm_input[TM_PANEL_NUM];
+typedef struct _tm_input_handler {
+    tm_panel_info_t* panel;
+    tm_event_info_t* event;
+    fd_set skfds;
+    fd_set evfds;
+    int maxfd;
+    q_thread  *thread;
+    tm_input_status_t status;
+}tm_input_handler_t;
+
+tm_input_handler_t tm_input;
+
+
+void tm_send_event(tm_panel_info_t* tm_input); // Global array in tmInput.c, tm_input_handler_t tm_input[TM_PANEL_NUM]
+void tm_input_parse_event(tm_input_handler_t* tm_input);
+
+void tm_input_clean_stdin();
+int  tm_input_init_events();
+void tm_input_close_events();
+
+int  tm_input_add_fd (tm_panel_info_t* tm_input, fd_set * fdsp);
 
 void tm_input_thread_func(void *data);
 
+void tm_input_clean_stdin()
+{
+    fd_set fds;
+    struct timeval tv;
+    char buf[8];
+    int stdin = 0, stdout = 1;
+
+    FD_ZERO (&fds);
+    FD_SET (stdin, &fds);
+    tv.tv_sec  = 0;
+    tv.tv_usec = 0;
+
+    while (0 < select(stdout, &fds, NULL, NULL, &tv))
+    {
+        while (q_read(stdin, buf, 8)) {;}
+        FD_ZERO (&fds);
+        FD_SET (stdin, &fds);
+        tv.tv_sec  = 0;
+        tv.tv_usec = 1;
+    }
+    q_close(stdin);
+    return;
+}
+
 tm_errno_t tm_input_init(tm_panel_info_t* panel, tm_event_info_t* event)
 {
+    tm_errno_t err_no;
+    q_assert(panel);
+    q_assert(event);
+
+    tm_input.panel = panel;
+    tm_input.event = event;
+    if((err_no = tm_input_init_events()) != TM_ERRNO_SUCCESS);
+        return err_no;
+
+
+
     return TM_ERRNO_SUCCESS;
 }
 
 void tm_input_deinit()
 {
+    tm_input_close_events();
+}
 
+tm_errno_t  tm_input_init_events()
+{
+    int idx;
+
+    tm_input_clean_stdin();
+
+    for(idx=0; tm_input.event[idx].name != TM_AP_NONE; idx++)
+    {
+        if((tm_input.event[idx].fd_in = open (tm_input.event[idx].event_input_path, O_RDONLY )) < 0)
+            q_dbg("Opened %s error",tm_input.event[idx].event_input_path);
+
+        if((tm_input.event[idx].fd_out = open (tm_input.event[idx].event_onput_path, O_RDONLY )) < 0)
+            q_dbg("Opened %s error",tm_input.event[idx].event_onput_path);
+    }
+
+    return TM_ERRNO_SUCCESS;
+}
+
+void tm_input_close_events()
+{
+    int idx;
+
+    for(idx=0; tm_input.event[idx].name != TM_AP_NONE; idx++)
+    {
+        if(tm_input.event[idx].fd_in > 0)
+            q_close(tm_input.event[idx].fd_in);
+
+        if(tm_input.event[idx].fd_out > 0)
+            q_close(tm_input.event[idx].fd_out);
+    }
 }
 
 void tm_send_event(tm_panel_info_t* tm_input)

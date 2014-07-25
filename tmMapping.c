@@ -148,10 +148,246 @@ tm_errno_t tm_mapping_update_conf()
     return TM_ERRNO_SUCCESS;
 }
 
-tm_errno_t tm_mapping_transfer(int16_t *x, int16_t *y,
-        tm_config_t* config, tm_fb_param_t*  src_fb, tm_fb_param_t*  dest_fb)
+
+void tm_mapping_matrix_mult(tm_trans_matrix_t *matrix, int* vector)
 {
+    int i, j;
+    int result_vec[2] = {0};
+
+    for(i=0; i<CAL_MATRIX_ROW; i++)
+    {
+        for(j=0; j<CAL_MATRIX_COL; j++)
+        {
+            result_vec[i] +=  matrix->element[i][j] * vector[j];
+        }
+    }
+
+#if 1
+    printf("matrix_mult:\n");
+    printf("|%5d %5d %5d| |%5d|   |%5d|\n",matrix->element[0][0],matrix->element[0][1],matrix->element[0][2],vector[0],result_vec[0]);
+    printf("|%5d %5d %5d| |%5d| = |%5d|\n",matrix->element[1][0],matrix->element[1][1],matrix->element[1][2],vector[1],result_vec[1]);
+    printf("|    0     0     0| |%5d|   |    0|\n",vector[2]);
+#endif
+
+    vector[0] = result_vec[0];
+    vector[1] = result_vec[1];
+}
+
+tm_errno_t tm_mapping_transfer(int *x, int *y, tm_config_t* config, tm_fb_param_t*  src_fb, tm_fb_param_t*  dest_fb)
+{
+    static int last_x[TM_PANEL_NUM];
+    static int last_y[TM_PANEL_NUM];
+    int idx = config->name;
+    union {
+         int vec[3];
+         struct{
+             int x;
+             int y;
+             int z;
+         };
+     }coord;
+
+     q_assert(config);
+     q_assert(src_fb);
+     q_assert(dest_fb);
+
+     if (idx >= TM_PANEL_NUM || idx < 0)
+        return TM_ERRNO_DEV_NUM;
+
+    if(*x != 0)
+        coord.x = last_x[idx] = *x;
+    else if (last_x[idx] != 0)
+        coord.x = last_x[idx];
+    else
+        return TM_ERRNO_POINT;
+
+    if(*y != 0)
+        coord.y = last_y[idx] = *y;
+    else if (last_y[idx] != 0)
+        coord.y = last_y[idx];
+    else
+        return TM_ERRNO_POINT;
+
+    coord.z = 1;
+
+    // raw touch point -> frame buffer point
+    tm_mapping_matrix_mult(&config->trans_matrix, coord.vec);
+
+    if (src_fb == dest_fb)
+    {
+        *x = coord.x / config->scaling;
+        *y = coord.y / config->scaling;
+        return TM_ERRNO_SUCCESS;
+    }
+
+
+    // frame buffer -> frame buffer
+
+    coord.x /= config->scaling;
+    coord.y /= config->scaling;
+
+    if(src_fb->swap)
+    {
+        coord.z = coord.x;
+        coord.x = coord.y;
+        coord.y = coord.z;
+        coord.z = 1;
+    }
+
+    if(src_fb->horizontal != dest_fb->horizontal)
+        coord.x = src_fb->max_x - coord.x;
+
+    if(src_fb->vertical != dest_fb->vertical)
+        coord.y = src_fb->max_y - coord.y;
+
+    coord.x = (dest_fb->max_x * coord.x) / src_fb->max_x;
+    coord.y = (dest_fb->max_y * coord.y) / src_fb->max_y;
+
+    if(dest_fb->swap)
+    {
+        coord.z = coord.x;
+        coord.x = coord.y;
+        coord.y = coord.z;
+        coord.z = 1;
+    }
+
+    *x = coord.x;
+    *y = coord.y;
     return TM_ERRNO_SUCCESS;
+}
+
+
+#if 0 //check frame buffer mapping
+#define test_src_x 800
+#define test_src_y 480
+#define test_dest_x 1000
+#define test_dest_y 600
+tm_fb_param_t test_src_param[] = {
+    {0, test_src_x, test_src_y, 0, 0, 0}, //lt
+    {1, test_src_x, test_src_y, 0, 0, 1},
+    {2, test_src_x, test_src_y, 1, 0, 0}, //rt
+    {3, test_src_x, test_src_y, 1, 0, 1},
+    {4, test_src_x, test_src_y, 1, 1, 0}, //rb
+    {5, test_src_x, test_src_y, 1, 1, 1},
+    {6, test_src_x, test_src_y, 0, 1, 0}, //lb
+    {7, test_src_x, test_src_y, 0, 1, 1}
+};
+
+tm_fb_param_t test_dest_param[] = {
+    {0, test_dest_x, test_dest_y, 0, 0, 0},
+    {0, test_dest_x, test_dest_y, 0, 0, 1},
+    {0, test_dest_x, test_dest_y, 1, 0, 0},
+    {0, test_dest_x, test_dest_y, 1, 0, 1},
+    {0, test_dest_x, test_dest_y, 1, 1, 0},
+    {0, test_dest_x, test_dest_y, 1, 1, 1},
+    {0, test_dest_x, test_dest_y, 0, 1, 0},
+    {0, test_dest_x, test_dest_y, 0, 1, 1},
+};
+
+tm_fb_param_t src_point[] = {
+    {0, 300, 120, 0, 0, 0},
+    {0, 120, 300, 0, 0, 0},
+    {0, 500, 120, 0, 0, 0},
+    {0, 120, 500, 0, 0, 0},
+    {0, 500, 360, 0, 0, 0},
+    {0, 360, 500, 0, 0, 0},
+    {0, 300, 360, 0, 0, 0},
+    {0, 360, 300, 0, 0, 0},
+};
+
+tm_fb_param_t ans[] = {
+    {0, 375, 150, 0, 0, 0},
+    {0, 150, 375, 0, 0, 0},
+    {0, 625, 150, 0, 0, 0},
+    {0, 150, 625, 0, 0, 0},
+    {0, 625, 450, 0, 0, 0},
+    {0, 450, 625, 0, 0, 0},
+    {0, 375, 450, 0, 0, 0},
+    {0, 450, 375, 0, 0, 0},
+};
+
+void tm_mapping_test()
+{
+    int i,j;
+    tm_config_t conf;
+    tm_config_t* config = &conf;
+    tm_fb_param_t* src_fb;
+    tm_fb_param_t* dest_fb;
+    static union {
+        int vec[3];
+        struct{
+            int x;
+            int y;
+            int z;
+        };
+    }coord;
+
+    conf.scaling = 1;
+
+    for(i=0;i<8;i++)
+    {
+        coord.x = src_point[i].max_x;
+        coord.y = src_point[i].max_y;
+        coord.z = 1;
+
+        printf("%d : %d %d\n",i, coord.x,coord.y);
+        src_fb = &test_src_param[i];
+
+        for(j=0;j<8;j++)
+        {
+            coord.x = src_point[i].max_x;
+            coord.y = src_point[i].max_y;
+            coord.z = 1;
+
+            dest_fb = &test_dest_param[j];
+
+            if (src_fb == dest_fb)
+            {
+                continue;
+            }
+
+            if(src_fb->swap)
+            {
+                coord.z = coord.x;
+                coord.x = coord.y;
+                coord.y = coord.z;
+                coord.z = 1;
+            }
+
+            if(src_fb->horizontal != dest_fb->horizontal)
+                coord.x = src_fb->max_x - coord.x;
+
+            if(src_fb->vertical != dest_fb->vertical)
+                coord.y = src_fb->max_y - coord.y;
+
+            coord.x = (dest_fb->max_x * coord.x) / (src_fb->max_x * config->scaling);
+            coord.y = (dest_fb->max_y * coord.y) / (src_fb->max_y * config->scaling);
+
+            if(dest_fb->swap)
+            {
+                coord.z = coord.x;
+                coord.x = coord.y;
+                coord.y = coord.z;
+                coord.z = 1;
+            }
+
+            if(coord.x == ans[j].max_x && coord.y == ans[j].max_y)
+                printf("ok   -> %d : %d %d\n",j, coord.x,coord.y);
+            else
+                printf("fail -> %d : %d %d (ans : %d %d)\n",j, coord.x,coord.y,ans[j].max_x,ans[j].max_y);
+        }
+    }
+}
+#endif
+
+tm_config_t* tm_mapping_get_config()
+{
+    return tm_handler.cal;
+}
+
+tm_fb_param_t* tm_mapping_get_fb_param()
+{
+    return tm_handler.fb_param;
 }
 
 #else

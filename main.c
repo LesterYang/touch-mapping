@@ -69,9 +69,15 @@ int main(int argc, char* argv[])
                 tm_switch_main_status(TM_STATUS_RUNNING);
                 break;
             case TM_STATUS_RUNNING:
-                sleep(1);
-                // test
+                //sleep(1);
+#if 1 // test
+                {
+                    int x=200,y=300;
+                    tm_transfer(&x, &y, NULL);
+                }
+                //tm_mapping_test();
                 tm_switch_main_status(TM_STATUS_DEINIT);
+#endif
                 break;
             case TM_STATUS_DEINIT:
                 tm_deinit();

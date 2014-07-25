@@ -243,24 +243,24 @@ static inline void q_atomic_set(q_atomic_t *v, int i)
 
 static inline void q_atomic_add(int i, q_atomic_t *v)
 {
-	asm volatile(LOCK_PREFIX "addl %1,%0"
+	__asm volatile(LOCK_PREFIX "addl %1,%0"
 		     : "+m" (v->value)
 		     : "ir" (i));
 }
 static inline void q_atomic_sub(int i, q_atomic_t *v)
 {
-	asm volatile(LOCK_PREFIX "subl %1,%0"
+	__asm volatile(LOCK_PREFIX "subl %1,%0"
 		     : "+m" (v->value)
 		     : "ir" (i));
 }
 static inline void q_atomic_inc(q_atomic_t *v)
 {
-	asm volatile(LOCK_PREFIX "incl %0"
+	__asm volatile(LOCK_PREFIX "incl %0"
 		     : "+m" (v->value));
 }
 static inline void q_atomic_dec(q_atomic_t *v)
 {
-	asm volatile(LOCK_PREFIX "decl %0"
+	__asm volatile(LOCK_PREFIX "decl %0"
 		     : "+m" (v->value));
 }
 #endif

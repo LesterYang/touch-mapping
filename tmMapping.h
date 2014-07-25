@@ -47,8 +47,8 @@ enum _tm_op_event{
 struct _tm_fb_param
 {
     int name;
-    int16_t x;
-    int16_t y;
+    int16_t max_x;
+    int16_t max_y;
 	char horizontal;
     char vertical;
     char swap;
@@ -77,7 +77,10 @@ struct _tm_config
 tm_errno_t      tm_mapping_create_handler();
 void            tm_mapping_destroy_handler();
 tm_errno_t      tm_mapping_update_conf();
-tm_errno_t      tm_mapping_transfer(int16_t *x, int16_t *y, tm_config_t* config, tm_fb_param_t*  src_fb, tm_fb_param_t*  dest_fb);
+tm_errno_t      tm_mapping_transfer(int *x, int *y, tm_config_t* config, tm_fb_param_t*  src_fb, tm_fb_param_t*  dest_fb);
+tm_config_t*    tm_mapping_get_config();
+tm_fb_param_t*  tm_mapping_get_fb_param();
 
+void tm_mapping_test();
 
 #endif /* TMMAPPING_H_ */

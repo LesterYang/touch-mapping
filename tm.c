@@ -61,9 +61,14 @@ const char* tm_err_str(tm_errno_t no)
     return "unknown";
 }
 
-void tm_set_default()
+void tm_set_default_direction()
 {
-
+    tm.panel[TM_PANEL_FRONT].dest_panel = &tm.panel[TM_PANEL_FRONT];
+    tm.panel[TM_PANEL_FRONT].current    = &tm.event[TM_AP_QSI];
+    tm.panel[TM_PANEL_LEFT].dest_panel  = &tm.panel[TM_PANEL_LEFT];
+    tm.panel[TM_PANEL_LEFT].current     = &tm.event[TM_AP_QSI_L];
+    tm.panel[TM_PANEL_RIGHT].dest_panel = &tm.panel[TM_PANEL_RIGHT];
+    tm.panel[TM_PANEL_RIGHT].current    = &tm.event[TM_AP_QSI_R];
 }
 
 
@@ -88,14 +93,8 @@ tm_errno_t tm_init()
         return err_no;
     }
 
-    // set default direction
-    tm.panel[TM_PANEL_FRONT].dest_panel = &tm.panel[TM_PANEL_FRONT];
-    tm.panel[TM_PANEL_FRONT].current    = &tm.event[TM_AP_QSI];
-    tm.panel[TM_PANEL_LEFT].dest_panel  = &tm.panel[TM_PANEL_LEFT];
-    tm.panel[TM_PANEL_LEFT].current     = &tm.event[TM_AP_QSI_L];
-    tm.panel[TM_PANEL_RIGHT].dest_panel = &tm.panel[TM_PANEL_RIGHT];
-    tm.panel[TM_PANEL_RIGHT].current    = &tm.event[TM_AP_QSI_R];
-
+    tm_set_default_direction();
+    tm_bind_param();
 
     return TM_ERRNO_SUCCESS;
 }
@@ -125,13 +124,30 @@ void tm_set_status(tm_status_t status)
 
 void tm_bind_status(tm_status_t* status)
 {
+    q_assert(status);
     tm.status = status;
 }
 
-
-tm_errno_t tm_transfer(int16_t *x, int16_t *y, tm_panel_info_t* panel)
+void tm_bind_param()
 {
-    return tm_mapping_transfer(x, y, panel->param, panel->current->fb_param, panel->dest_panel->current->fb_param);
+    // panel parameter pointer
+    tm.panel[TM_PANEL_FRONT].param   = &(tm_mapping_get_config()[TM_PANEL_FRONT]);
+    tm.panel[TM_PANEL_LEFT].param    = &(tm_mapping_get_config()[TM_PANEL_LEFT]);
+    tm.panel[TM_PANEL_RIGHT].param   = &(tm_mapping_get_config()[TM_PANEL_RIGHT]);
+    // frame buffer parameter pointer
+    tm.event[TM_AP_QSI].fb_param     = &(tm_mapping_get_fb_param()[TM_PANEL_FRONT]);
+    tm.event[TM_AP_QSI_L].fb_param   = &(tm_mapping_get_fb_param()[TM_PANEL_LEFT]);
+    tm.event[TM_AP_QSI_R].fb_param   = &(tm_mapping_get_fb_param()[TM_PANEL_RIGHT]);
+    tm.event[TM_AP_NAVI].fb_param    = &(tm_mapping_get_fb_param()[TM_PANEL_FRONT]);
+    tm.event[TM_AP_MONITOR].fb_param = &(tm_mapping_get_fb_param()[TM_PANEL_FRONT]);
+}
+
+tm_errno_t tm_transfer(int *x, int *y, tm_panel_info_t* panel)
+{
+    if (!x || !y)
+        return TM_ERRNO_PARAM;
+    //return tm_mapping_transfer(x, y, panel->param, panel->current->fb_param, panel->dest_panel->current->fb_param);
+    return tm_mapping_transfer(x, y, tm.panel[1].param, tm.panel[1].current->fb_param, tm.panel[1].dest_panel->current->fb_param);
 }
 
 #else
