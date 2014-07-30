@@ -19,8 +19,27 @@ enum _tm_errno{
     TM_ERRNO_OPEN       = -6,       // Open file error
     TM_ERRNO_POINT      = -7,       // Points are out of rage
     TM_ERRNO_PARAM      = -8,       // Function parameter error
-    TM_ERRNO_SWAP       = -9        // Need to swap x,y
+    TM_ERRNO_SWAP       = -9,       // Need to swap x,y
+    TM_ERRNO_NO_CONF    = -10       // No configuration
 };
 
+inline const char* tm_err_str(tm_errno_t no)
+{
+    switch(no)
+    {
+        case TM_ERRNO_SUCCESS:      return " No error";
+        case TM_ERRNO_NO_DEV:       return " No such device";
+        case TM_ERRNO_DEV_PARAM:    return " Parameter of device error";
+        case TM_ERRNO_DEV_NUM:      return " Bad device number";
+        case TM_ERRNO_ALLOC:        return " Allocate error";
+        case TM_ERRNO_OPEN:         return " Open file error";
+        case TM_ERRNO_POINT:        return " Points are out of rage";
+        case TM_ERRNO_PARAM:        return " Function parameter error";
+        case TM_ERRNO_SWAP:         return " Need to swap xy";
+        case TM_ERRNO_NO_CONF:      return " No configuration";
+        default:            break;
+    }
+    return "unknown";
+}
 
 #endif /* TMERROR_H_ */

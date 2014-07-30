@@ -18,36 +18,58 @@ typedef struct _tm_handler
 {
     q_mutex*        mutex;
     q_queue*        queue;
-    tm_config_t*    cal;
-    tm_fb_param_t*  fb_param;
+    tm_config_t     conf;
 }tm_handler_t;
 
-tm_handler_t tm_handler;
+static tm_handler_t tm_handler;
 
-tm_fb_param_t g_fb_param[] = {
-    {TM_PANEL_FRONT,    800, 480, 0, 0, 0},
-    {TM_PANEL_LEFT,    1000, 600, 0, 0, 0},
-    {TM_PANEL_RIGHT,   1000, 600, 0, 0, 0},
-    {TM_PANEL_NONE,       0,   0, 0, 0, 0}
+tm_native_size_param_t g_size_param[] = {
+    {TM_FB_800_480_0_0_0,    800, 480, 0, 0, 0, NULL},
+    {TM_FB_1000_600_0_0_0,  1000, 600, 0, 0, 0, NULL},
+    {TM_FB_NONE,               0,   0, 0, 0, 0, NULL}
 };
 
-tm_config_t g_cal[] = {
-    {TM_PANEL_FRONT, {{{1, 0, 0}, {0, 1, 0}}}, 1, 0, {0, 1, 1}},
-    {TM_PANEL_LEFT,  {{{1, 0, 0}, {0, 1, 0}}}, 1, 0, {0, 1, 1}},
-    {TM_PANEL_RIGHT, {{{1, 0, 0}, {0, 1, 0}}}, 1, 0, {0, 1, 1}},
-    {TM_PANEL_NONE,  {{{0, 0, 0}, {0, 0, 0}}}, 0, 0, {0, 0, 0}}
+tm_calibrate_t g_cal[] = {
+    {TM_PANEL_FRONT, {{{1, 0, 0}, {0, 1, 0}}}, 1, 0, {0, 1, 1}, NULL},
+    {TM_PANEL_LEFT,  {{{1, 0, 0}, {0, 1, 0}}}, 1, 0, {0, 1, 1}, NULL},
+    {TM_PANEL_RIGHT, {{{1, 0, 0}, {0, 1, 0}}}, 1, 0, {0, 1, 1}, NULL},
+    {TM_PANEL_NONE,  {{{0, 0, 0}, {0, 0, 0}}}, 0, 0, {0, 0, 0}, NULL}
 };
 
+void tm_mapping_init_config_list()
+{
+    tm_handler.conf.head_cal.name = TM_PANEL_NONE;
+    tm_handler.conf.head_cal.next = NULL;
+
+    tm_handler.conf.head_size.name = TM_FB_NONE;
+    tm_handler.conf.head_size.next = NULL;
+}
+
+void tm_mapping_add_native_size_praram(tm_native_size_param_t* size)
+{
+    __tm_mapping_list_add(&tm_handler.conf.head_size, size);
+}
+
+void tm_mapping_add_calibrate_praram(tm_calibrate_t* cal)
+{
+    __tm_mapping_list_add(&tm_handler.conf.head_cal, cal);
+}
 
 tm_errno_t  tm_mapping_create_handler()
 {
-    tm_handler.fb_param = g_fb_param;
-    tm_handler.cal = g_cal;
+  //  int idx;
 
-    //tm_mapping_set_default_param();
-    tm_mapping_update_conf();
+  //  for(idx=0; g_cal[idx].name != TM_PANEL_NONE; idx++)
+  //      tm_mapping_add_calibrate_praram(&g_cal_param[idx]);
+
+  //  for(idx=0; g_size_param[idx].name != TM_FB_NONE; idx++)
+  //      tm_mapping_add_native_size_praram(&g_size_param[idx]);
 
     tm_handler.mutex = q_mutex_new(q_true, q_true);
+
+    if(tm_mapping_update_conf() != TM_ERRNO_SUCCESS)
+        return TM_ERRNO_NO_CONF;
+
     tm_handler.queue = q_create_queue(MAX_QUEUE);
 
     return TM_ERRNO_SUCCESS;
@@ -55,6 +77,7 @@ tm_errno_t  tm_mapping_create_handler()
 
 void tm_mapping_destroy_handler()
 {
+    tm_mapping_remove_conf();
     q_mutex_free(tm_handler.mutex);
     q_destroy_queue(tm_handler.queue);
 }
@@ -63,7 +86,8 @@ tm_errno_t tm_mapping_update_conf()
 {
     int n, idx = -1, row, col;
     tm_trans_matrix_t matrix;
-    tm_config_t* cal;
+    tm_calibrate_t* cal;
+    tm_native_size_param_t* native_size;
     FILE *fr;
     char buf[BUF_SIZE];
     char *conf_file = NULL;
@@ -84,6 +108,8 @@ tm_errno_t tm_mapping_update_conf()
         return TM_ERRNO_NO_DEV;
     }
 
+    tm_mapping_remove_conf();
+
     while( !feof(fr) )
     {
         memset(buf, 0, BUF_SIZE);
@@ -96,57 +122,123 @@ tm_errno_t tm_mapping_update_conf()
         if((param = strtok(buf," ")) == NULL || (strlen(param) != 1))
             continue;
 
-        idx = param[0] - '0';
-
-        if (idx < 0 || idx >= TM_PANEL_NUM)
-            continue;
-
-        cal = &tm_handler.cal[idx];
-
-        for(n=0; n<matrix_num; n++)
-        {
-            if((param = strtok(NULL," ")) == NULL)
-                break;
-
-            row = n/CAL_MATRIX_COL;
-            col = n%CAL_MATRIX_COL;
-            matrix.element[row][col] = atoi(param);
-        }
-
-        if((n == matrix_num) && ((param = strtok(NULL," ")) != NULL))
-        {
-            cal->scaling = atoi(param);
-            memcpy(&cal->trans_matrix, &matrix, sizeof(tm_trans_matrix_t));
-        }
-
-#if 0 //test
-        fprintf(stderr, "b %d : %2d %2d %2d %2d %2d %2d %2d\n",
-                idx,
-                tm_handler.cal[idx].trans_matrix.element[0][0],
-                tm_handler.cal[idx].trans_matrix.element[0][1],
-                tm_handler.cal[idx].trans_matrix.element[0][2],
-                tm_handler.cal[idx].trans_matrix.element[0][3],
-                tm_handler.cal[idx].trans_matrix.element[0][4],
-                tm_handler.cal[idx].trans_matrix.element[0][5],
-                tm_handler.cal[idx].scaling);
-
-        fprintf(stderr, "f %d : %2d %2d %2d %2d %2d\n",
-                idx,
-                tm_handler.fb_param[idx].x,
-                tm_handler.fb_param[idx].y,
-                tm_handler.fb_param[idx].horizontal,
-                tm_handler.fb_param[idx].vertical,
-                tm_handler.fb_param[idx].swap);
-
-
-        fprintf(stderr,"=====\n");
-#endif
-
+        if(param[0] == 'c')
+            tm_mapping_calibrate_conf();
+        else if(param[0] == 's')
+            tm_mapping_native_size_conf();
     }
+
+    //tm_mapping_print_conf(&tm_handler.conf);
 
     fclose(fr);
     return TM_ERRNO_SUCCESS;
 }
+
+void tm_mapping_remove_conf()
+{
+    tm_calibrate_t* cal = tm_handler.conf.head_cal->next;
+    tm_native_size_param_t* native_size = tm_handler.conf.head_size->next;
+
+    while(cal!=NULL)
+    {
+        tm_handler.conf.head_cal->next = cal->next;
+        q_free(cal);
+        cal = tm_handler.conf.head_cal->next;
+    }
+
+    while(native_size!=NULL)
+    {
+        tm_handler.conf.head_size->next = native_size->next;
+        q_free(native_size);
+        native_size = tm_handler.conf.head_size->next;
+    }
+}
+void tm_mapping_calibrate_conf()
+{
+    int id, n, row, col;
+    char *param;
+    int matrix_num = CAL_MATRIX_ROW * CAL_MATRIX_COL;
+    tm_trans_matrix_t matrix;
+    tm_calibrate_t* cal;
+
+    if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
+        return;
+
+    for(n=0; n<matrix_num; n++)
+    {
+        if((param = strtok(NULL," ")) == NULL)
+            break;
+
+        row = n/CAL_MATRIX_COL;
+        col = n%CAL_MATRIX_COL;
+        matrix.element[row][col] = atoi(param);
+    }
+
+    if((n == matrix_num) && ((param = strtok(NULL," ")) != NULL))
+    {
+        cal = (tm_calibrate_t*)q_calloc(sizeof(tm_calibrate_t));
+
+        if(cal == NULL)
+            return;
+
+        cal->name = (tm_panel_t)id;
+        cal->pressure.div = 1;
+        cal->pressure.mult = 1;
+        cal->scaling = atoi(param);
+        memcpy(&cal->trans_matrix, &matrix, sizeof(tm_trans_matrix_t));
+
+        tm_mapping_add_calibrate_praram(cal);
+    }
+}
+
+void tm_mapping_native_size_conf()
+{
+    int id, n;
+    tm_native_size_param_t* native_size;
+    char *param;
+
+    if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
+        return;
+
+    native_size = (tm_native_size_param_t*)q_calloc(sizeof(tm_native_size_param_t));
+
+    if(native_size == NULL)
+        return;
+
+    native_size->name = (tm_fb_t)id;
+
+    if((param = strtok(NULL," ")) == NULL)
+        goto err;
+
+    native_size->max_x = atoi(param);
+
+    if((param = strtok(NULL," ")) == NULL)
+         goto err;
+
+    native_size->max_y = atoi(param);
+
+    if((param = strtok(NULL," ")) == NULL)
+         goto err;
+
+    native_size->horizontal = atoi(param);
+
+    if((param = strtok(NULL," ")) == NULL)
+         goto err;
+
+    native_size->vertical = atoi(param);
+
+    if((param = strtok(NULL," ")) == NULL)
+         goto err;
+
+    native_size->swap = atoi(param);
+
+    tm_mapping_add_native_size_praram(native_size);
+    return;
+
+err:
+    q_free(native_size);
+}
+
 
 
 void tm_mapping_matrix_mult(tm_trans_matrix_t *matrix, int* vector)
@@ -226,6 +318,7 @@ tm_errno_t tm_mapping_transfer(int *x, int *y, tm_config_t* config, tm_fb_param_
     coord.x /= config->scaling;
     coord.y /= config->scaling;
 
+#if 1 // check origin
     if(src_fb->swap)
     {
         coord.z = coord.x;
@@ -250,14 +343,18 @@ tm_errno_t tm_mapping_transfer(int *x, int *y, tm_config_t* config, tm_fb_param_
         coord.y = coord.z;
         coord.z = 1;
     }
+#endif
 
     *x = coord.x;
     *y = coord.y;
+
+
+
     return TM_ERRNO_SUCCESS;
 }
 
 
-#if 0 //check frame buffer mapping
+#if 0//check frame buffer mapping
 #define test_src_x 800
 #define test_src_y 480
 #define test_dest_x 1000
@@ -380,14 +477,30 @@ void tm_mapping_test()
 }
 #endif
 
-tm_config_t* tm_mapping_get_config()
+tm_calibrate_t* tm_mapping_get_calibrate_param(tm_panel_t name)
 {
-    return tm_handler.cal;
+    tm_calibrate_t* cal = NULL;
+
+    for(cal=tm_handler.conf.head_cal.next; cal!=NULL; cal=cal->next)
+    {
+        if(cal->name == name)
+            break;
+    }
+
+    return cal;
 }
 
-tm_fb_param_t* tm_mapping_get_fb_param()
+tm_native_size_param_t* tm_mapping_get_native_size_param(tm_fb_t name)
 {
-    return tm_handler.fb_param;
+    tm_native_size_param_t* size = NULL;
+
+    for(size=tm_handler.conf.head_size.next; size!=NULL; size=size->next)
+    {
+        if(size->name == name)
+            break;
+    }
+
+    return size;
 }
 
 #else

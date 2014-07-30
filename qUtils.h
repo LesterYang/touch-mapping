@@ -279,7 +279,7 @@ typedef struct q_thread {
     q_atomic_t running;
 }q_thread;
 
-q_thread* q_thread_new(q_thread_func_t thread_func, void *userdata);
+q_thread*   q_thread_new(q_thread_func_t thread_func, void *userdata);
 void 		q_thread_delet(q_thread *t);
 void 		q_thread_free(q_thread *t);
 int 		q_thread_join(q_thread *t);

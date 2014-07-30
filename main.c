@@ -57,7 +57,6 @@ int main(int argc, char* argv[])
                 if(tm_init() == TM_ERRNO_SUCCESS)
                 {
                     signal(SIGINT, tm_shutdown);
-                    signal(SIGKILL, tm_shutdown);
                     tm_bind_status(&g_status);
                     tm_switch_main_status(TM_STATUS_IPC_INIT);
                 }

@@ -20,9 +20,10 @@
 typedef enum _tm_status     tm_status_t;
 
 typedef enum _tm_ap         tm_ap_t;
+typedef enum _tm_fb         tm_fb_t;
 typedef enum _tm_panel      tm_panel_t;
 
-typedef struct _tm_event_info   tm_event_info_t;
+typedef struct _tm_ap_info      tm_ap_info_t;
 typedef struct _tm_panel_info   tm_panel_info_t;
 
 
@@ -58,31 +59,39 @@ enum _tm_panel{
     TM_PANEL_NONE = -1
 };
 
-struct _tm_event_info
+enum _tm_fb{
+    TM_FB_800_480_0_0_0,
+    TM_FB_1000_600_0_0_0,
+
+    TM_FB_MAX,
+    TM_FB_NUM = TM_FB_MAX,
+    TM_FB_NONE = -1
+};
+
+struct _tm_ap_info
 {
     tm_ap_t         name;
-    const char*     event_input_path;
-    int             fd_in;
-    const char*     event_onput_path;
-    int             fd_out;
+    const char*     event_path;
+    int             fd;
     tm_fb_param_t*  fb_param;           // Global array in tmMap.c,  tm_fb_param_t fb_param[TM_PANEL_NUM]
+    q_mutex*        mutex;
 };
 
 struct _tm_panel_info                   // Global array in tm.c, tm_panel_info_t panel[TM_PANEL_NUM]
 {
-    tm_panel_t          name;
-    tm_event_info_t*    current;        // Global array in tm.c, tm_event_info_t event[TM_AP_NUM]
-    tm_config_t*        param;          // Global array in tmMap.c,  tm_config_t cal[TM_PANEL_NUM]
-    tm_panel_info_t*    dest_panel;
+    tm_panel_t      name;
+    const char*     event_path;
+    int             fd;
+    tm_ap_info_t*   ap;                 // Global array in tm.c, tm_event_info_t event[TM_AP_NUM]
+    tm_config_t*    cal_param;          // Global array in tmMap.c,  tm_config_t cal[TM_PANEL_NUM]
+    tm_fb_param_t*  fb_param;
 };
 
 
-const char* tm_err_str(tm_errno_t no);
 void        tm_set_default_direction();
 tm_errno_t  tm_init(void);
 void        tm_deinit(void);
 void        tm_bind_panel_ap(tm_panel_t panel, tm_panel_t ap);
-void        tm_set_direction(tm_panel_t source, tm_panel_t target);
 void        tm_set_status(tm_status_t status);
 void        tm_bind_status(tm_status_t* status);
 void        tm_bind_param();

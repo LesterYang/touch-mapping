@@ -19,65 +19,41 @@ typedef struct _tm_info
 {
     q_mutex*            mutex;
     tm_status_t*        status;
-    tm_event_info_t*    event;
+    tm_ap_info_t*       ap;
     tm_panel_info_t*    panel;
 }tm_info_t;
 
-tm_info_t tm;
+static tm_info_t tm;
 
-tm_event_info_t g_event[] = {
-    {TM_AP_QSI,     "/dev/input/event0", -1, "/dev/input/event20", -1, NULL},
-    {TM_AP_QSI_L,   "/dev/input/event1", -1, "/dev/input/event21", -1, NULL},
-    {TM_AP_QSI_R,   "/dev/input/event2", -1, "/dev/input/event22", -1, NULL},
-    {TM_AP_NAVI,    "/dev/input/event3", -1, "/dev/input/event23", -1, NULL},
-    {TM_AP_MONITOR, "/dev/input/event4", -1, "/dev/input/event24", -1, NULL},
-    {TM_AP_NONE,                   NULL,  0,                 NULL,   0, NULL}
+tm_ap_info_t g_ap[] = {
+    {TM_AP_QSI,     "/dev/input/event20", -1, NULL, NULL},
+    {TM_AP_QSI_L,   "/dev/input/event21", -1, NULL, NULL},
+    {TM_AP_QSI_R,   "/dev/input/event22", -1, NULL, NULL},
+    {TM_AP_NAVI,    "/dev/input/event23", -1, NULL, NULL},
+    {TM_AP_MONITOR, "/dev/input/event24", -1, NULL, NULL},
+    {TM_AP_NONE,                    NULL,  0, NULL}
 };
 
 tm_panel_info_t g_panel[] = {
-    {TM_PANEL_FRONT, NULL, NULL, NULL},
-    {TM_PANEL_LEFT,  NULL, NULL, NULL},
-    {TM_PANEL_RIGHT, NULL, NULL, NULL},
-    {TM_PANEL_NONE,  NULL, NULL, NULL}
+    {TM_PANEL_FRONT, "/dev/input/event0", -1, NULL, NULL, NULL},
+    {TM_PANEL_LEFT,  "/dev/input/event1", -1, NULL, NULL, NULL},
+    {TM_PANEL_RIGHT, "/dev/input/event2", -1, NULL, NULL, NULL},
+    {TM_PANEL_NONE,                 NULL,  0, NULL, NULL, NULL}
 };
-
-
-
-const char* tm_err_str(tm_errno_t no)
-{
-    switch(no)
-    {
-        case TM_ERRNO_SUCCESS:      return " No error";
-        case TM_ERRNO_NO_DEV:       return " No such device";
-        case TM_ERRNO_DEV_PARAM:    return " Parameter of device error";
-        case TM_ERRNO_DEV_NUM:      return " Bad device number";
-        case TM_ERRNO_ALLOC:        return " Allocate error";
-        case TM_ERRNO_OPEN:         return " Open file error";
-        case TM_ERRNO_POINT:        return " Points are out of rage";
-        case TM_ERRNO_PARAM:        return " Function parameter error";
-        case TM_ERRNO_SWAP:         return " Need to swap xy";
-        default:            break;
-    }
-    return "unknown";
-}
 
 void tm_set_default_direction()
 {
-    tm.panel[TM_PANEL_FRONT].dest_panel = &tm.panel[TM_PANEL_FRONT];
-    tm.panel[TM_PANEL_FRONT].current    = &tm.event[TM_AP_QSI];
-    tm.panel[TM_PANEL_LEFT].dest_panel  = &tm.panel[TM_PANEL_LEFT];
-    tm.panel[TM_PANEL_LEFT].current     = &tm.event[TM_AP_QSI_L];
-    tm.panel[TM_PANEL_RIGHT].dest_panel = &tm.panel[TM_PANEL_RIGHT];
-    tm.panel[TM_PANEL_RIGHT].current    = &tm.event[TM_AP_QSI_R];
+    tm.panel[TM_PANEL_FRONT].ap    = &tm.ap[TM_AP_QSI];
+    tm.panel[TM_PANEL_LEFT].ap     = &tm.ap[TM_AP_QSI_L];
+    tm.panel[TM_PANEL_RIGHT].ap    = &tm.ap[TM_AP_QSI_R];
 }
-
-
 
 tm_errno_t tm_init()
 {
+    int idx;
     tm_errno_t err_no;
 
-    tm.event = g_event;
+    tm.ap    = g_ap;
     tm.panel = g_panel;
     tm.mutex = q_mutex_new(q_true, q_true);
 
@@ -87,7 +63,12 @@ tm_errno_t tm_init()
         return err_no;
     }
 
-    if((err_no = tm_input_init(tm.panel, tm.event)) != TM_ERRNO_SUCCESS)
+    for(idx=0; idx<TM_AP_NUM;idx++)
+    {
+        tm.ap[idx].mutex = q_mutex_new(q_true, q_true);
+    }
+
+    if((err_no = tm_input_init(tm.panel, tm.ap)) != TM_ERRNO_SUCCESS)
     {
         q_dbg("tm_create : %s", tm_err_str(err_no));
         return err_no;
@@ -101,18 +82,20 @@ tm_errno_t tm_init()
 
 void tm_deinit()
 {
+    int idx;
+    for(idx=0; idx<TM_AP_NUM;idx++)
+    {
+        if(tm.ap[idx].mutex)
+            q_mutex_free(tm.ap[idx].mutex);
+    }
+
     tm_mapping_destroy_handler();
     tm_input_deinit();
 }
 
 void tm_bind_panel_ap(tm_panel_t panel, tm_panel_t ap)
 {
-    tm.panel[panel].current = &tm.event[ap];
-}
-
-void tm_set_direction(tm_panel_t source, tm_panel_t target)
-{
-    tm.panel[source].dest_panel = &tm.panel[target];
+    tm.panel[panel].ap = &tm.ap[ap];
 }
 
 void tm_set_status(tm_status_t status)
@@ -131,23 +114,26 @@ void tm_bind_status(tm_status_t* status)
 void tm_bind_param()
 {
     // panel parameter pointer
-    tm.panel[TM_PANEL_FRONT].param   = &(tm_mapping_get_config()[TM_PANEL_FRONT]);
-    tm.panel[TM_PANEL_LEFT].param    = &(tm_mapping_get_config()[TM_PANEL_LEFT]);
-    tm.panel[TM_PANEL_RIGHT].param   = &(tm_mapping_get_config()[TM_PANEL_RIGHT]);
+    tm.panel[TM_PANEL_FRONT].cal_param  = &(tm_mapping_get_config()[TM_PANEL_FRONT]);
+    tm.panel[TM_PANEL_FRONT].fb_param  = &(tm_mapping_get_fb_param()[TM_FB_800_480_0_0_0]);
+    tm.panel[TM_PANEL_LEFT].cal_param  = &(tm_mapping_get_config()[TM_PANEL_LEFT]);
+    tm.panel[TM_PANEL_LEFT].fb_param   = &(tm_mapping_get_fb_param()[TM_FB_1000_600_0_0_0]);;
+    tm.panel[TM_PANEL_RIGHT].cal_param = &(tm_mapping_get_config()[TM_PANEL_RIGHT]);
+    tm.panel[TM_PANEL_RIGHT].fb_param  = &(tm_mapping_get_fb_param()[TM_FB_1000_600_0_0_0]);;
     // frame buffer parameter pointer
-    tm.event[TM_AP_QSI].fb_param     = &(tm_mapping_get_fb_param()[TM_PANEL_FRONT]);
-    tm.event[TM_AP_QSI_L].fb_param   = &(tm_mapping_get_fb_param()[TM_PANEL_LEFT]);
-    tm.event[TM_AP_QSI_R].fb_param   = &(tm_mapping_get_fb_param()[TM_PANEL_RIGHT]);
-    tm.event[TM_AP_NAVI].fb_param    = &(tm_mapping_get_fb_param()[TM_PANEL_FRONT]);
-    tm.event[TM_AP_MONITOR].fb_param = &(tm_mapping_get_fb_param()[TM_PANEL_FRONT]);
+    tm.ap[TM_AP_QSI].fb_param     = &(tm_mapping_get_fb_param()[TM_FB_800_480_0_0_0]);
+    tm.ap[TM_AP_QSI_L].fb_param   = &(tm_mapping_get_fb_param()[TM_FB_1000_600_0_0_0]);
+    tm.ap[TM_AP_QSI_R].fb_param   = &(tm_mapping_get_fb_param()[TM_FB_1000_600_0_0_0]);
+    tm.ap[TM_AP_NAVI].fb_param    = &(tm_mapping_get_fb_param()[TM_FB_800_480_0_0_0]);
+    tm.ap[TM_AP_MONITOR].fb_param = &(tm_mapping_get_fb_param()[TM_FB_800_480_0_0_0]);
 }
 
 tm_errno_t tm_transfer(int *x, int *y, tm_panel_info_t* panel)
 {
     if (!x || !y)
         return TM_ERRNO_PARAM;
-    //return tm_mapping_transfer(x, y, panel->param, panel->current->fb_param, panel->dest_panel->current->fb_param);
-    return tm_mapping_transfer(x, y, tm.panel[1].param, tm.panel[1].current->fb_param, tm.panel[1].dest_panel->current->fb_param);
+    //return tm_mapping_transfer(x, y, panel->cal_param, panel->fb_param, panel->ap->fb_param);
+    return tm_mapping_transfer(x, y, tm.panel[1].cal_param, tm.panel[1].fb_param, tm.panel[1].ap->fb_param);
 }
 
 #else

@@ -23,7 +23,9 @@ enum _tm_input_status{
     TM_INPUT_STATUS_COLLECT,
     TM_INPUT_STATUS_TRANS,
     TM_INPUT_STATUS_MT_END,
-    TM_INPUT_STATUS_END
+    TM_INPUT_STATUS_END,
+
+    TM_INPUT_STATUS_NONE = -1
 };
 
 
@@ -34,7 +36,7 @@ int  tm_inputInit(struct sEventDev* evDev);
 void tm_inputDeinit();
 #endif
 
-tm_errno_t  tm_input_init(tm_panel_info_t* panel, tm_event_info_t* event);
+tm_errno_t  tm_input_init(tm_panel_info_t* panel, tm_ap_info_t* ap);
 void tm_input_deinit();
 
 
