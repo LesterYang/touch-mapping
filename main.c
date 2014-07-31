@@ -71,8 +71,13 @@ int main(int argc, char* argv[])
                 //sleep(1);
 #if 1 // test
                 {
-                    int x=200,y=300;
+                    //ev_test 421 695, 521 882
+                    //ts_test 473 115, 384 0
+
+                    int x=521,y=882;
+                    q_dbg("send %d %d \n",x,y);
                     tm_transfer(&x, &y, NULL);
+                    q_dbg("get %d %d \n",x,y);
                 }
                 //tm_mapping_test();
                 tm_switch_main_status(TM_STATUS_DEINIT);

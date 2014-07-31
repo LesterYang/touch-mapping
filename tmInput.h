@@ -21,6 +21,7 @@ typedef struct input_event tm_input_event_t;
 enum _tm_input_status{
     TM_INPUT_STATUS_START,
     TM_INPUT_STATUS_COLLECT,
+    TM_INPUT_STATUS_MT_COLLECT,
     TM_INPUT_STATUS_TRANS,
     TM_INPUT_STATUS_MT_END,
     TM_INPUT_STATUS_END,

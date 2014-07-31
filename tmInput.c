@@ -163,6 +163,14 @@ void tm_input_close_events()
 void tm_send_event(tm_input_dev_t* dev, tm_input_event_t* event)
 {
     q_dbg("%s, code:%3d value:%3d",dev->panel->event_path, event->code, event->value);
+
+    switch(dev->status)
+    {
+        case TM_INPUT_STATUS_END:break;
+        case TM_INPUT_STATUS_TRANS:break;
+        case TM_INPUT_STATUS_COLLECT:break;
+        default:break;
+    }
 }
 
 void tm_input_parse_event(tm_input_dev_t* dev)
@@ -193,12 +201,18 @@ void tm_input_parse_event(tm_input_dev_t* dev)
             switch (event->code)
             {
                 case ABS_X:
-                case ABS_MT_POSITION_X:
-                    dev->status = TM_INPUT_STATUS_COLLECT;
-                    break;
                 case ABS_Y:
+                    if(dev->status == TM_INPUT_STATUS_START)
+                        dev->status = TM_INPUT_STATUS_COLLECT;
+                    else if(dev->status == TM_INPUT_STATUS_COLLECT)
+                        dev->status = TM_INPUT_STATUS_TRANS;
+                    break;
+                case ABS_MT_POSITION_X:
                 case ABS_MT_POSITION_Y:
-                    dev->status = TM_INPUT_STATUS_COLLECT;
+                    if(dev->status == TM_INPUT_STATUS_START)
+                        dev->status = TM_INPUT_STATUS_COLLECT;
+                    else if(dev->status == TM_INPUT_STATUS_COLLECT)
+                        dev->status = TM_INPUT_STATUS_TRANS;
                     break;
                 default:
                     break;
@@ -232,6 +246,9 @@ void tm_input_thread_func(void *data)
 
         while( (ret = select((dev->maxfd)+1,  &dev->evfds, NULL, NULL, &tv)) >= 0)
         {
+            if(tm_input.open == q_false)
+                break;
+
             if(ret > 0)
             {
                 tm_input_parse_event(dev);

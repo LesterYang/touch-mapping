@@ -22,16 +22,20 @@
 #define CAL_MATRIX_ROW      (2)
 #define CAL_MATRIX_COL      (3)
 
+#define JITTER_BOUNDARY     (3)
+
+
 #define __tm_mapping_list_add(head, new)            \
 ({                                                  \
-    new->next  = (head->next) ? head->next : NULL;  \
-    head->next = new;                               \
+    new->next  = (head.next) ? head.next : NULL;    \
+    head.next = new;                                \
 })
 
 typedef enum _tm_event_type             tm_event_type_t;
 typedef enum _tm_op_event               tm_op_event_t;
 
 typedef struct _tm_native_size_param    tm_native_size_param_t;
+typedef struct _tm_fb_param             tm_fb_param_t;
 typedef struct _tm_trans_matrix         tm_trans_matrix_t;
 typedef struct _tm_calibrate            tm_calibrate_t;
 typedef struct _tm_config               tm_config_t;
@@ -52,7 +56,7 @@ enum _tm_op_event{
 
 struct _tm_native_size_param
 {
-    tm_fb_t name;
+    int     id;
     int16_t max_x;
     int16_t max_y;
 	char    horizontal;
@@ -69,7 +73,7 @@ struct _tm_trans_matrix
 
 struct _tm_calibrate
 {
-    tm_panel_t          name;
+    int                 id;
     tm_trans_matrix_t   trans_matrix;
     int                 scaling;
 
@@ -82,6 +86,19 @@ struct _tm_calibrate
     tm_calibrate_t* next;
 };
 
+struct _tm_fb_param // relative proportion to native size
+{
+    int st_x;
+    int st_y;
+    int w;
+    int h;
+
+    int abs_st_x;
+    int abs_st_y;
+    int abs_end_x;
+    int abs_end_y;
+};
+
 struct _tm_config
 {
     tm_native_size_param_t  head_size;
@@ -89,17 +106,18 @@ struct _tm_config
 };
 
 void            tm_mapping_init_config_list(void);
-void            tm_mapping_add_native_size_praram(tm_native_size_param_t* size);
-void            tm_mapping_add_calibrate_praram(tm_calibrate_t* cal);
+void            tm_mapping_add_native_size_param(tm_native_size_param_t* size);
+void            tm_mapping_add_calibrate_param(tm_calibrate_t* cal);
 tm_errno_t      tm_mapping_create_handler(void);
 void            tm_mapping_destroy_handler(void);
 tm_errno_t      tm_mapping_update_conf(void);
+void            tm_mapping_remove_conf(void);
 void            tm_mapping_calibrate_conf(void);
 void            tm_mapping_native_size_conf(void);
-tm_errno_t      tm_mapping_transfer(int *x, int *y, tm_config_t* config, tm_fb_param_t*  src_fb, tm_fb_param_t*  dest_fb);
+tm_errno_t      tm_mapping_transfer(int *x, int *y, void* panel);
 
-tm_calibrate_t*          tm_mapping_get_calibrate_param(tm_panel_t name);
-tm_native_size_param_t*  tm_mapping_get_native_size_param(tm_fb_t name);
+tm_calibrate_t*          tm_mapping_get_calibrate_param(int id);
+tm_native_size_param_t*  tm_mapping_get_native_size_param(int id);
 
 void tm_mapping_test();
 

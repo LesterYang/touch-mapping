@@ -17,7 +17,19 @@
 #define TM_HDR_0      (0xff)
 #define TM_HDR_1      (0x55)
 
+// IPC header
+#define TM_IPC_HDR_SET  (0xa0)
+#define TM_IPC_CONG_LEN (13)
+
+#define __tm_list_add(head, new)                    \
+({                                                  \
+    new->next  = (head.next) ? head.next : NULL;    \
+    head.next = new;                                \
+})
+
+
 typedef enum _tm_status     tm_status_t;
+typedef enum _tm_ipc_status tm_ipc_status_t;
 
 typedef enum _tm_ap         tm_ap_t;
 typedef enum _tm_fb         tm_fb_t;
@@ -25,6 +37,7 @@ typedef enum _tm_panel      tm_panel_t;
 
 typedef struct _tm_ap_info      tm_ap_info_t;
 typedef struct _tm_panel_info   tm_panel_info_t;
+typedef struct _tm_display      tm_display_t;
 
 
 enum _tm_status{
@@ -35,6 +48,15 @@ enum _tm_status{
     TM_STATUS_DEINIT,
     TM_STATUS_ERROR,
     TM_STATUS_EXIT
+};
+
+enum _tm_ipc_status{
+    TM_IPC_STATUS_NONE,
+    TM_IPC_STATUS_INIT,
+    TM_IPC_STATUS_RUN,
+    TM_IPC_STATUS_SETTING,
+    TM_IPC_STATUS_ERROR,
+    TM_IPC_STATUS_EXIT
 };
 
 enum _tm_ap{
@@ -70,31 +92,56 @@ enum _tm_fb{
 
 struct _tm_ap_info
 {
-    tm_ap_t         name;
-    const char*     event_path;
-    int             fd;
-    tm_fb_param_t*  fb_param;           // Global array in tmMap.c,  tm_fb_param_t fb_param[TM_PANEL_NUM]
-    q_mutex*        mutex;
+    tm_ap_t                  name;
+    const char*              event_path;
+    int                      fd;
+    tm_native_size_param_t*  native_size;
+    q_mutex*                 mutex;
 };
 
-struct _tm_panel_info                   // Global array in tm.c, tm_panel_info_t panel[TM_PANEL_NUM]
+struct _tm_display
+{
+    tm_ap_info_t* ap;
+    tm_fb_param_t from;
+    tm_fb_param_t to;
+
+    tm_display_t* next;
+};
+
+struct _tm_panel_info
 {
     tm_panel_t      name;
     const char*     event_path;
     int             fd;
-    tm_ap_info_t*   ap;                 // Global array in tm.c, tm_event_info_t event[TM_AP_NUM]
-    tm_config_t*    cal_param;          // Global array in tmMap.c,  tm_config_t cal[TM_PANEL_NUM]
-    tm_fb_param_t*  fb_param;
+    int             link_num;
+
+    tm_display_t    head_display;
+
+    tm_calibrate_t*          cal_param;
+    tm_native_size_param_t*  native_size;
+
+    q_mutex*       mutex;
 };
 
+void        tm_recv_event(const char *from,unsigned int len,unsigned char *msg);
 
-void        tm_set_default_direction();
+void        tm_set_fb_param(tm_fb_param_t* fb, int start_x, int start_y, int per_width, int per_high);
+
+void        _tm_remove_display_setting(tm_panel_t id);
+void        tm_remove_display_setting();
+
+void        tm_fill_up_fb_conf(tm_fb_param_t* fb, tm_native_size_param_t* native);
+void        tm_set_default_display();
+
 tm_errno_t  tm_init(void);
 void        tm_deinit(void);
-void        tm_bind_panel_ap(tm_panel_t panel, tm_panel_t ap);
 void        tm_set_status(tm_status_t status);
 void        tm_bind_status(tm_status_t* status);
 void        tm_bind_param();
+
+tm_ap_info_t* tm_match_ap(int x, int y, tm_panel_info_t* panel);
+tm_display_t* tm_match_display(int x, int y, tm_panel_info_t* panel);
+
 tm_errno_t  tm_transfer(int *x, int *y, tm_panel_info_t* panel);
 
 #endif /* TM_H_ */

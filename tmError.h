@@ -23,7 +23,7 @@ enum _tm_errno{
     TM_ERRNO_NO_CONF    = -10       // No configuration
 };
 
-inline const char* tm_err_str(tm_errno_t no)
+static inline const char* tm_err_str(tm_errno_t no)
 {
     switch(no)
     {
