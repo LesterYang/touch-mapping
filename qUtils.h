@@ -88,18 +88,53 @@ typedef int q_bool;
 
 #define Q_ELEMENTS(x) (sizeof(x)/sizeof((x)[0]))
 
-static inline const char *q_strnull(const char *x)
-{
-    return x ? x : "(null)";
-}
 
-#define offsetof(s, m)   (size_t)&(((s *)0)->m)
+// ===============================================
+// list
+// ===============================================
+#define LIST_POISON1  ((void*)0x00100100)
+#define LIST_POISON2  ((void*)0x00200200)
 
-#define container_of(ptr, type, member) 					\
-({  														\
- 	const typeof( ((type *)0)->member ) *__mptr = (ptr); 	\
- 	(type *)( (char *)__mptr - offsetof(type,member) );		\
+#define q_offsetof(s, m) (size_t)&(((s *)0)->m)
+
+#define q_container_of(ptr, type, member)                                  \
+({                                                                         \
+    const typeof( ((type *)0)->member ) *__mptr = (ptr);                   \
+    (type *)( (char *)__mptr - l_offsetof(type,member) );                  \
 })
+
+#define list_next_entry(pos, member)                                       \
+        q_container_of((pos)->member.next, typeof(*(pos)), member)
+
+#define list_next_entry_or_null(pos, member)                               \
+        ((pos)->member.next) ? list_next_entry(pos, member) : NULL
+
+#define list_prev_entry(pos, member)                                       \
+        q_container_of((pos)->member.prev, typeof(*(pos)), member)
+
+#define list_prev_entry_or_null(pos, member)                               \
+        ((pos)->member.prev) ? list_prev_entry(pos, member) : NULL
+
+#define list_for_each_entry(first, pos, member)                            \
+     for (pos = list_next_entry_or_null(first, member);                    \
+          pos != NULL;                                                     \
+          pos = list_next_entry_or_null(pos, member))
+
+#define list_for_each_entry_reverse(last, pos, member)                     \
+     for (pos = list_prev_entry_or_null(last, member);                     \
+          pos != NULL;                                                     \
+          pos = list_prev_entry_or_null(pos, member))
+
+typedef struct _list_head list_head_t;
+		 
+struct _list_head{
+    list_head_t *next,*prev;
+};
+
+void q_init_head(list_head_t* head);
+void q_list_add(list_head_t *_new, list_head_t* head);
+void q_list_add_tail(list_head_t *_new, list_head_t* head);
+void q_list_del(list_head_t *entry);
 
 // ===============================================
 // allocate and free
@@ -349,6 +384,33 @@ int 		q_peek_queue(q_queue* q, char* item, int idx);
 size_t 		q_size_queue(q_queue* q);
 void 		q_expand_queue(q_queue* q);
 void 		q_show_queue(q_queue* q);
+
+
+// ===============================================
+// inline function
+// ===============================================
+
+static inline void __q_list_add(list_head_t *_new, list_head_t *prev, list_head_t *next)
+{
+    if(next)
+        next->prev=_new;
+    if(prev)
+        prev->next=_new;
+
+    _new->next=next;
+    _new->prev=prev;
+}
+
+static inline void __q_list_del(list_head_t *prev, list_head_t *next)
+{
+    next->prev = prev;
+    prev->next = next;
+}
+
+static inline const char *q_strnull(const char *x)
+{
+    return x ? x : "(null)";
+}
 
 static inline q_bool q_isempty_queue(q_queue* q)
 {

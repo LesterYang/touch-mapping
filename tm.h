@@ -27,6 +27,13 @@
     head.next = new;                                \
 })
 
+#define tm_point_is_in_range(fb, x, y)              \
+(!( x < (fb)->abs_st_x    ||                        \
+	x > (fb)->abs_end_x   ||                        \
+	y < (fb)->abs_st_y    ||                        \
+	y > (fb)->abs_end_y   )                         \
+)
+
 
 typedef enum _tm_status     tm_status_t;
 typedef enum _tm_ipc_status tm_ipc_status_t;
@@ -96,6 +103,8 @@ struct _tm_ap_info
     const char*              event_path;
     int                      fd;
     tm_native_size_param_t*  native_size;
+	
+	list_head_t	             node;
     q_mutex*                 mutex;
 };
 
@@ -104,7 +113,8 @@ struct _tm_display
     tm_ap_info_t* ap;
     tm_fb_param_t from;
     tm_fb_param_t to;
-
+	
+	list_head_t	   node;
     tm_display_t* next;
 };
 
@@ -120,7 +130,10 @@ struct _tm_panel_info
     tm_calibrate_t*          cal_param;
     tm_native_size_param_t*  native_size;
 
+	list_head_t	   node;
+	list_head_t	   display_head;
     q_mutex*       mutex;
+    q_queue*       queue;
 };
 
 void        tm_recv_event(const char *from,unsigned int len,unsigned char *msg);
@@ -142,6 +155,7 @@ void        tm_bind_param();
 tm_ap_info_t* tm_match_ap(int x, int y, tm_panel_info_t* panel);
 tm_display_t* tm_match_display(int x, int y, tm_panel_info_t* panel);
 
-tm_errno_t  tm_transfer(int *x, int *y, tm_panel_info_t* panel);
+tm_ap_info_t* tm_transfer(int *x, int *y, tm_panel_info_t* panel);
+
 
 #endif /* TM_H_ */

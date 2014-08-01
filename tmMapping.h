@@ -31,6 +31,10 @@
     head.next = new;                                \
 })
 
+#define FB_LEN_X(fb) (fb.abs_st_x - fb.abs_end_x)
+#define FB_LEN_Y(fb) (fb.abs_st_y - fb.abs_end_y)
+
+
 typedef enum _tm_event_type             tm_event_type_t;
 typedef enum _tm_op_event               tm_op_event_t;
 
@@ -59,10 +63,8 @@ struct _tm_native_size_param
     int     id;
     int16_t max_x;
     int16_t max_y;
-	char    horizontal;
-    char    vertical;
-    char    swap;
 
+	list_head_t	   node;
     tm_native_size_param_t* next;
 };
 
@@ -83,6 +85,7 @@ struct _tm_calibrate
         int div;
     }pressure;
 
+	list_head_t	    node;
     tm_calibrate_t* next;
 };
 
@@ -97,12 +100,21 @@ struct _tm_fb_param // relative proportion to native size
     int abs_st_y;
     int abs_end_x;
     int abs_end_y;
+    
+    char horizontal;
+    char vertical;
+    char swap;
 };
 
 struct _tm_config
 {
     tm_native_size_param_t  head_size;
     tm_calibrate_t          head_cal;
+    uint8_t                 native_size_num;
+    uint8_t                 calibrate_num;
+	
+	list_head_t	   			native_size_head;
+	list_head_t	   			calibrate_head;
 };
 
 void            tm_mapping_init_config_list(void);
@@ -114,7 +126,6 @@ tm_errno_t      tm_mapping_update_conf(void);
 void            tm_mapping_remove_conf(void);
 void            tm_mapping_calibrate_conf(void);
 void            tm_mapping_native_size_conf(void);
-tm_errno_t      tm_mapping_transfer(int *x, int *y, void* panel);
 
 tm_calibrate_t*          tm_mapping_get_calibrate_param(int id);
 tm_native_size_param_t*  tm_mapping_get_native_size_param(int id);

@@ -13,6 +13,30 @@
 #include <sys/errno.h>
 #include "qUtils.h"
 
+void q_init_head(list_head_t* head)
+{
+    head->next=NULL;
+    head->prev=NULL;
+}
+
+void q_list_add(list_head_t *_new, list_head_t* head)
+{
+    __q_list_add(_new, head, head->next);
+}
+
+void q_list_add_tail(list_head_t *_new, list_head_t* head)
+{
+    __q_list_add(_new, head->prev, head);
+}
+
+void q_list_del(list_head_t *entry)
+{
+    __q_list_del(entry->prev, entry->next);
+    entry->next = NULL;
+    entry->prev = NULL;
+}
+
+
 void* q_malloc(size_t size)
 {
     void *p;
