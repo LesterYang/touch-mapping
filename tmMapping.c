@@ -23,16 +23,17 @@ static tm_handler_t tm_handler;
 
 void tm_mapping_point(tm_display_t* dis, int src_x, int src_y, int* dest_x, int* dest_y);
 
-
-void tm_mapping_print_conf()
+void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* panel_head)
 {
     int i = 0;
     tm_calibrate_t* cal=NULL;
     tm_native_size_param_t* size = NULL;
+    tm_ap_info_t* ap;
+    tm_panel_info_t* panel;
 
     for(cal=tm_handler.conf.head_cal.next; cal!=NULL; cal=cal->next)
     {
-        fprintf(stderr,"cal  %d, id : %d, %d %d %d %d %d %d %d\n",
+        fprintf(stderr,"cal   %d, id : %d, %d %d %d %d %d %d %d\n",
                 i,
                 cal->id,
                 cal->trans_matrix.element[0][0],
@@ -47,12 +48,30 @@ void tm_mapping_print_conf()
     i = 0;
     for(size=tm_handler.conf.head_size.next; size!=NULL; size=size->next)
     {
-        fprintf(stderr,"size %d, id : %d, %d %d\n",
+        fprintf(stderr,"size  %d, id : %d, %d %d\n",
                 i,
                 size->id,
                 size->max_x,
                 size->max_y);
         i++;
+    }
+    i = 0;
+    list_for_each_entry(ap_head, ap, node)
+    {
+        fprintf(stderr,"ap    %d, id : %d, %s\n",
+                i,
+                ap->id,
+                ap->event_path);
+        i++;
+    }
+    i = 0;
+    list_for_each_entry(panel_head, panel, node)
+    {
+        fprintf(stderr,"panel %d, id : %d, %s\n",
+                i,
+                panel->id,
+                panel->event_path);
+    	i++;
     }
 }
 
@@ -78,23 +97,7 @@ void tm_mapping_add_calibrate_param(tm_calibrate_t* cal)
     tm_handler.conf.calibrate_num++;
 }
 
-tm_errno_t  tm_mapping_create_handler()
-{
-    tm_handler.mutex = q_mutex_new(q_true, q_true);
-
-    if(tm_mapping_update_conf() != TM_ERRNO_SUCCESS)
-        return TM_ERRNO_NO_CONF;
-
-    return TM_ERRNO_SUCCESS;
-}
-
-void tm_mapping_destroy_handler()
-{
-    tm_mapping_remove_conf();
-    q_mutex_free(tm_handler.mutex);
-}
-
-tm_errno_t tm_mapping_update_conf()
+tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* panel_head)
 {
     FILE *fr;
     char buf[BUF_SIZE];
@@ -129,13 +132,17 @@ tm_errno_t tm_mapping_update_conf()
         if((param = strtok(buf," ")) == NULL || (strlen(param) != 1))
             continue;
 
-        if(param[0] == 'c')
-            tm_mapping_calibrate_conf();
-        else if(param[0] == 's')
-            tm_mapping_native_size_conf();
+        switch(param[0])
+        {
+        	case 'c': tm_mapping_calibrate_conf();		break;
+        	case 's': tm_mapping_native_size_conf();	break;
+        	case 'a': tm_mapping_ap_conf(ap_head);		break;
+        	case 'p': tm_mapping_pnl_conf(panel_head);	break;
+        	default:break;
+        }
     }
 
-    tm_mapping_print_conf();
+    tm_mapping_print_conf(ap_head, panel_head);
 
     fclose(fr);
     return TM_ERRNO_SUCCESS;
@@ -252,6 +259,88 @@ err:
     q_free(native_size);
 }
 
+void tm_mapping_pnl_conf(list_head_t* panel_head)
+{
+	int id;
+	tm_panel_info_t* panel;
+	char *param;
+
+	q_dbg("tm_mapping_pnl_conf");
+
+    if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
+        return;
+
+    panel = (tm_panel_info_t*)q_calloc(sizeof(tm_panel_info_t));
+
+    if(panel == NULL)
+        return;
+
+    panel->id = id;
+
+    if((param = strtok(NULL," ")) == NULL)
+        goto err;
+
+    panel->event_path = q_strdup((const char*)param);
+
+    q_list_add(panel_head, &panel->node);
+
+    return;
+
+err:
+	q_free(panel);
+}
+
+
+void tm_mapping_ap_conf(list_head_t* ap_head)
+{
+	int id;
+	tm_ap_info_t* ap;
+	char *param;
+
+	q_dbg("tm_mapping_ap_conf");
+
+    if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
+        return;
+
+    ap = (tm_ap_info_t*)q_calloc(sizeof(tm_ap_info_t));
+
+    if(ap == NULL)
+        return;
+
+    ap->id = id;
+
+    if((param = strtok(NULL," ")) == NULL)
+        goto err;
+
+    ap->event_path = q_strdup((const char*)param);
+
+    q_list_add(ap_head, &ap->node);
+
+    return;
+
+err:
+	q_free(ap);
+}
+
+
+tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* panel_head)
+{
+	q_assert(ap_head);
+	q_assert(panel_head);
+
+    tm_handler.mutex = q_mutex_new(q_true, q_true);
+
+    if(tm_mapping_update_conf(ap_head, panel_head) != TM_ERRNO_SUCCESS)
+        return TM_ERRNO_NO_CONF;
+
+    return TM_ERRNO_SUCCESS;
+}
+
+void tm_mapping_destroy_handler()
+{
+    tm_mapping_remove_conf();
+    q_mutex_free(tm_handler.mutex);
+}
 
 
 void tm_mapping_matrix_mult(tm_trans_matrix_t *matrix, int* vector)

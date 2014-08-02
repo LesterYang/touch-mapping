@@ -14,7 +14,8 @@
 #include "qUtils.h"
 #include "tmError.h"
 
-#define QSI_TM_CONF         "/mnt/hgfs/Win_7/workspace-cpp2/touch-mapping/qsi_tm.conf"
+//#define QSI_TM_CONF         "/mnt/hgfs/Win_7/workspace-cpp2/touch-mapping/qsi_tm.conf"
+#define QSI_TM_CONF         "/home/lester/Git/touch-mapping/qsi_tm.conf"
 #define BUF_SIZE            (256)
 #define MULTIPLE            (4096)
 #define MAX_QUEUE           (512)
@@ -25,10 +26,10 @@
 #define JITTER_BOUNDARY     (3)
 
 
-#define __tm_mapping_list_add(head, new)            \
+#define __tm_mapping_list_add(head, _new)            \
 ({                                                  \
-    new->next  = (head.next) ? head.next : NULL;    \
-    head.next = new;                                \
+    _new->next  = (head.next) ? head.next : NULL;    \
+    head.next = _new;                                \
 })
 
 #define FB_LEN_X(fb) (fb.abs_st_x - fb.abs_end_x)
@@ -120,12 +121,13 @@ struct _tm_config
 void            tm_mapping_init_config_list(void);
 void            tm_mapping_add_native_size_param(tm_native_size_param_t* size);
 void            tm_mapping_add_calibrate_param(tm_calibrate_t* cal);
-tm_errno_t      tm_mapping_create_handler(void);
-void            tm_mapping_destroy_handler(void);
-tm_errno_t      tm_mapping_update_conf(void);
+tm_errno_t 		tm_mapping_update_conf(list_head_t* ap_head, list_head_t* panel_head);
 void            tm_mapping_remove_conf(void);
 void            tm_mapping_calibrate_conf(void);
 void            tm_mapping_native_size_conf(void);
+void 			tm_mapping_pnl_conf(list_head_t* panel_head);
+void 			tm_mapping_ap_conf(list_head_t* ap_head);
+tm_errno_t  	tm_mapping_create_handler(list_head_t* ap_head, list_head_t* panel_head);
 
 tm_calibrate_t*          tm_mapping_get_calibrate_param(int id);
 tm_native_size_param_t*  tm_mapping_get_native_size_param(int id);

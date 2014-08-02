@@ -99,7 +99,11 @@ enum _tm_fb{
 
 struct _tm_ap_info
 {
+	union{
     tm_ap_t                  name;
+    int                      id;
+	};
+
     const char*              event_path;
     int                      fd;
     tm_native_size_param_t*  native_size;
@@ -120,7 +124,11 @@ struct _tm_display
 
 struct _tm_panel_info
 {
+	union{
     tm_panel_t      name;
+    int             id;
+	};
+
     const char*     event_path;
     int             fd;
     int             link_num;

@@ -195,12 +195,14 @@ tm_errno_t tm_init()
     tm.ap       = g_ap;
     tm.panel    = g_panel;
 
+    q_init_head(&tm.ap_head);
+    q_init_head(&tm.panel_head);
 
     tm.mutex    = q_mutex_new(q_true, q_true);
     tm.dis_conf = NULL;
     tm.flag     = TM_IPC_STATUS_NONE;
 
-    if((err_no = tm_mapping_create_handler()) != TM_ERRNO_SUCCESS)
+    if((err_no = tm_mapping_create_handler(&tm.ap_head, &tm.panel_head)) != TM_ERRNO_SUCCESS)
     {
         q_dbg("tm_create : %s", tm_err_str(err_no));
         return err_no;
@@ -233,8 +235,24 @@ tm_errno_t tm_init()
 void tm_deinit()
 {
     int idx;
+    tm_ap_info_t *ap;
+    tm_panel_info_t *panel;
 
     tm_remove_display_setting();
+
+    while((ap = list_first_entry(&tm.ap_head, tm_ap_info_t, node)) != NULL)
+    {
+    	q_list_del(&ap->node);
+    	q_free((char*)ap->event_path);
+    	q_free(ap);
+    }
+
+    while((panel = list_first_entry(&tm.panel_head, tm_panel_info_t, node)) != NULL)
+    {
+    	q_list_del(&panel->node);
+    	q_free((char*)panel->event_path);
+    	q_free(panel);
+    }
 
     for(idx=0; tm.ap[idx].name != TM_AP_NONE; idx++)
         if(tm.ap[idx].mutex) q_mutex_free(tm.ap[idx].mutex);

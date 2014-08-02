@@ -19,12 +19,12 @@ void q_init_head(list_head_t* head)
     head->prev=NULL;
 }
 
-void q_list_add(list_head_t *_new, list_head_t* head)
+void q_list_add(list_head_t *head, list_head_t* _new)
 {
     __q_list_add(_new, head, head->next);
 }
 
-void q_list_add_tail(list_head_t *_new, list_head_t* head)
+void q_list_add_tail(list_head_t *head, list_head_t* _new)
 {
     __q_list_add(_new, head->prev, head);
 }

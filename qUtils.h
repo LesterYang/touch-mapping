@@ -100,8 +100,11 @@ typedef int q_bool;
 #define q_container_of(ptr, type, member)                                  \
 ({                                                                         \
     const typeof( ((type *)0)->member ) *__mptr = (ptr);                   \
-    (type *)( (char *)__mptr - l_offsetof(type,member) );                  \
+    (type *)( (char *)__mptr - q_offsetof(type,member) );                  \
 })
+
+#define list_first_entry(head_ptr, type, member) 						   \
+		((head_ptr)->next) ? q_container_of((head_ptr)->next, type, member) : NULL
 
 #define list_next_entry(pos, member)                                       \
         q_container_of((pos)->member.next, typeof(*(pos)), member)
@@ -115,15 +118,27 @@ typedef int q_bool;
 #define list_prev_entry_or_null(pos, member)                               \
         ((pos)->member.prev) ? list_prev_entry(pos, member) : NULL
 
-#define list_for_each_entry(first, pos, member)                            \
-     for (pos = list_next_entry_or_null(first, member);                    \
+//#define list_for_each_entry(first, pos, member)                            \
+//     for (pos = list_next_entry_or_null(first, member);                    \
+//          pos != NULL;                                                     \
+//          pos = list_next_entry_or_null(pos, member))
+
+#define list_for_each_entry(head_ptr, pos, member)                         \
+     for (pos = list_first_entry(head_ptr, typeof(*pos), member);          \
           pos != NULL;                                                     \
           pos = list_next_entry_or_null(pos, member))
 
-#define list_for_each_entry_reverse(last, pos, member)                     \
-     for (pos = list_prev_entry_or_null(last, member);                     \
+//#define list_for_each_entry_reverse(last, pos, member)                     \
+//     for (pos = list_prev_entry_or_null(last, member);                     \
+//          pos != NULL;                                                     \
+//          pos = list_prev_entry_or_null(pos, member))
+
+#define list_for_each_entry_reverse(last_ptr, pos, member)                 \
+     for (pos = q_container_of(last_ptr, typeof(*pos), member);            \
           pos != NULL;                                                     \
           pos = list_prev_entry_or_null(pos, member))
+
+
 
 typedef struct _list_head list_head_t;
 		 
@@ -403,8 +418,15 @@ static inline void __q_list_add(list_head_t *_new, list_head_t *prev, list_head_
 
 static inline void __q_list_del(list_head_t *prev, list_head_t *next)
 {
-    next->prev = prev;
-    prev->next = next;
+	if(next)
+		next->prev = prev ;
+	else
+		next = NULL;
+
+	if(prev)
+		prev->next = next;
+	else
+		prev = NULL;
 }
 
 static inline const char *q_strnull(const char *x)
