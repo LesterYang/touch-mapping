@@ -17,24 +17,28 @@ typedef struct _tm_handler
 {
     q_mutex*        mutex;
     tm_config_t     conf;
+	list_head_t		calibrate_head;
+	list_head_t     native_size_head;
 }tm_handler_t;
 
 static tm_handler_t tm_handler;
 
+void tm_mapping_pnl_bind_conf(tm_panel_info_t* panel);
+void tm_mapping_ap_bind_conf(tm_ap_info_t* ap);
 void tm_mapping_point(tm_display_t* dis, int src_x, int src_y, int* dest_x, int* dest_y);
 
-void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* panel_head)
+void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head)
 {
     int i = 0;
     tm_calibrate_t* cal=NULL;
     tm_native_size_param_t* size = NULL;
     tm_ap_info_t* ap;
     tm_panel_info_t* panel;
+    tm_display_t* dis = NULL;
 
-    for(cal=tm_handler.conf.head_cal.next; cal!=NULL; cal=cal->next)
+    list_for_each_entry(&tm_handler.calibrate_head, cal, node)
     {
-        fprintf(stderr,"cal   %d, id : %d, %d %d %d %d %d %d %d\n",
-                i,
+        fprintf(stderr,"cal   id : %d, %d %d %d %d %d %d %d\n",
                 cal->id,
                 cal->trans_matrix.element[0][0],
                 cal->trans_matrix.element[0][1],
@@ -43,61 +47,46 @@ void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* panel_head)
                 cal->trans_matrix.element[1][1],
                 cal->trans_matrix.element[1][2],
                 cal->scaling);
-        i++;
     }
-    i = 0;
-    for(size=tm_handler.conf.head_size.next; size!=NULL; size=size->next)
+    list_for_each_entry(&tm_handler.native_size_head, size, node)
     {
-        fprintf(stderr,"size  %d, id : %d, %d %d\n",
-                i,
+        fprintf(stderr,"size  id : %d, %d %d\n",
                 size->id,
                 size->max_x,
                 size->max_y);
-        i++;
     }
-    i = 0;
     list_for_each_entry(ap_head, ap, node)
     {
-        fprintf(stderr,"ap    %d, id : %d, %s\n",
-                i,
+        fprintf(stderr,"ap    id : %d, %s, bind : size id %d\n",
                 ap->id,
-                ap->event_path);
-        i++;
+                ap->evt_path,
+                ap->native_size->id);
     }
-    i = 0;
-    list_for_each_entry(panel_head, panel, node)
+    list_for_each_entry(pnl_head, panel, node)
     {
-        fprintf(stderr,"panel %d, id : %d, %s\n",
-                i,
+        fprintf(stderr,"panel id : %d, %s, bind : size id %d, cal id : %d\n",
                 panel->id,
-                panel->event_path);
-    	i++;
+                panel->evt_path,
+                panel->native_size->id,
+                panel->cal_param->id);
+
+        list_for_each_entry(&panel->display_head, dis, node)
+        {
+            fprintf(stderr,"           display ap %d, (%d~%d, %d~%d) -> (%d~%d, %d~%d)\n",
+            		dis->ap->id,
+            		dis->from.abs_st_x,
+            		dis->from.abs_end_x,
+            		dis->from.abs_st_y,
+            		dis->from.abs_end_y,
+            		dis->to.abs_st_x,
+            		dis->to.abs_end_x,
+            		dis->to.abs_st_y,
+            		dis->to.abs_end_y);
+        }
     }
 }
 
-
-void tm_mapping_init_config_list()
-{
-    tm_handler.conf.head_cal.id = TM_PANEL_NONE;
-    tm_handler.conf.head_cal.next = NULL;
-
-    tm_handler.conf.head_size.id = TM_FB_NONE;
-    tm_handler.conf.head_size.next = NULL;
-}
-
-void tm_mapping_add_native_size_param(tm_native_size_param_t* size)
-{
-    __tm_mapping_list_add(tm_handler.conf.head_size, size);
-    tm_handler.conf.native_size_num++;
-}
-
-void tm_mapping_add_calibrate_param(tm_calibrate_t* cal)
-{
-    __tm_mapping_list_add(tm_handler.conf.head_cal, cal);
-    tm_handler.conf.calibrate_num++;
-}
-
-tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* panel_head)
+tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head)
 {
     FILE *fr;
     char buf[BUF_SIZE];
@@ -137,12 +126,10 @@ tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* panel_head)
         	case 'c': tm_mapping_calibrate_conf();		break;
         	case 's': tm_mapping_native_size_conf();	break;
         	case 'a': tm_mapping_ap_conf(ap_head);		break;
-        	case 'p': tm_mapping_pnl_conf(panel_head);	break;
+        	case 'p': tm_mapping_pnl_conf(pnl_head);	break;
         	default:break;
         }
     }
-
-    tm_mapping_print_conf(ap_head, panel_head);
 
     fclose(fr);
     return TM_ERRNO_SUCCESS;
@@ -150,33 +137,23 @@ tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* panel_head)
 
 void tm_mapping_remove_conf()
 {
-    tm_calibrate_t* cal = tm_handler.conf.head_cal.next;
-    tm_native_size_param_t* native_size = tm_handler.conf.head_size.next;
-
-    while(cal!=NULL)
-    {
-        q_mutex_lock(tm_handler.mutex);
-
-        tm_handler.conf.head_cal.next = cal->next;
-        q_free(cal);
-        cal = tm_handler.conf.head_cal.next;
-
-        q_mutex_unlock(tm_handler.mutex);
-    }
-
-    while(native_size!=NULL)
-    {
-        q_mutex_lock(tm_handler.mutex);
-
-        tm_handler.conf.head_size.next = native_size->next;
-        q_free(native_size);
-        native_size = tm_handler.conf.head_size.next;
-
-        q_mutex_unlock(tm_handler.mutex);
-    }
+	tm_calibrate_t* cal ;
+	tm_native_size_param_t* native_size;
 
     tm_handler.conf.calibrate_num = 0;
     tm_handler.conf.native_size_num = 0;
+
+    while((cal = list_first_entry(&tm_handler.calibrate_head, tm_calibrate_t, node)) != NULL)
+    {
+    	q_list_del(&cal->node);
+    	q_free(cal);
+    }
+
+    while((native_size = list_first_entry(&tm_handler.native_size_head, tm_native_size_param_t, node)) != NULL)
+    {
+    	q_list_del(&native_size->node);
+    	q_free(native_size);
+    }
 }
 
 void tm_mapping_calibrate_conf()
@@ -215,7 +192,8 @@ void tm_mapping_calibrate_conf()
 
         q_mutex_lock(tm_handler.mutex);
 
-        tm_mapping_add_calibrate_param(cal);
+        q_list_add(&tm_handler.calibrate_head, &cal->node);
+        tm_handler.conf.calibrate_num++;
 
         q_mutex_unlock(tm_handler.mutex);
     }
@@ -249,7 +227,8 @@ void tm_mapping_native_size_conf()
 
     q_mutex_lock(tm_handler.mutex);
 
-    tm_mapping_add_native_size_param(native_size);
+    q_list_add(&tm_handler.native_size_head, &native_size->node);
+    tm_handler.conf.native_size_num++;
 
     q_mutex_unlock(tm_handler.mutex);
 
@@ -259,13 +238,11 @@ err:
     q_free(native_size);
 }
 
-void tm_mapping_pnl_conf(list_head_t* panel_head)
+void tm_mapping_pnl_conf(list_head_t* pnl_head)
 {
 	int id;
 	tm_panel_info_t* panel;
 	char *param;
-
-	q_dbg("tm_mapping_pnl_conf");
 
     if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
         return;
@@ -280,9 +257,13 @@ void tm_mapping_pnl_conf(list_head_t* panel_head)
     if((param = strtok(NULL," ")) == NULL)
         goto err;
 
-    panel->event_path = q_strdup((const char*)param);
+    panel->evt_path = q_strdup((const char*)param);
+    panel->mutex = q_mutex_new(q_true, q_true);
 
-    q_list_add(panel_head, &panel->node);
+    tm_mapping_pnl_bind_conf(panel);
+
+    q_init_head(&panel->display_head);
+    q_list_add(pnl_head, &panel->node);
 
     return;
 
@@ -290,14 +271,11 @@ err:
 	q_free(panel);
 }
 
-
 void tm_mapping_ap_conf(list_head_t* ap_head)
 {
 	int id;
 	tm_ap_info_t* ap;
 	char *param;
-
-	q_dbg("tm_mapping_ap_conf");
 
     if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
         return;
@@ -312,7 +290,10 @@ void tm_mapping_ap_conf(list_head_t* ap_head)
     if((param = strtok(NULL," ")) == NULL)
         goto err;
 
-    ap->event_path = q_strdup((const char*)param);
+    ap->evt_path = q_strdup((const char*)param);
+    ap->mutex = q_mutex_new(q_true, q_true);
+
+    tm_mapping_ap_bind_conf(ap);
 
     q_list_add(ap_head, &ap->node);
 
@@ -322,15 +303,71 @@ err:
 	q_free(ap);
 }
 
+void tm_mapping_pnl_bind_conf(tm_panel_info_t* panel)
+{
+	char *param;
+	panel->cal_param = NULL;
+	panel->native_size = NULL;
 
-tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* panel_head)
+	while(panel->cal_param == NULL || panel->native_size == NULL)
+	{
+		if((param = strtok(NULL," ")) == NULL)
+			break;
+
+        switch(param[0])
+        {
+        	case 'c':
+        		if((param = strtok(NULL," ")) == NULL)
+        			return;
+
+        		panel->cal_param = tm_mapping_get_calibrate_param(atoi(param));
+        		break;
+
+        	case 's':
+        		if((param = strtok(NULL," ")) == NULL)
+        			return;
+
+        		panel->native_size = tm_mapping_get_native_size_param(atoi(param));
+        		break;
+
+        	default:
+        		break;
+        }
+	}
+}
+
+
+void tm_mapping_ap_bind_conf(tm_ap_info_t* ap)
+{
+	char *param;
+	ap->native_size = NULL;
+
+	while(ap->native_size == NULL)
+	{
+		if((param = strtok(NULL," ")) == NULL)
+			break;
+
+        if(param[0] == 's')
+        {
+    		if((param = strtok(NULL," ")) == NULL)
+    			return;
+
+    		ap->native_size = tm_mapping_get_native_size_param(atoi(param));
+        }
+	}
+}
+
+tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head)
 {
 	q_assert(ap_head);
-	q_assert(panel_head);
+	q_assert(pnl_head);
 
     tm_handler.mutex = q_mutex_new(q_true, q_true);
 
-    if(tm_mapping_update_conf(ap_head, panel_head) != TM_ERRNO_SUCCESS)
+    q_init_head(&tm_handler.calibrate_head);
+    q_init_head(&tm_handler.native_size_head);
+
+    if(tm_mapping_update_conf(ap_head, pnl_head) != TM_ERRNO_SUCCESS)
         return TM_ERRNO_NO_CONF;
 
     return TM_ERRNO_SUCCESS;
@@ -366,8 +403,6 @@ void tm_mapping_matrix_mult(tm_trans_matrix_t *matrix, int* vector)
     vector[0] = result_vec[0];
     vector[1] = result_vec[1];
 }
-
-//tm_native_size_param_t*  dest_size, tm_fb_param_t* from_fb, tm_fb_param_t* to_fb
 
 tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
 {
@@ -448,10 +483,9 @@ tm_calibrate_t* tm_mapping_get_calibrate_param(int id)
 {
     tm_calibrate_t* cal = NULL;
 
-    for(cal=tm_handler.conf.head_cal.next; cal!=NULL; cal=cal->next)
+    list_for_each_entry(&tm_handler.calibrate_head, cal, node)
     {
-        if(cal->id == id)
-            break;
+    	 if(cal->id == id) break;
     }
 
     return cal;
@@ -461,10 +495,9 @@ tm_native_size_param_t* tm_mapping_get_native_size_param(int id)
 {
     tm_native_size_param_t* size = NULL;
 
-    for(size=tm_handler.conf.head_size.next; size!=NULL; size=size->next)
+    list_for_each_entry(&tm_handler.native_size_head, size, node)
     {
-        if(size->id == id)
-            break;
+        if(size->id == id) break;
     }
 
     return size;

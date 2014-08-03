@@ -26,7 +26,15 @@ void q_list_add(list_head_t *head, list_head_t* _new)
 
 void q_list_add_tail(list_head_t *head, list_head_t* _new)
 {
-    __q_list_add(_new, head->prev, head);
+	while(head->next != NULL)
+	{
+		head = head->next;
+	}
+
+	head->next = _new;
+	_new->prev = head;
+
+	_new->next = NULL;
 }
 
 void q_list_del(list_head_t *entry)

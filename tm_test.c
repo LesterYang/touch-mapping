@@ -26,7 +26,7 @@ void tm_test_transfer_cal()
     q_dbg("send %d %d \n",x,y);
     ap = tm_transfer(&x, &y, NULL);
     if(ap)
-        q_dbg("send to %s",ap->event_path);
+        q_dbg("send to %s",ap->evt_path);
     q_dbg("get %d %d (ans: 384 0)\n",x,y);
 }
 
@@ -46,6 +46,12 @@ void tm_event(int x, int y)
         .code=ABS_MT_TOUCH_MAJOR,
         .value=250
     };
+    struct input_event sync={
+        .type=EV_SYN,
+        .code=SYN_REPORT,
+        .value=0
+    };
+
 #if 0
     struct input_event mt_sync={
         .type=EV_SYN,
@@ -71,17 +77,6 @@ void tm_event(int x, int y)
     if(write(fd,&mt_sync,sizeof(struct input_event)) == -1)
         printf("write error\n");
 #endif
-}
-
-void report()
-{
-    int fd=0;
-    struct input_event sync={
-        .type=EV_SYN,
-        .code=SYN_REPORT,
-        .value=0
-    };
-
     gettimeofday(&sync.time, NULL);
     if(write(fd,&sync,sizeof(struct input_event)) == -1)
         printf("write error\n");

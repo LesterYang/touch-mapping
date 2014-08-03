@@ -37,7 +37,7 @@ do{                                             \
 }while(0)
 
 
-tm_errno_t  tm_input_init(tm_panel_info_t* panel, tm_ap_info_t* ap);
+tm_errno_t  tm_input_init(list_head_t* ap_head, list_head_t* panel_head);
 void tm_input_deinit();
 
 #endif /* TMINPUT_H_ */

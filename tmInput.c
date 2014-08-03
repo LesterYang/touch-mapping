@@ -34,22 +34,20 @@ typedef struct _tm_input_dev {
 
 typedef struct _tm_input_handler {
     q_bool             open;
-    tm_ap_info_t*      ap;
-    tm_input_dev_t*    dev;
+    list_head_t* 	   tm_ap_head;
 
-	uint8_t			   input_dev_num;
-	list_head_t        input_dev_head;
+	uint8_t			   dev_num;
+	list_head_t        dev_head;
 }tm_input_handler_t;
 
 static tm_input_handler_t tm_input;
-static tm_input_dev_t     tm_input_dev[TM_PANEL_NUM];
 
-void tm_send_event(tm_input_dev_t* dev, tm_input_event_t* event);
-//void tm_input_parse_event(tm_input_dev_t* dev);
+void tm_send_event(tm_input_dev_t* dev, tm_input_event_t* evt);
 
 void tm_input_clean_stdin();
-int  tm_input_init_events();
+int  tm_input_init_events(list_head_t* pnl_head);
 void tm_input_close_events();
+void tm_input_remove_dev();
 
 int  tm_input_add_fd (tm_panel_info_t* tm_input, fd_set * fdsp);
 
@@ -79,25 +77,20 @@ void tm_input_clean_stdin()
     return;
 }
 
-tm_errno_t tm_input_init(tm_panel_info_t* panel, tm_ap_info_t* ap)
+tm_errno_t tm_input_init(list_head_t* ap_head, list_head_t* pnl_head)
 {
     int idx;
+
     tm_errno_t err_no;
-    q_assert(panel);
-    q_assert(ap);
+    q_assert(ap_head);
+    q_assert(pnl_head);
 
-    tm_input.ap     = ap;
-    tm_input.dev    = tm_input_dev;
+    q_init_head(&tm_input.dev_head);
 
-    for(idx=0; idx<TM_PANEL_NUM; idx++)
-    {
-        tm_input.dev[idx].panel = &panel[idx];
-        tm_input.dev[idx].queue = panel[idx].queue;
-    }
+    tm_input.open       = q_true;
+    tm_input.tm_ap_head	= ap_head;
     
-    tm_input.open   = q_true;
-    
-    if((err_no = tm_input_init_events()) != TM_ERRNO_SUCCESS)
+    if((err_no = tm_input_init_events(pnl_head)) != TM_ERRNO_SUCCESS)
         return err_no;
 
     return TM_ERRNO_SUCCESS;
@@ -105,85 +98,116 @@ tm_errno_t tm_input_init(tm_panel_info_t* panel, tm_ap_info_t* ap)
 
 void tm_input_deinit()
 {
-    int idx;
-
     tm_input.open = q_false;
+    tm_input_close_events();
+    tm_input_remove_dev();
+}
+
+tm_errno_t  tm_input_init_events(list_head_t* pnl_head)
+{
+    int idx;
+    tm_ap_info_t* ap = NULL;
+    tm_panel_info_t* panel = NULL;
+    tm_input_dev_t* dev;
 
     tm_input_close_events();
 
-    for(idx=0; idx < TM_PANEL_NUM; idx++)
+    list_for_each_entry(tm_input.tm_ap_head, ap, node)
     {
-        if(tm_input.dev[idx].thread)
-        {
-            q_thread_free(tm_input.dev[idx].thread);
-            tm_input.dev[idx].thread = NULL;
-        }
+        if((ap->fd = open (ap->evt_path, O_RDONLY )) < 0)
+            q_dbg("Opened %s error",ap->evt_path);
+        else
+        	q_dbg("Opened %s done",ap->evt_path);
     }
-}
-
-tm_errno_t  tm_input_init_events()
-{
-    int idx;
 
     tm_input_clean_stdin();
 
-    for(idx=0; tm_input.ap[idx].name != TM_AP_NONE; idx++)
+    list_for_each_entry(pnl_head, panel, node)
     {
-        if((tm_input.ap[idx].fd = open (tm_input.ap[idx].event_path, O_RDONLY )) < 0)
-            q_dbg("Opened %s error",tm_input.ap[idx].event_path);
-    }
+    	dev = (tm_input_dev_t*)q_calloc(sizeof(tm_input_dev_t));
 
-    for(idx=0; idx < TM_PANEL_NUM; idx++)
-    {
-        if((tm_input.dev[idx].panel->fd = open (tm_input.dev[idx].panel->event_path, O_RDONLY )) < 0)
+    	if(dev == NULL)
+    		continue;
+
+    	dev->panel = panel;
+    	dev->queue = panel->queue;
+    	q_list_add(&tm_input.dev_head, &dev->node);
+    	tm_input.dev_num++;
+
+        if((panel->fd = open (panel->evt_path, O_RDONLY )) < 0)
         {
-            q_dbg("Opened %s error",tm_input.dev[idx].panel->event_path);
+            q_dbg("Opened %s error",panel->evt_path);
         }
         else
         {
-            tm_input.dev[idx].status = TM_INPUT_STATUS_NONE;
-            tm_input.dev[idx].thread = q_thread_new(tm_input_thread_func, &tm_input.dev[idx]);
+        	q_dbg("Opened %s done",panel->evt_path);
+        	dev->status = TM_INPUT_STATUS_NONE;
+        	dev->thread = q_thread_new(tm_input_thread_func, dev);
         }
     }
+
     return TM_ERRNO_SUCCESS;
 }
 
 void tm_input_close_events()
 {
     int idx;
+    tm_ap_info_t* ap = NULL;
+    tm_input_dev_t* dev = NULL;
 
-    for(idx=0; idx < TM_PANEL_NUM; idx++)
+    list_for_each_entry(tm_input.tm_ap_head, ap, node)
     {
-        if(tm_input.dev[idx].panel->fd > 0)
-            q_close(tm_input.dev[idx].panel->fd);
+    	if(ap->fd > 0)
+    	{
+    		q_close(ap->fd);
+    		ap->fd = -1;
+    	}
     }
 
-    for(idx=0; tm_input.ap[idx].name != TM_AP_NONE; idx++)
+    list_for_each_entry(&tm_input.dev_head, dev, node)
     {
-        if(tm_input.ap[idx].fd > 0)
-            q_close(tm_input.ap[idx].fd);
+    	if(dev->panel != NULL && dev->panel->fd > 0)
+    	{
+    		q_close(dev->panel->fd);
+    		dev->panel->fd = -1;
+    	}
     }
 }
 
-void tm_send_event(tm_input_dev_t* dev, tm_input_event_t* event)
+void tm_input_remove_dev()
 {
-    q_dbg("%s, code:%3d value:%3d",dev->panel->event_path, event->code, event->value);
+    tm_input_dev_t* dev;
+    tm_input.dev_num = 0;
 
+    tm_input.open = q_false;
+
+    while((dev = list_first_entry(&tm_input.dev_head, tm_input_dev_t, node)) != NULL)
+    {
+    	if(dev->thread)
+    	{
+    		q_thread_free(dev->thread);
+    		dev->thread = NULL;
+    	}
+
+    	q_list_del(&dev->node);
+    	q_free(dev);
+    }
 }
 
-#include <fcntl.h>
-#include <pthread.h>
-#include <sys/time.h>
-#include <linux/input.h>
+void tm_send_event(tm_input_dev_t* dev, tm_input_event_t* evt)
+{
+    q_dbg("%s, code:%3d value:%3d",dev->panel->evt_path, evt->code, evt->value);
+
+}
 
 void tm_input_parse_event(tm_input_dev_t* dev)
 {
-    static tm_input_event_t last_event[64];
-    static int x, y, idx_x, idx_y, ev_num;
+    static tm_input_event_t last_evt[64];
+    static int x, y, idx_x, idx_y, evt_num;
     static tm_ap_info_t* ap;
 
     char buf[sizeof(tm_input_event_t)] = {0};
-    tm_input_event_t* event = (tm_input_event_t *)buf;
+    tm_input_event_t* evt = (tm_input_event_t *)buf;
 
     if ((dev->panel->fd < 0) || !(FD_ISSET(dev->panel->fd, &dev->evfds)))
         return;
@@ -194,36 +218,36 @@ void tm_input_parse_event(tm_input_dev_t* dev)
     if(q_loop_read(dev->panel->fd, buf, sizeof(tm_input_event_t)) != (ssize_t)sizeof(tm_input_event_t))
         return;
 
-    switch (event->type)
+    switch (evt->type)
     {
         case EV_SYN:
             dev->status = TM_INPUT_STATUS_END;
             break;
         case EV_KEY:
-            if(event->code == BTN_TOUCH && event->value)
+            if(evt->code == BTN_TOUCH && evt->value)
                 dev->status = TM_INPUT_STATUS_START;
 
             break;
 
         case EV_ABS:
-            switch (event->code)
+            switch (evt->code)
             {
                 case ABS_X:
-                    idx_x = ev_num;
-                    x = event->value;
+                    idx_x = evt_num;
+                    x = evt->value;
                     set_abs_status(dev->status);
                     break;
                 case ABS_Y:
-                    idx_y = ev_num;
-                    y = event->value;
+                    idx_y = evt_num;
+                    y = evt->value;
                     set_abs_status(dev->status);
                     break;
                 case ABS_MT_POSITION_X:
-                    x = event->value;
+                    x = evt->value;
                     set_abs_status(dev->status);
                     break;
                 case ABS_MT_POSITION_Y:
-                    y = event->value;
+                    y = evt->value;
                     set_abs_status(dev->status);
                     break;
                 default:
@@ -239,50 +263,50 @@ void tm_input_parse_event(tm_input_dev_t* dev)
     switch(dev->status)
     {
         case TM_INPUT_STATUS_START:
-            ev_num = 0;
-            memcpy(&last_event[ev_num++], (const char*)buf, sizeof(tm_input_event_t));
+            evt_num = 0;
+            memcpy(&last_evt[evt_num++], (const char*)buf, sizeof(tm_input_event_t));
             break;
         case TM_INPUT_STATUS_PASS:
-            memcpy(&last_event[ev_num++], event, sizeof(tm_input_event_t));
+            memcpy(&last_evt[evt_num++], evt, sizeof(tm_input_event_t));
             break;
         case TM_INPUT_STATUS_COLLECT:
         case TM_INPUT_STATUS_MT_COLLECT:
-            memcpy(&last_event[ev_num++], event, sizeof(tm_input_event_t));
+            memcpy(&last_evt[evt_num++], evt, sizeof(tm_input_event_t));
             break;
         case TM_INPUT_STATUS_TRANS:
-            memcpy(&last_event[ev_num++], event, sizeof(tm_input_event_t));
-            if(idx_x > 0 && idx_x < ev_num && idx_y < ev_num && idx_y > 0)
+            memcpy(&last_evt[evt_num++], evt, sizeof(tm_input_event_t));
+            if(idx_x > 0 && idx_x < evt_num && idx_y < evt_num && idx_y > 0)
             {
-                //q_dbg("in  : %d, %d\n",last_event[idx_x].value, last_event[idx_y].value);
-                ap = tm_transfer(&last_event[idx_x].value, &last_event[idx_y].value, dev->panel);
-                //q_dbg("out : %d, %d\n",last_event[idx_x].value, last_event[idx_y].value);
+                //q_dbg("in  : %d, %d\n",last_evt[idx_x].value, last_evt[idx_y].value);
+                ap = tm_transfer(&last_evt[idx_x].value, &last_evt[idx_y].value, dev->panel);
+                //q_dbg("out : %d, %d\n",last_evt[idx_x].value, last_evt[idx_y].value);
             }
             dev->status = TM_INPUT_STATUS_PASS;
             break;
         case TM_INPUT_STATUS_MT_END:
-            memcpy(&last_event[ev_num++], event, sizeof(tm_input_event_t));
+            memcpy(&last_evt[evt_num++], evt, sizeof(tm_input_event_t));
             break;
         case TM_INPUT_STATUS_END:
-            memcpy(&last_event[ev_num++], event, sizeof(tm_input_event_t));
+            memcpy(&last_evt[evt_num++], evt, sizeof(tm_input_event_t));
             if(ap && ap->fd > 0)
             {
                 int i;
-                for(i=0; i<ev_num; i++)
+                for(i=0; i<evt_num; i++)
                 {
-                    //q_dbg("type %4d code %4d value %4d",last_event[i].type, last_event[i].code, last_event[i].value);
-                    if(write(ap->fd, &last_event[i], sizeof(tm_input_event_t)) == -1)
-                        q_dbg("write %s error",ap->event_path);
+                    //q_dbg("type %4d code %4d value %4d",last_evt[i].type, last_evt[i].code, last_evt[i].value);
+                    if(write(ap->fd, &last_evt[i], sizeof(tm_input_event_t)) == -1)
+                        q_dbg("write %s error",ap->evt_path);
                 }
             }
             ap = NULL;
-            ev_num = 0;
+            evt_num = 0;
             break;
         default:
             break;
     }
 }
 
-#if 0
+/*
 #define Q_CMD_LEN           (2)
 #define QUEUE_HDR           (0xff)
 #define QUEUE_CMD_PASS      (0x55)
@@ -301,7 +325,7 @@ uint8_t g_cmd_trans[Q_CMD_LEN]={QUEUE_HDR, QUEUE_CMD_TRANS};
 
 void tm_input_save_event(tm_input_dev_t* dev, tm_input_event_t* ev)
 {
-    q_dbg("%d -> type : %2x, code : %2x, value : %2x",dev->panel->event_path, ev->type, ev->code, ev->value);
+    q_dbg("%d -> type : %2x, code : %2x, value : %2x",dev->panel->evt_path, ev->type, ev->code, ev->value);
 
     if(tm_input.open == q_false)
         return;
@@ -384,8 +408,7 @@ void tm_parse_event()
 
 }
 
-
-#endif
+*/
 
 
 void tm_input_thread_func(void *data)
@@ -394,7 +417,7 @@ void tm_input_thread_func(void *data)
     int ret;
     tm_input_dev_t* dev = (tm_input_dev_t*)data;
 
-    q_dbg("thread run : name : %d %s",dev->panel->name, dev->panel->event_path);
+    q_dbg("thread run : name : %d %s",dev->panel->name, dev->panel->evt_path);
 
     FD_ZERO(&dev->evfds);
     FD_SET(dev->panel->fd, &dev->evfds);

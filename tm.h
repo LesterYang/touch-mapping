@@ -104,7 +104,7 @@ struct _tm_ap_info
     int                      id;
 	};
 
-    const char*              event_path;
+    const char*              evt_path;
     int                      fd;
     tm_native_size_param_t*  native_size;
 	
@@ -129,7 +129,7 @@ struct _tm_panel_info
     int             id;
 	};
 
-    const char*     event_path;
+    const char*     evt_path;
     int             fd;
     int             link_num;
 
@@ -148,17 +148,20 @@ void        tm_recv_event(const char *from,unsigned int len,unsigned char *msg);
 
 void        tm_set_fb_param(tm_fb_param_t* fb, int start_x, int start_y, int per_width, int per_high);
 
-void        _tm_remove_display_setting(tm_panel_t id);
-void        tm_remove_display_setting();
+void 		_tm_remove_display_conf(tm_panel_info_t* panel);
+void 		tm_remove_display_conf(void);
 
 void        tm_fill_up_fb_conf(tm_fb_param_t* fb, tm_native_size_param_t* native);
 void        tm_set_default_display();
+tm_ap_info_t* tm_mapping_get_default_ap(int panel_id);
 
 tm_errno_t  tm_init(void);
 void        tm_deinit(void);
 void        tm_set_status(tm_status_t status);
 void        tm_bind_status(tm_status_t* status);
-void        tm_bind_param();
+
+tm_ap_info_t*   	tm_mapping_get_ap_info(int id);
+tm_panel_info_t*	tm_mapping_get_panel_info(int id);
 
 tm_ap_info_t* tm_match_ap(int x, int y, tm_panel_info_t* panel);
 tm_display_t* tm_match_display(int x, int y, tm_panel_info_t* panel);

@@ -55,7 +55,7 @@ typedef int q_bool;
 
 #define q_dbg(expr, ...)                        \
     do {                                        \
-        printf("tm-daemon : ");                \
+        printf("tm-daemon : ");                 \
         printf(expr,  ##__VA_ARGS__);           \
         printf("\n");                           \
     } while (0)
@@ -118,27 +118,15 @@ typedef int q_bool;
 #define list_prev_entry_or_null(pos, member)                               \
         ((pos)->member.prev) ? list_prev_entry(pos, member) : NULL
 
-//#define list_for_each_entry(first, pos, member)                            \
-//     for (pos = list_next_entry_or_null(first, member);                    \
-//          pos != NULL;                                                     \
-//          pos = list_next_entry_or_null(pos, member))
-
 #define list_for_each_entry(head_ptr, pos, member)                         \
      for (pos = list_first_entry(head_ptr, typeof(*pos), member);          \
           pos != NULL;                                                     \
           pos = list_next_entry_or_null(pos, member))
 
-//#define list_for_each_entry_reverse(last, pos, member)                     \
-//     for (pos = list_prev_entry_or_null(last, member);                     \
-//          pos != NULL;                                                     \
-//          pos = list_prev_entry_or_null(pos, member))
-
 #define list_for_each_entry_reverse(last_ptr, pos, member)                 \
      for (pos = q_container_of(last_ptr, typeof(*pos), member);            \
           pos != NULL;                                                     \
           pos = list_prev_entry_or_null(pos, member))
-
-
 
 typedef struct _list_head list_head_t;
 		 

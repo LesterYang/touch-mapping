@@ -27,7 +27,8 @@ struct tm_status_info status_info[] = {
 
 tm_status_t g_status = TM_STATUS_NONE;
 
-void tm_test();
+void tm_test(void);
+void tm_init_ipc(void);
 
 void tm_shutdown(int signum)
 {
@@ -65,6 +66,7 @@ int main(int argc, char* argv[])
                 break;
             case TM_STATUS_IPC_INIT:
                 // do IPC ...
+            	tm_init_ipc();
                 tm_switch_main_status(TM_STATUS_RUNNING);
                 break;
             case TM_STATUS_RUNNING:
@@ -92,3 +94,7 @@ int main(int argc, char* argv[])
     return 0;
 }
 
+void tm_init_ipc()
+{
+
+}
