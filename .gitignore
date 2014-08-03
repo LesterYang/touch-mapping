@@ -87,11 +87,15 @@ Icon
 *.log
 *.sql
 *.sqlite
+
+# Eclipse #
+######################
 /Debug/
 /iMX5/
-
+/Release/
 /.settings/
 .cproject
+.project
 
 # SourceInsight #
 #################
