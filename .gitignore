@@ -90,6 +90,8 @@ Icon
 /Debug/
 /iMX5/
 
+/.settings/
+.cproject
 
 # SourceInsight #
 #################
