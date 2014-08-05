@@ -170,7 +170,9 @@ tm_errno_t tm_init()
 
     if((err_no = tm_mapping_create_handler(&tm.ap_head, &tm.pnl_head)) != TM_ERRNO_SUCCESS)
     {
-        q_dbg("tm_create : %s", tm_err_str(err_no));
+		q_dbg("tm_create : %s", tm_err_str(err_no));
+		if(tm.mutex)
+			q_mutex_free(tm.mutex);
         return err_no;
     }
 
@@ -212,6 +214,9 @@ void tm_deinit()
     	if(panel->mutex) q_mutex_free(panel->mutex);
     	q_free(panel);
     }
+	
+	if(tm.mutex)
+		q_mutex_free(tm.mutex);
 }
 
 void tm_set_status(tm_status_t status)

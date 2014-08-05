@@ -81,6 +81,10 @@ int main(int argc, char* argv[])
                 tm_deinit();
                 tm_switch_main_status(TM_STATUS_EXIT);
                 break;
+			case TM_STATUS_REINIT:
+				tm_deinit();
+				tm_switch_main_status(TM_STATUS_INIT);
+				break;
             case TM_STATUS_ERROR:
                 tm_switch_main_status(TM_STATUS_DEINIT);
                 break;

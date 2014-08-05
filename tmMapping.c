@@ -368,15 +368,20 @@ tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_hea
     q_init_head(&tm_handler.native_size_head);
 
     if(tm_mapping_update_conf(ap_head, pnl_head) != TM_ERRNO_SUCCESS)
+	{
+		if(tm_handler.mutex)
+			q_mutex_free(tm_handler.mutex);
         return TM_ERRNO_NO_CONF;
-
+	}
+		
     return TM_ERRNO_SUCCESS;
 }
 
 void tm_mapping_destroy_handler()
 {
     tm_mapping_remove_conf();
-    q_mutex_free(tm_handler.mutex);
+	if(tm_handler.mutex)
+		q_mutex_free(tm_handler.mutex);
 }
 
 
@@ -430,19 +435,9 @@ tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
     coord.y /= cal->scaling;
 
 #if 1 //de-jitter boundary
-
-    if (coord.x < 0 && coord.x > -JITTER_BOUNDARY)
-        coord.x = 0;
-
-    if (coord.x > panel->native_size->max_x && coord.x < panel->native_size->max_x + JITTER_BOUNDARY)
-        coord.x = panel->native_size->max_x;
-
-    if (coord.y < 0 && coord.y > -JITTER_BOUNDARY)
-        coord.y = 0;
-
-    if (coord.y > panel->native_size->max_y && coord.y < panel->native_size->max_y + JITTER_BOUNDARY)
-        coord.y = panel->native_size->max_y;
-
+#define dejitter_boundary(pos, max, delta) (pos < 0 && pos > -(delta)) ? 0 : (pos > max && pos < max + delta) ? max : pos
+	coord.x = dejitter_boundary(coord.x, panel->native_size->max_x, JITTER_BOUNDARY);
+	coord.y = dejitter_boundary(coord.y, panel->native_size->max_y, JITTER_BOUNDARY);
 #endif
 
     if((dis = tm_match_display(coord.x, coord.y, panel)) == NULL)
