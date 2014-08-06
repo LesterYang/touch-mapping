@@ -29,7 +29,6 @@ void tm_mapping_point(tm_display_t* dis, int src_x, int src_y, int* dest_x, int*
 
 void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head)
 {
-    int i = 0;
     tm_calibrate_t* cal=NULL;
     tm_native_size_param_t* size = NULL;
     tm_ap_info_t* ap;

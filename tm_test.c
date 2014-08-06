@@ -216,9 +216,33 @@ void tm_mapping_test()
 
 }
 
+void tm_redirct_test()
+{
+    // panel,start_x,start_y,per_width,per_high,ap,start_x,start_y,per_width,per_high
+    unsigned char msg_p0a0[]={0, 50, 0, 50, 100, 0, 0, 0, 100, 100};
+    unsigned char msg_p0a1[]={0,  0, 0, 50, 100, 1, 0, 0, 100, 100};
+
+    unsigned char msg_p1a0[]={1,  0,  0, 50, 50, 0,  0,  0, 100, 100};
+    unsigned char msg_p1a1[]={1, 50,  0, 50, 50, 1,  0,  0, 100, 100};
+    unsigned char msg_p1a2[]={1, 50, 50, 50, 50, 2, 25, 25,  50,  50};
+    unsigned char msg_p1a3[]={1,  0, 50, 50, 50, 3,  0,  0, 100, 100};
+
+    tm_dbg_print_conf();
+
+    tm_set_map(sizeof(msg_p0a0), msg_p0a0, q_false);
+    tm_set_map(sizeof(msg_p0a1), msg_p0a1, q_true);
+    tm_set_map(sizeof(msg_p1a0), msg_p1a0, q_false);
+    tm_set_map(sizeof(msg_p1a1), msg_p1a1, q_true);
+    tm_set_map(sizeof(msg_p1a2), msg_p1a2, q_true);
+    tm_set_map(sizeof(msg_p1a3), msg_p1a3, q_true);
+
+    tm_dbg_print_conf();
+}
+
 void tm_test()
 {
     tm_test_transfer_cal();
     tm_mapping_test();
+    tm_redirct_test();
     tm_test_event();
 }

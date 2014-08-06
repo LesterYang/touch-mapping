@@ -17,9 +17,10 @@
 #define TM_HDR_0      (0xff)
 #define TM_HDR_1      (0x55)
 
-// IPC header
-#define TM_IPC_HDR_SET  (0xa0)
-#define TM_IPC_CONG_LEN (13)
+// IPC command
+#define IPC_CMD_SET_MAP  (0xa0)
+#define IPC_CMD_ADD_MAP  (0xa1)
+#define IPC_MAP_CONF_LEN (10)
 
 #define __tm_list_add(head, new)                    \
 ({                                                  \
@@ -145,9 +146,7 @@ struct _tm_panel_info
     q_queue*       queue;
 };
 
-void        tm_recv_event(const char *from,unsigned int len,unsigned char *msg);
-
-void        tm_set_fb_param(tm_fb_param_t* fb, int start_x, int start_y, int per_width, int per_high);
+tm_errno_t  tm_set_fb_param(tm_fb_param_t* fb, int start_x, int start_y, int per_width, int per_high);
 
 void 		_tm_remove_display_conf(tm_panel_info_t* panel);
 void 		tm_remove_display_conf(void);
@@ -161,6 +160,8 @@ void        tm_deinit(void);
 void        tm_set_status(tm_status_t status);
 void        tm_bind_status(tm_status_t* status);
 
+void        tm_set_map(unsigned int len, unsigned char *msg, q_bool append);
+
 tm_ap_info_t*   	tm_mapping_get_ap_info(int id);
 tm_panel_info_t*	tm_mapping_get_panel_info(int id);
 
@@ -169,5 +170,6 @@ tm_display_t* tm_match_display(int x, int y, tm_panel_info_t* panel);
 
 tm_ap_info_t* tm_transfer(int *x, int *y, tm_panel_info_t* panel);
 
+void tm_dbg_print_conf();
 
 #endif /* TM_H_ */

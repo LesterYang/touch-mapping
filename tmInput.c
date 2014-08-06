@@ -21,6 +21,16 @@
 #include "tm.h"
 #include "tmMapping.h"
 
+#define BUF_EVT_NUM (64)
+
+typedef struct _tm_input_queue{
+        tm_input_event_t  evt[BUF_EVT_NUM];
+        int idx_x;
+        int idx_y;
+        int evt_num;
+        tm_ap_info_t* ap;
+}tm_input_queue_t;
+
 typedef struct _tm_input_dev {
     tm_panel_info_t*  panel;
     int               maxfd;
@@ -29,7 +39,9 @@ typedef struct _tm_input_dev {
 
 	q_thread*         thread;
 	list_head_t	      node;
+
     q_queue*          queue;
+    tm_input_queue_t  input_queue;
 }tm_input_dev_t;
 
 typedef struct _tm_input_handler {
@@ -79,8 +91,6 @@ void tm_input_clean_stdin()
 
 tm_errno_t tm_input_init(list_head_t* ap_head, list_head_t* pnl_head)
 {
-    int idx;
-
     tm_errno_t err_no;
     q_assert(ap_head);
     q_assert(pnl_head);
@@ -105,7 +115,6 @@ void tm_input_deinit()
 
 tm_errno_t  tm_input_init_events(list_head_t* pnl_head)
 {
-    int idx;
     tm_ap_info_t* ap = NULL;
     tm_panel_info_t* panel = NULL;
     tm_input_dev_t* dev;
@@ -151,7 +160,6 @@ tm_errno_t  tm_input_init_events(list_head_t* pnl_head)
 
 void tm_input_close_events()
 {
-    int idx;
     tm_ap_info_t* ap = NULL;
     tm_input_dev_t* dev = NULL;
 
@@ -197,14 +205,16 @@ void tm_input_remove_dev()
 void tm_send_event(tm_input_dev_t* dev, tm_input_event_t* evt)
 {
     q_dbg("%s, code:%3d value:%3d",dev->panel->evt_path, evt->code, evt->value);
+}
+
+void tm_input_save_event(tm_input_dev_t* dev)
+{
 
 }
 
 void tm_input_parse_event(tm_input_dev_t* dev)
 {
-    static tm_input_event_t last_evt[64];
-    static int x, y, idx_x, idx_y, evt_num;
-    static tm_ap_info_t* ap;
+    tm_input_queue_t* q = &dev->input_queue;
 
     char buf[sizeof(tm_input_event_t)] = {0};
     tm_input_event_t* evt = (tm_input_event_t *)buf;
@@ -223,31 +233,27 @@ void tm_input_parse_event(tm_input_dev_t* dev)
         case EV_SYN:
             dev->status = TM_INPUT_STATUS_END;
             break;
+
         case EV_KEY:
             if(evt->code == BTN_TOUCH && evt->value)
                 dev->status = TM_INPUT_STATUS_START;
-
             break;
 
         case EV_ABS:
             switch (evt->code)
             {
                 case ABS_X:
-                    idx_x = evt_num;
-                    x = evt->value;
+                    q->idx_x = q->evt_num;
                     set_abs_status(dev->status);
                     break;
                 case ABS_Y:
-                    idx_y = evt_num;
-                    y = evt->value;
+                    q->idx_y = q->evt_num;
                     set_abs_status(dev->status);
                     break;
                 case ABS_MT_POSITION_X:
-                    x = evt->value;
                     set_abs_status(dev->status);
                     break;
                 case ABS_MT_POSITION_Y:
-                    y = evt->value;
                     set_abs_status(dev->status);
                     break;
                 default:
@@ -255,6 +261,7 @@ void tm_input_parse_event(tm_input_dev_t* dev)
                     break;
             }
             break;
+
         default:
             dev->status = TM_INPUT_STATUS_PASS;
             break;
@@ -263,44 +270,52 @@ void tm_input_parse_event(tm_input_dev_t* dev)
     switch(dev->status)
     {
         case TM_INPUT_STATUS_START:
-            evt_num = 0;
-            memcpy(&last_evt[evt_num++], (const char*)buf, sizeof(tm_input_event_t));
+            q->evt_num = 0;
+            memcpy(&q->evt[q->evt_num++], (const char*)buf, sizeof(tm_input_event_t));
             break;
+
         case TM_INPUT_STATUS_PASS:
-            memcpy(&last_evt[evt_num++], evt, sizeof(tm_input_event_t));
+            memcpy(&q->evt[q->evt_num++], evt, sizeof(tm_input_event_t));
             break;
+
         case TM_INPUT_STATUS_COLLECT:
         case TM_INPUT_STATUS_MT_COLLECT:
-            memcpy(&last_evt[evt_num++], evt, sizeof(tm_input_event_t));
+            memcpy(&q->evt[q->evt_num++], evt, sizeof(tm_input_event_t));
             break;
+
         case TM_INPUT_STATUS_TRANS:
-            memcpy(&last_evt[evt_num++], evt, sizeof(tm_input_event_t));
-            if(idx_x > 0 && idx_x < evt_num && idx_y < evt_num && idx_y > 0)
+            memcpy(&q->evt[q->evt_num++], evt, sizeof(tm_input_event_t));
+
+            if(q->idx_x > 0 && q->idx_x < q->evt_num && q->idx_y < q->evt_num && q->idx_y > 0)
             {
                 //q_dbg("in  : %d, %d\n",last_evt[idx_x].value, last_evt[idx_y].value);
-                ap = tm_transfer(&last_evt[idx_x].value, &last_evt[idx_y].value, dev->panel);
+                q->ap = tm_transfer(&q->evt[q->idx_x].value, &q->evt[q->idx_y].value, dev->panel);
                 //q_dbg("out : %d, %d\n",last_evt[idx_x].value, last_evt[idx_y].value);
             }
             dev->status = TM_INPUT_STATUS_PASS;
             break;
+
         case TM_INPUT_STATUS_MT_END:
-            memcpy(&last_evt[evt_num++], evt, sizeof(tm_input_event_t));
+            memcpy(&q->evt[q->evt_num++], evt, sizeof(tm_input_event_t));
             break;
+
         case TM_INPUT_STATUS_END:
-            memcpy(&last_evt[evt_num++], evt, sizeof(tm_input_event_t));
-            if(ap && ap->fd > 0)
+            memcpy(&q->evt[q->evt_num++], evt, sizeof(tm_input_event_t));
+
+            if(q->ap && q->ap->fd > 0)
             {
                 int i;
-                for(i=0; i<evt_num; i++)
+                for(i=0; i<q->evt_num; i++)
                 {
                     //q_dbg("type %4d code %4d value %4d",last_evt[i].type, last_evt[i].code, last_evt[i].value);
-                    if(write(ap->fd, &last_evt[i], sizeof(tm_input_event_t)) == -1)
-                        q_dbg("write %s error",ap->evt_path);
+                    if(write(q->ap->fd, &q->evt[i], sizeof(tm_input_event_t)) == -1)
+                        q_dbg("write %s error",q->ap->evt_path);
                 }
             }
-            ap = NULL;
-            evt_num = 0;
+            q->ap = NULL;
+            q->evt_num = 0;
             break;
+
         default:
             break;
     }
@@ -449,3 +464,8 @@ void tm_input_thread_func(void *data)
     }
 }
 
+
+void tm_dbg_parse_event(tm_input_event_t* evt)
+{
+    tm_input_parse_event(tm_input_dev_t* dev)
+}

@@ -16,6 +16,7 @@
 
 #define QSI_TM_CONF         "/mnt/hgfs/Win_7/workspace-cpp2/touch-mapping/qsi_tm.conf"
 //#define QSI_TM_CONF         "/home/lester/Git/touch-mapping/qsi_tm.conf"
+//#define QSI_TM_CONF         "/etc/qsi_tm.conf"
 #define BUF_SIZE            (256)
 #define MULTIPLE            (4096)
 #define MAX_QUEUE           (512)
@@ -125,6 +126,7 @@ void            tm_mapping_native_size_conf(void);
 void 			tm_mapping_pnl_conf(list_head_t* pnl_head);
 void 			tm_mapping_ap_conf(list_head_t* ap_head);
 tm_errno_t  	tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head);
+void            tm_mapping_destroy_handler(void);
 
 tm_calibrate_t*          tm_mapping_get_calibrate_param(int id);
 tm_native_size_param_t*  tm_mapping_get_native_size_param(int id);

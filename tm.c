@@ -30,49 +30,19 @@ static tm_info_t tm;
 
 tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel);
 
-void tm_recv_event(const char *from,unsigned int len,unsigned char *msg)
-{
-    // hdr, number of sentence, sentence, panel, st_x, st_y, w, h, ap, st_x, st_y, w, h
-    q_dbg("recv len %d, from %s", len, from);
-
-    if((len != TM_IPC_CONG_LEN) || (msg[0] != TM_IPC_HDR_SET))
-        return;
-
-    tm_panel_info_t* panel;
-    tm_display_t* dis;
-    unsigned char max = msg[1];
-    unsigned char num = msg[2];
-    unsigned char pnl_id = msg[3];
-    unsigned char ap_id = msg[8];
-
-    if((num>max) || (pnl_id > TM_PANEL_NUM) || (ap_id > TM_AP_NUM))
-        return;
-
-    dis = (tm_display_t*)q_calloc(sizeof(tm_display_t));
-
-    panel = tm_mapping_get_panel_info(pnl_id);
-    dis->ap = tm_mapping_get_ap_info(ap_id);
-
-    tm_set_fb_param(&dis->to, msg[4], msg[5], msg[6], msg[7]);
-    tm_set_fb_param(&dis->from, msg[9], msg[10], msg[11], msg[12]);
-
-    tm_fill_up_fb_conf(&dis->from, dis->ap->native_size);
-    tm_fill_up_fb_conf(&dis->to, panel->native_size);
-
-    if(num == 1)
-    	_tm_remove_display_conf(panel);
-
-    q_list_add_tail(&panel->display_head, &dis->node);
-}
-
-void tm_set_fb_param(tm_fb_param_t* fb, int start_x, int start_y, int per_width, int per_high)
+tm_errno_t tm_set_fb_param(tm_fb_param_t* fb, int start_x, int start_y, int per_width, int per_high)
 {
     q_assert(fb);
+
+    if(start_x + per_width > 100 || start_y + per_high > 100)
+        return TM_ERRNO_DEV_PARAM;
 
     fb->st_x = start_x;
     fb->st_y = start_y;
     fb->w = per_width;
     fb->h = per_high;
+
+    return TM_ERRNO_SUCCESS;
 }
 
 void _tm_remove_display_conf(tm_panel_info_t* panel)
@@ -110,8 +80,6 @@ void tm_set_default_display()
 {
 	tm_display_t* dis;
 	tm_panel_info_t* panel;
-
-	int i, pnl_id, ap_id;
 
 	tm_remove_display_conf();
 
@@ -158,7 +126,6 @@ tm_ap_info_t* tm_mapping_get_default_ap(int panel_id)
 
 tm_errno_t tm_init()
 {
-    int idx;
     tm_errno_t err_no;
 
     q_init_head(&tm.ap_head);
@@ -191,7 +158,6 @@ tm_errno_t tm_init()
 
 void tm_deinit()
 {
-    int idx;
     tm_ap_info_t *ap;
     tm_panel_info_t *panel;
 
@@ -232,17 +198,59 @@ void tm_bind_status(tm_status_t* status)
     tm.status = status;
 }
 
+void tm_set_map(unsigned int len, unsigned char *msg, q_bool append)
+{
+    unsigned char pnl_id, ap_id;
+    tm_panel_info_t* panel;
+    tm_ap_info_t* ap;
+    tm_display_t* dis;
+
+    if(len != IPC_MAP_CONF_LEN)
+        return;
+
+    // panel,start_x,start_y,per_width,per_high,ap,start_x,start_y,per_width,per_high
+
+    pnl_id = msg[0];
+    ap_id = msg[5];
+
+    panel = tm_mapping_get_panel_info(pnl_id);
+    ap = tm_mapping_get_ap_info(ap_id);
+
+    if(panel == NULL || ap == NULL)
+        return;
+
+    dis = (tm_display_t*)q_calloc(sizeof(tm_display_t));
+
+    dis->ap = ap;
+
+    if(tm_set_fb_param(&dis->to, msg[1], msg[2], msg[3], msg[4]) != TM_ERRNO_SUCCESS)
+    {
+        q_free(dis);
+        return;
+    }
+
+    if(tm_set_fb_param(&dis->from, msg[6], msg[7], msg[8], msg[9]) != TM_ERRNO_SUCCESS)
+    {
+        q_free(dis);
+        return;
+    }
+
+    tm_fill_up_fb_conf(&dis->from, dis->ap->native_size);
+    tm_fill_up_fb_conf(&dis->to, panel->native_size);
+
+    if(append == q_false)
+        _tm_remove_display_conf(panel);
+
+    q_list_add_tail(&panel->display_head, &dis->node);
+}
+
 tm_ap_info_t* tm_mapping_get_ap_info(int id)
 {
 	tm_ap_info_t* ap = NULL;
 
     list_for_each_entry(&tm.ap_head, ap, node)
     {
-    	 if(ap->id == id)
-    	 {
-    		 q_dbg("find  ap %p",ap);
-    		 break;
-    	 }
+    	 if(ap->id == id) break;
     }
     return ap;
 }
@@ -253,13 +261,8 @@ tm_panel_info_t* tm_mapping_get_panel_info(int id)
 
     list_for_each_entry(&tm.pnl_head, panel, node)
     {
-        if(panel->id == id)
-        {
-        	q_dbg("find panel %p", panel);
-            break;
-        }
+        if(panel->id == id) break;
     }
-
     return panel;
 }
 
@@ -292,5 +295,11 @@ tm_ap_info_t* tm_transfer(int *x, int *y, tm_panel_info_t* panel)
     panel = tm_mapping_get_panel_info(1);
     
     return tm_mapping_transfer(x, y, panel);
+}
+
+//========================================================================
+void tm_dbg_print_conf()
+{
+    tm_mapping_print_conf(&tm.ap_head, &tm.pnl_head);
 }
 
