@@ -13,8 +13,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef int q_bool;
+// debug
+#define Q_ALL   (0)
+#define Q_DBG   (1)
+#define Q_INFO  (2)
+#define Q_ERR   (3)
 
+#define Q_DBG_DISABLE   (0xf0)
+#define Q_DBG_ENABLE    (0xf1)
+
+#define Q_DBG_POINT Q_DBG_ENABLE
+#define Q_DBG_MAP   Q_DBG_ENABLE
+#define Q_DBG_CONF  Q_DBG_DISABLE
+
+#define dbg_level Q_ALL
+
+
+typedef int q_bool;
 
 #define q_false ((q_bool) 0)
 #define q_true (!q_false)
@@ -46,28 +61,30 @@ typedef int q_bool;
 #define q_assert(expr) q_nothing()
 #endif
 
-#define qerror(expr, ...)                                                   \
-    do {                                                                    \
-        fprintf(stderr, "tm-daemon : %s,%d: ",__FUNCTION__, __LINE__);     \
-        fprintf(stderr, expr,  ##__VA_ARGS__);                              \
-        fprintf(stderr, "\n");                                              \
-    } while (0)
-
-#define q_dbg(expr, ...)                        \
-    do {                                        \
-        printf("tm-daemon : ");                 \
-        printf(expr,  ##__VA_ARGS__);           \
-        printf("\n");                           \
+#define q_dbg(lv, expr, ...)                                                    \
+    do {                                                                        \
+        if(lv == Q_ERR)                                                         \
+        {                                                                       \
+            fprintf(stderr, "tm-daemon : %s,%d: ",__FUNCTION__, __LINE__);      \
+            fprintf(stderr, expr,  ##__VA_ARGS__);                              \
+            fprintf(stderr, "\n");                                              \
+        }                                                                       \
+        else if( !(lv==Q_DBG_DISABLE || lv < dbg_level) )                       \
+        {                                                                       \
+            printf("tm-daemon : ");                                             \
+            printf(expr,  ##__VA_ARGS__);                                       \
+            printf("\n");                                                       \
+        }                                                                       \
     } while (0)
 
 #ifdef __GNUC__
-#define Q_MAX(a,b)                            \
+#define Q_MAX(a,b)                              \
     __extension__ ({                            \
             typeof(a) _a = (a);                 \
             typeof(b) _b = (b);                 \
             _a > _b ? _a : _b;                  \
         })
-#define Q_MIN(a,b)                            \
+#define Q_MIN(a,b)                              \
     __extension__ ({                            \
             typeof(a) _a = (a);                 \
             typeof(b) _b = (b);                 \

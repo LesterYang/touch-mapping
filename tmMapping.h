@@ -33,6 +33,8 @@
     head.next = _new;                                \
 })
 
+#define dejitter_boundary(pos, max, delta) (pos < 0 && pos > -(delta)) ? 0 : (pos > max && pos < max + delta) ? max : pos
+
 #define FB_LEN_X(fb) (fb.abs_st_x - fb.abs_end_x)
 #define FB_LEN_Y(fb) (fb.abs_st_y - fb.abs_end_y)
 

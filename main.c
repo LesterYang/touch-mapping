@@ -65,7 +65,7 @@ void tm_shutdown(int signum)
 
 void tm_switch_main_status(tm_status_t status)
 {
-     q_dbg("status : %10s -> %s", q_strnull(status_info[g_status].str), q_strnull(status_info[status].str));
+     q_dbg(Q_INFO,"status : %10s -> %s", q_strnull(status_info[g_status].str), q_strnull(status_info[status].str));
      g_status = status;
 }
 
@@ -173,7 +173,7 @@ void tm_deinit_ipc()
 void tm_recv_event(const char *from, unsigned int len, unsigned char *msg)
 {
     // cmd, panel, st_x, st_y, w, h, ap, st_x, st_y, w, h
-    q_dbg("recv len %d, from %s", len, from);
+    q_dbg(Q_DBG,"recv len %d, from %s", len, from);
 
     switch(msg[0])
     {

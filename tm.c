@@ -137,7 +137,7 @@ tm_errno_t tm_init()
 
     if((err_no = tm_mapping_create_handler(&tm.ap_head, &tm.pnl_head)) != TM_ERRNO_SUCCESS)
     {
-		q_dbg("tm_create : %s", tm_err_str(err_no));
+		q_dbg(Q_ERR,"tm_create : %s", tm_err_str(err_no));
 		if(tm.mutex)
 			q_mutex_free(tm.mutex);
         return err_no;
@@ -145,7 +145,7 @@ tm_errno_t tm_init()
 
     if((err_no = tm_input_init(&tm.ap_head, &tm.pnl_head)) != TM_ERRNO_SUCCESS)
     {
-        q_dbg("tm_create : %s", tm_err_str(err_no));
+        q_dbg(Q_ERR,"tm_create : %s", tm_err_str(err_no));
         return err_no;
     }
 
@@ -292,7 +292,7 @@ tm_ap_info_t* tm_transfer(int *x, int *y, tm_panel_info_t* panel)
         return NULL;
 
     // for test
-    panel = tm_mapping_get_panel_info(1);
+    panel = tm_mapping_get_panel_info(0);
     
     return tm_mapping_transfer(x, y, panel);
 }

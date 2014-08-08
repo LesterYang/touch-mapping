@@ -96,13 +96,13 @@ tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head)
     if ( (conf_file = getenv("QSI_TM_CONF")) == NULL )
         conf_file = default_conf;
 
-    q_dbg("configure file is %s", conf_file);
+    q_dbg(Q_INFO, "configure file is %s", conf_file);
 
     fr = fopen(conf_file, "r");
 
     if(fr == NULL)
     {
-        qerror("open configuration");
+        q_dbg(Q_ERR,"open configuration");
         return TM_ERRNO_NO_DEV;
     }
 
@@ -434,15 +434,25 @@ tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
     coord.y /= cal->scaling;
 
 #if 1 //de-jitter boundary
-#define dejitter_boundary(pos, max, delta) (pos < 0 && pos > -(delta)) ? 0 : (pos > max && pos < max + delta) ? max : pos
-	coord.x = dejitter_boundary(coord.x, panel->native_size->max_x, JITTER_BOUNDARY);
+    coord.x = dejitter_boundary(coord.x, panel->native_size->max_x, JITTER_BOUNDARY);
 	coord.y = dejitter_boundary(coord.y, panel->native_size->max_y, JITTER_BOUNDARY);
 #endif
+
+	q_dbg(Q_DBG_POINT,"pnl : %d, %d",coord.x, coord.y);
 
     if((dis = tm_match_display(coord.x, coord.y, panel)) == NULL)
         return NULL;
 
+    int per_x,per_y;
+    per_x = ((coord.x-dis->to.abs_st_x)*100)/(dis->to.abs_end_x - dis->to.abs_st_x);
+    per_y = ((coord.y-dis->to.abs_st_y)*100)/(dis->to.abs_end_y - dis->to.abs_st_y);
+
+    q_dbg(Q_DBG_MAP,"pnl : %d%% %d%%",per_x,per_y);
     tm_mapping_point(dis, coord.x, coord.y, x, y);
+
+    per_x = ((*x-dis->from.abs_st_x)*100)/(dis->from.abs_end_x - dis->from.abs_st_x);
+    per_y = ((*y-dis->from.abs_st_y)*100)/(dis->from.abs_end_y - dis->from.abs_st_y);
+    q_dbg(Q_DBG_MAP,"out : %d%% %d%%",per_x,per_y);
 
     return dis->ap;
 }
