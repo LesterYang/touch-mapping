@@ -45,9 +45,12 @@ struct tm_status_info status_info[] = {
     {TM_STATUS_IPC_INIT,    "IPCInit"},
     {TM_STATUS_RUNNING,     "Running"},
     {TM_STATUS_DEINIT,      "Deinit"},
+    {TM_STATUS_REINIT,      "Reinit"},
     {TM_STATUS_ERROR,       "Error"},
     {TM_STATUS_EXIT,        "Exit"},
+    {-1,                    NULL},
 };
+
 
 tm_status_t g_status = TM_STATUS_NONE;
 

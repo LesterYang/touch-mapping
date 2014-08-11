@@ -117,17 +117,20 @@ tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head)
         if(buf[0] == '#' || buf[0] == 0 || buf[BUF_SIZE - 2] != 0)
             continue;
 
-        if((param = strtok(buf," ")) == NULL || (strlen(param) != 1))
+       // if((param = strtok(buf," ")) == NULL || (strlen(param) != 1))
+       //     continue;
+
+        if((param = strtok(buf," ")) == NULL)
             continue;
 
-        switch(param[0])
-        {
-        	case 'c': tm_mapping_calibrate_conf();		break;
-        	case 's': tm_mapping_native_size_conf();	break;
-        	case 'a': tm_mapping_ap_conf(ap_head);		break;
-        	case 'p': tm_mapping_pnl_conf(pnl_head);	break;
-        	default:break;
-        }
+        if(memcmp(param, CAL_CONF, sizeof(CAL_CONF)) == 0)
+            tm_mapping_calibrate_conf();
+        else if(memcmp(param, SIZE_CONF, sizeof(SIZE_CONF)) == 0)
+            tm_mapping_native_size_conf();
+        else if(memcmp(param, AP_CONF, sizeof(AP_CONF)) == 0)
+            tm_mapping_ap_conf(ap_head);
+        else if(memcmp(param, PNL_CONF, sizeof(PNL_CONF)) == 0)
+            tm_mapping_pnl_conf(pnl_head);
     }
 
     fclose(fr);
@@ -313,24 +316,17 @@ void tm_mapping_pnl_bind_conf(tm_panel_info_t* panel)
 		if((param = strtok(NULL," ")) == NULL)
 			break;
 
-        switch(param[0])
+        if(memcmp(param, CAL_CONF, sizeof(CAL_CONF)) == 0)
         {
-        	case 'c':
-        		if((param = strtok(NULL," ")) == NULL)
-        			return;
-
-        		panel->cal_param = tm_mapping_get_calibrate_param(atoi(param));
-        		break;
-
-        	case 's':
-        		if((param = strtok(NULL," ")) == NULL)
-        			return;
-
-        		panel->native_size = tm_mapping_get_native_size_param(atoi(param));
-        		break;
-
-        	default:
-        		break;
+            if((param = strtok(NULL," ")) == NULL)
+                return;
+            panel->cal_param = tm_mapping_get_calibrate_param(atoi(param));
+        }
+        else if(memcmp(param, SIZE_CONF, sizeof(SIZE_CONF)) == 0)
+        {
+            if((param = strtok(NULL," ")) == NULL)
+                return;
+            panel->native_size = tm_mapping_get_native_size_param(atoi(param));
         }
 	}
 }
@@ -346,7 +342,7 @@ void tm_mapping_ap_bind_conf(tm_ap_info_t* ap)
 		if((param = strtok(NULL," ")) == NULL)
 			break;
 
-        if(param[0] == 's')
+        if(memcmp(param, SIZE_CONF, sizeof(SIZE_CONF)) == 0)
         {
     		if((param = strtok(NULL," ")) == NULL)
     			return;
