@@ -184,6 +184,8 @@ void tm_test_event()
     q_dbg(Q_DBG_POINT,"test single touch !!!!!");
     tm_event_press();
     tm_event(421,695);
+    tm_event(421,695);
+    tm_event(421,695);
     tm_event(521,882);
     tm_event(491,625);
     tm_event_release();
@@ -193,7 +195,7 @@ void tm_test_event()
     tm_event_release();
 #endif
 // mt_A
-#if 1
+#if 0
     q_dbg(Q_DBG_POINT,"test mt A !!!!!");
     tm_event_mt_A(421,695);
     tm_event_mt_A(521,882);

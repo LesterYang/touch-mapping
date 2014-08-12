@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include "tm.h"
 
-#define IPC_ENABLE  (0)
+#define IPC_ENABLE  (1)
 #define IPC_NAME    "QSIDBG"
 #define IPC_DBG     (0)
 #define IPC_RETRY   (3)
@@ -21,7 +21,7 @@ struct tm_status_info{
 
 #if IPC_ENABLE
 
-#include "/Space/ltib2/ltib/rootfs/usr/include/qsi_ipc_client_lib.h"
+#include <qsi_ipc_client_lib.h>
 
 typedef struct _tm_ipc_data{
         QSI_Channel *server;
@@ -55,7 +55,7 @@ struct tm_status_info status_info[] = {
 tm_status_t g_status = TM_STATUS_NONE;
 
 void tm_test(void);
-void tm_init_ipc(void);
+int  tm_init_ipc(void);
 void tm_deinit_ipc();
 void tm_recv_event(const char *from,unsigned int len,unsigned char *msg);
 
@@ -95,12 +95,13 @@ int main(int argc, char* argv[])
                     sleep(1);
                 break;
             case TM_STATUS_IPC_INIT:
-                // do IPC ...
-            	tm_init_ipc();
-                tm_switch_main_status(TM_STATUS_RUNNING);
+            	if(!tm_init_ipc())
+            	    tm_switch_main_status(TM_STATUS_RUNNING);
+            	else
+            	    sleep(1);
                 break;
             case TM_STATUS_RUNNING:
-#if 1 //test
+#if 0 //test
                 tm_test();
                 tm_switch_main_status(TM_STATUS_DEINIT);
 #else
@@ -128,7 +129,7 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-void tm_init_ipc()
+int tm_init_ipc()
 {
 #if IPC_ENABLE
 
@@ -143,21 +144,25 @@ void tm_init_ipc()
         g_client.server = qsi_open_channel(g_client.name, 0, IPC_DBG);
 
         if(g_client.server != NULL)
-            break;
+        {
+            q_dbg(Q_ERR,"open ipc channel error");
+            return 1;
+        }
 
         usleep(100000);
 
         if(retry == IPC_RETRY)
         {
-            printf("open \"%s\" channel status timeout\n",g_client.name);
+            q_dbg(Q_INFO,"open \"%s\" channel status timeout\n",g_client.name);
             tm_switch_main_status(TM_STATUS_ERROR);
-            return;
+            return 1;
         }
     }
 
     qsi_set_event(g_client.server, g_client.recv_func);     // set receiving event callback function
 
 #endif
+    return 0;
 }
 
 void tm_deinit_ipc()

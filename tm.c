@@ -239,9 +239,13 @@ void tm_set_map(unsigned int len, unsigned char *msg, q_bool append)
     tm_fill_up_fb_conf(&dis->to, panel->native_size);
 
     if(append == q_false)
+    {
         _tm_remove_display_conf(panel);
+        panel->link_num=0;
+    }
 
     q_list_add_tail(&panel->display_head, &dis->node);
+    panel->link_num++;
 }
 
 tm_ap_info_t* tm_mapping_get_ap_info(int id)

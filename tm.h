@@ -136,8 +136,6 @@ struct _tm_panel_info
     int             fd;
     int             link_num;
 
-    tm_display_t    head_display;
-
     tm_calibrate_t*          cal_param;
     tm_native_size_param_t*  native_size;
 

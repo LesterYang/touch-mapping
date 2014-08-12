@@ -24,6 +24,7 @@ typedef enum _tm_input_status tm_input_status_t;
 typedef enum _tm_input_type tm_input_type_t;
 
 typedef struct input_event tm_input_event_t;
+typedef struct timeval tm_input_timeval_t;
 
 enum _tm_input_status{
     //TM_INPUT_STATUS_START,
@@ -66,6 +67,11 @@ do{                                             \
         status = TM_INPUT_STATUS_COLLECT;       \
 }while(0)
 
+
+static inline void tm_input_get_time(tm_input_timeval_t *time)
+{
+    gettimeofday(time, NULL);
+}
 
 tm_errno_t  tm_input_init(list_head_t* ap_head, list_head_t* panel_head);
 void tm_input_deinit();

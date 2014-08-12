@@ -434,7 +434,7 @@ tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
 	coord.y = dejitter_boundary(coord.y, panel->native_size->max_y, JITTER_BOUNDARY);
 #endif
 
-	q_dbg(Q_DBG_POINT,"pnl : %d, %d",coord.x, coord.y);
+	//q_dbg(Q_DBG_POINT,"pnl : %d, %d",coord.x, coord.y);
 
     if((dis = tm_match_display(coord.x, coord.y, panel)) == NULL)
         return NULL;
@@ -443,12 +443,12 @@ tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
     per_x = ((coord.x-dis->to.abs_st_x)*100)/(dis->to.abs_end_x - dis->to.abs_st_x);
     per_y = ((coord.y-dis->to.abs_st_y)*100)/(dis->to.abs_end_y - dis->to.abs_st_y);
 
-    q_dbg(Q_DBG_MAP,"pnl : %d%% %d%%",per_x,per_y);
+   // q_dbg(Q_DBG_MAP,"pnl : %d%% %d%%",per_x,per_y);
     tm_mapping_point(dis, coord.x, coord.y, x, y);
 
     per_x = ((*x-dis->from.abs_st_x)*100)/(dis->from.abs_end_x - dis->from.abs_st_x);
     per_y = ((*y-dis->from.abs_st_y)*100)/(dis->from.abs_end_y - dis->from.abs_st_y);
-    q_dbg(Q_DBG_MAP,"out : %d%% %d%%",per_x,per_y);
+   // q_dbg(Q_DBG_MAP,"out : %d%% %d%%",per_x,per_y);
 
     return dis->ap;
 }
