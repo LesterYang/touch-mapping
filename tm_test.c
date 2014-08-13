@@ -111,6 +111,7 @@ void tm_event(int x, int y)
     tm_input_parse_single_touch(NULL, &sync);
 }
 
+#if 0
 void tm_event_release_mt_A()
 {
     tm_input_event_t absP={
@@ -176,6 +177,7 @@ void tm_event_mt_A(int x, int y)
     tm_input_parse_mt_A(NULL, &absP);
     tm_input_parse_mt_A(NULL, &mt_sync);
 }
+#endif
 
 void tm_test_event()
 {
@@ -223,6 +225,8 @@ void tm_mapping_test()
 void tm_redirct_test()
 {
     // panel,start_x,start_y,per_width,per_high,ap,start_x,start_y,per_width,per_high
+    unsigned char msg_clear_p;
+
     unsigned char msg_p1a0[]={1, 50, 0, 50, 100, 0, 0, 0, 100, 100};
     unsigned char msg_p1a1[]={1,  0, 0, 50, 100, 1, 0, 0, 100, 100};
 
@@ -233,12 +237,17 @@ void tm_redirct_test()
 
     tm_dbg_print_conf();
 
-    tm_set_map(sizeof(msg_p1a0), msg_p1a0, q_false);
-    tm_set_map(sizeof(msg_p1a1), msg_p1a1, q_true);
-    tm_set_map(sizeof(msg_p0a0), msg_p0a0, q_false);
-    tm_set_map(sizeof(msg_p0a1), msg_p0a1, q_true);
-    tm_set_map(sizeof(msg_p0a2), msg_p0a2, q_true);
-    tm_set_map(sizeof(msg_p0a3), msg_p0a3, q_true);
+    msg_clear_p = 1;
+    tm_clear_map(sizeof(msg_clear_p), &msg_clear_p);
+    tm_set_map(sizeof(msg_p1a0), msg_p1a0);
+    tm_set_map(sizeof(msg_p1a1), msg_p1a1);
+
+    msg_clear_p = 0;
+    tm_clear_map(sizeof(msg_clear_p), &msg_clear_p);
+    tm_set_map(sizeof(msg_p0a0), msg_p0a0);
+    tm_set_map(sizeof(msg_p0a1), msg_p0a1);
+    tm_set_map(sizeof(msg_p0a2), msg_p0a2);
+    tm_set_map(sizeof(msg_p0a3), msg_p0a3);
 
     tm_dbg_print_conf();
 }

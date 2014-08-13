@@ -198,14 +198,31 @@ void tm_bind_status(tm_status_t* status)
     tm.status = status;
 }
 
-void tm_set_map(unsigned int len, unsigned char *msg, q_bool append)
+void tm_clear_map(unsigned int len, unsigned char *msg)
+{
+    unsigned char pnl_id;
+    tm_panel_info_t* panel;
+
+    if(len != IPC_CLR_MAP_LEN)
+        return;
+
+    pnl_id = msg[0];
+
+    if((panel = tm_mapping_get_panel_info(pnl_id)) == NULL)
+        return;
+
+    _tm_remove_display_conf(panel);
+    panel->link_num=0;
+}
+
+void tm_set_map(unsigned int len, unsigned char *msg)
 {
     unsigned char pnl_id, ap_id;
     tm_panel_info_t* panel;
     tm_ap_info_t* ap;
     tm_display_t* dis;
 
-    if(len != IPC_MAP_CONF_LEN)
+    if(len != IPC_SET_MAP_LEN)
         return;
 
     // panel,start_x,start_y,per_width,per_high,ap,start_x,start_y,per_width,per_high
@@ -238,13 +255,7 @@ void tm_set_map(unsigned int len, unsigned char *msg, q_bool append)
     tm_fill_up_fb_conf(&dis->from, dis->ap->native_size);
     tm_fill_up_fb_conf(&dis->to, panel->native_size);
 
-    if(append == q_false)
-    {
-        _tm_remove_display_conf(panel);
-        panel->link_num=0;
-    }
-
-    q_list_add_tail(&panel->display_head, &dis->node);
+    q_list_add(&panel->display_head, &dis->node);
     panel->link_num++;
 }
 

@@ -10,7 +10,7 @@
 #include "tm.h"
 
 #define IPC_ENABLE  (1)
-#define IPC_NAME    "QSIDBG"
+#define IPC_NAME    "QSIQT2"
 #define IPC_DBG     (0)
 #define IPC_RETRY   (3)
 
@@ -55,14 +55,15 @@ struct tm_status_info status_info[] = {
 tm_status_t g_status = TM_STATUS_NONE;
 
 void tm_test(void);
-int  tm_init_ipc(void);
-void tm_deinit_ipc();
+int  tm_open_ipc(void);
+void tm_close_ipc();
 void tm_recv_event(const char *from,unsigned int len,unsigned char *msg);
 
 void tm_shutdown(int signum)
 {
+    q_dbg(Q_INFO,"shutdown!!");
     tm_deinit();
-    tm_deinit_ipc();
+    tm_close_ipc();
     exit(signum);
 }
 
@@ -95,13 +96,13 @@ int main(int argc, char* argv[])
                     sleep(1);
                 break;
             case TM_STATUS_IPC_INIT:
-            	if(!tm_init_ipc())
+            	if(!tm_open_ipc())
             	    tm_switch_main_status(TM_STATUS_RUNNING);
             	else
             	    sleep(1);
                 break;
             case TM_STATUS_RUNNING:
-#if 0 //test
+#if 1 //test
                 tm_test();
                 tm_switch_main_status(TM_STATUS_DEINIT);
 #else
@@ -110,6 +111,7 @@ int main(int argc, char* argv[])
                 break;
             case TM_STATUS_DEINIT:
                 tm_deinit();
+                tm_close_ipc();
                 tm_switch_main_status(TM_STATUS_EXIT);
                 break;
 			case TM_STATUS_REINIT:
@@ -129,7 +131,7 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-int tm_init_ipc()
+int tm_open_ipc()
 {
 #if IPC_ENABLE
 
@@ -144,10 +146,7 @@ int tm_init_ipc()
         g_client.server = qsi_open_channel(g_client.name, 0, IPC_DBG);
 
         if(g_client.server != NULL)
-        {
-            q_dbg(Q_ERR,"open ipc channel error");
-            return 1;
-        }
+            break;
 
         usleep(100000);
 
@@ -165,7 +164,7 @@ int tm_init_ipc()
     return 0;
 }
 
-void tm_deinit_ipc()
+void tm_close_ipc()
 {
 #if IPC_ENABLE
 
@@ -186,10 +185,10 @@ void tm_recv_event(const char *from, unsigned int len, unsigned char *msg)
     switch(msg[0])
     {
         case IPC_CMD_SET_MAP:
-            tm_set_map(len-1, &msg[1], q_false);
+            tm_set_map(len-1, &msg[1]);
             break;
-        case IPC_CMD_ADD_MAP:
-            tm_set_map(len-1, &msg[1], q_true);
+        case IPC_CMD_CLR_MAP:
+            tm_clear_map(len-1, &msg[1]);
             break;
         default:
             break;

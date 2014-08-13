@@ -20,8 +20,10 @@
 
 // IPC command
 #define IPC_CMD_SET_MAP  (0xa0)
-#define IPC_CMD_ADD_MAP  (0xa1)
-#define IPC_MAP_CONF_LEN (10)
+#define IPC_CMD_CLR_MAP  (0xa1)
+
+#define IPC_SET_MAP_LEN  (10)
+#define IPC_CLR_MAP_LEN  (1)
 
 #define __tm_list_add(head, new)                    \
 ({                                                  \
@@ -159,7 +161,8 @@ void        tm_deinit(void);
 void        tm_set_status(tm_status_t status);
 void        tm_bind_status(tm_status_t* status);
 
-void        tm_set_map(unsigned int len, unsigned char *msg, q_bool append);
+void        tm_set_map(unsigned int len, unsigned char *msg);
+void        tm_clear_map(unsigned int len, unsigned char *msg);
 
 tm_ap_info_t*   	tm_mapping_get_ap_info(int id);
 tm_panel_info_t*	tm_mapping_get_panel_info(int id);
