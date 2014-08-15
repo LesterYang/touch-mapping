@@ -1,8 +1,8 @@
 /*
  * tm.c
  *
- *  Created on: Jul 15, 2014
- *      Author: root
+ *  Created on: Aug 1, 2014
+ *      Author: lester
  */
 #include <stdlib.h>
 #include <unistd.h>
@@ -135,6 +135,8 @@ tm_errno_t tm_init()
     tm.dis_conf = NULL;
     tm.flag     = TM_IPC_STATUS_NONE;
 
+
+    // do check
     if((err_no = tm_mapping_create_handler(&tm.ap_head, &tm.pnl_head)) != TM_ERRNO_SUCCESS)
     {
 		q_dbg(Q_ERR,"tm_create : %s", tm_err_str(err_no));
@@ -158,13 +160,14 @@ tm_errno_t tm_init()
 
 void tm_deinit()
 {
-    tm_ap_info_t *ap;
-    tm_panel_info_t *panel;
+    //tm_ap_info_t *ap;
+    //tm_panel_info_t *panel;
 
     tm_input_deinit();
     tm_remove_display_conf();
-    tm_mapping_destroy_handler();
+    tm_mapping_destroy_handler(&tm.ap_head, &tm.pnl_head);
 
+    /*
     while((ap = list_first_entry(&tm.ap_head, tm_ap_info_t, node)) != NULL)
     {
     	q_list_del(&ap->node);
@@ -180,6 +183,7 @@ void tm_deinit()
     	if(panel->mutex) q_mutex_free(panel->mutex);
     	q_free(panel);
     }
+    */
 	
 	if(tm.mutex)
 		q_mutex_free(tm.mutex);

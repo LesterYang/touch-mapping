@@ -1,8 +1,8 @@
 /*
  * _tm.h
  *
- *  Created on: Jul 18, 2014
- *      Author: root
+ *  Created on: Aug 1, 2014
+ *      Author: lester
  */
 
 #ifndef TM_H_
@@ -12,7 +12,9 @@
 #include "qUtils.h"
 #include "tmError.h"
 #include "tmMapping.h"
+#include "tmInput.h"
 
+#define TM_VERSION "1.0"
 
 #define TM_HDR_LEN    (2)
 #define TM_HDR_0      (0xff)
@@ -111,6 +113,7 @@ struct _tm_ap_info
 
     const char*              evt_path;
     int                      fd;
+    tm_input_type_t          touch_type;
     tm_native_size_param_t*  native_size;
 	
 	list_head_t	             node;

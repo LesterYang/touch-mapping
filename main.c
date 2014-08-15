@@ -1,8 +1,8 @@
 /*
  * main.c
  *
- *  Created on: Jun 17, 2014
- *      Author: root
+ *  Created on: Aug 1, 2014
+ *      Author: lester
  */
 
 #include <signal.h>
@@ -83,8 +83,10 @@ int main(int argc, char* argv[])
         switch(g_status)
         {
             case TM_STATUS_NONE:
+                q_dbg(Q_INFO,"version %s", TM_VERSION);
                 tm_switch_main_status(TM_STATUS_INIT);
                 break;
+
             case TM_STATUS_INIT:
                 if(tm_init() == TM_ERRNO_SUCCESS)
                 {
@@ -93,14 +95,16 @@ int main(int argc, char* argv[])
                     tm_switch_main_status(TM_STATUS_IPC_INIT);
                 }
                 else
-                    sleep(1);
+                   sleep(1);
                 break;
+
             case TM_STATUS_IPC_INIT:
             	if(!tm_open_ipc())
             	    tm_switch_main_status(TM_STATUS_RUNNING);
             	else
             	    sleep(1);
                 break;
+
             case TM_STATUS_RUNNING:
 #if 1 //test
                 tm_test();
@@ -109,20 +113,25 @@ int main(int argc, char* argv[])
                 sleep(1);
 #endif
                 break;
+
             case TM_STATUS_DEINIT:
                 tm_deinit();
                 tm_close_ipc();
                 tm_switch_main_status(TM_STATUS_EXIT);
                 break;
+
 			case TM_STATUS_REINIT:
 				tm_deinit();
 				tm_switch_main_status(TM_STATUS_INIT);
 				break;
+
             case TM_STATUS_ERROR:
                 tm_switch_main_status(TM_STATUS_DEINIT);
                 break;
+
             case TM_STATUS_EXIT:
                 break;
+
             default:
                 tm_switch_main_status(TM_STATUS_ERROR);
                 break;
@@ -152,7 +161,7 @@ int tm_open_ipc()
 
         if(retry == IPC_RETRY)
         {
-            q_dbg(Q_INFO,"open \"%s\" channel status timeout\n",g_client.name);
+            q_dbg(Q_INFO,"open \"%s\" channel status timeout",g_client.name);
             tm_switch_main_status(TM_STATUS_ERROR);
             return 1;
         }

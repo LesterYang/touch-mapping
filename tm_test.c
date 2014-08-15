@@ -2,7 +2,7 @@
  * tm_test.c
  *
  *  Created on: Aug 1, 2014
- *      Author: root
+ *      Author: lester
  */
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,8 +1,8 @@
 /*
  * tmMapping.h
  *
- *  Created on: Jul 18, 2014
- *      Author: root
+ *  Created on: Aug 1, 2014
+ *      Author: lester
  */
 
 #ifndef TMMAPPING_H_
@@ -22,6 +22,8 @@
 #define PNL_CONF            "pnl_info"
 #define CAL_CONF            "cal_conf"
 #define SIZE_CONF           "native_size"
+#define AT_CONF             "single_touch"
+#define MT_CONF             "multi_touch"
 
 #define BUF_SIZE            (256)
 #define MULTIPLE            (4096)
@@ -32,18 +34,10 @@
 
 #define JITTER_BOUNDARY     (3)
 
-
-#define __tm_mapping_list_add(head, _new)            \
-({                                                  \
-    _new->next  = (head.next) ? head.next : NULL;    \
-    head.next = _new;                                \
-})
-
 #define dejitter_boundary(pos, max, delta) (pos < 0 && pos > -(delta)) ? 0 : (pos > max && pos < max + delta) ? max : pos
 
 #define FB_LEN_X(fb) (fb.abs_st_x - fb.abs_end_x)
 #define FB_LEN_Y(fb) (fb.abs_st_y - fb.abs_end_y)
-
 
 typedef enum _tm_event_type             tm_event_type_t;
 typedef enum _tm_op_event               tm_op_event_t;
@@ -128,13 +122,13 @@ struct _tm_config
 void 			tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head);
 
 tm_errno_t 		tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head);
-void            tm_mapping_remove_conf(void);
-void            tm_mapping_calibrate_conf(void);
-void            tm_mapping_native_size_conf(void);
-void 			tm_mapping_pnl_conf(list_head_t* pnl_head);
-void 			tm_mapping_ap_conf(list_head_t* ap_head);
+void            tm_mapping_remove_conf(list_head_t* ap_head, list_head_t* pnl_head);
+tm_errno_t      tm_mapping_calibrate_conf(void);
+tm_errno_t      tm_mapping_native_size_conf(void);
+tm_errno_t 	    tm_mapping_pnl_conf(list_head_t* pnl_head);
+tm_errno_t 		tm_mapping_ap_conf(list_head_t* ap_head);
 tm_errno_t  	tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head);
-void            tm_mapping_destroy_handler(void);
+void            tm_mapping_destroy_handler(list_head_t* ap_head, list_head_t* pnl_head);
 
 tm_calibrate_t*          tm_mapping_get_calibrate_param(int id);
 tm_native_size_param_t*  tm_mapping_get_native_size_param(int id);

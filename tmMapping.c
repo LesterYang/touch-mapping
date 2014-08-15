@@ -1,8 +1,8 @@
 /*
  * tmMap.c
  *
- *  Created on: Jun 17, 2014
- *      Author: root
+ *  Created on: Aug 1, 2014
+ *      Author: lester
  */
 #include <string.h>
 #include <stdlib.h>
@@ -23,8 +23,8 @@ typedef struct _tm_handler
 
 static tm_handler_t tm_handler;
 
-void tm_mapping_pnl_bind_conf(tm_panel_info_t* panel);
-void tm_mapping_ap_bind_conf(tm_ap_info_t* ap);
+tm_errno_t tm_mapping_pnl_bind_conf(tm_panel_info_t* panel);
+tm_errno_t tm_mapping_ap_bind_conf(tm_ap_info_t* ap);
 void tm_mapping_point(tm_display_t* dis, int src_x, int src_y, int* dest_x, int* dest_y);
 
 void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head)
@@ -92,6 +92,7 @@ tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head)
     char *conf_file = NULL;
     char *default_conf = QSI_TM_CONF;
     char *param;
+    tm_errno_t err;
 
     if ( (conf_file = getenv("QSI_TM_CONF")) == NULL )
         conf_file = default_conf;
@@ -106,7 +107,7 @@ tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head)
         return TM_ERRNO_NO_DEV;
     }
 
-    tm_mapping_remove_conf();
+    tm_mapping_remove_conf(ap_head, pnl_head);
 
     while( !feof(fr) )
     {
@@ -124,21 +125,35 @@ tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head)
             continue;
 
         if(memcmp(param, CAL_CONF, sizeof(CAL_CONF)) == 0)
-            tm_mapping_calibrate_conf();
+        {
+            if((err = tm_mapping_calibrate_conf()) != TM_ERRNO_SUCCESS)
+                return err;
+        }
         else if(memcmp(param, SIZE_CONF, sizeof(SIZE_CONF)) == 0)
-            tm_mapping_native_size_conf();
+        {
+            if((err = tm_mapping_native_size_conf()) != TM_ERRNO_SUCCESS)
+                return err;
+        }
         else if(memcmp(param, AP_CONF, sizeof(AP_CONF)) == 0)
-            tm_mapping_ap_conf(ap_head);
+        {
+            if((err = tm_mapping_ap_conf(ap_head)) != TM_ERRNO_SUCCESS)
+                return err;
+        }
         else if(memcmp(param, PNL_CONF, sizeof(PNL_CONF)) == 0)
-            tm_mapping_pnl_conf(pnl_head);
+        {
+            if((err = tm_mapping_pnl_conf(pnl_head)) != TM_ERRNO_SUCCESS)
+                return err;
+        }
     }
 
     fclose(fr);
     return TM_ERRNO_SUCCESS;
 }
 
-void tm_mapping_remove_conf()
+void tm_mapping_remove_conf(list_head_t* ap_head, list_head_t* pnl_head)
 {
+    tm_ap_info_t *ap;
+    tm_panel_info_t *panel;
 	tm_calibrate_t* cal ;
 	tm_native_size_param_t* native_size;
 
@@ -156,9 +171,26 @@ void tm_mapping_remove_conf()
     	q_list_del(&native_size->node);
     	q_free(native_size);
     }
+
+    while((ap = list_first_entry(ap_head, tm_ap_info_t, node)) != NULL)
+    {
+        q_list_del(&ap->node);
+        q_free((char*)ap->evt_path);
+        if(ap->mutex) q_mutex_free(ap->mutex);
+        q_free(ap);
+    }
+
+    while((panel = list_first_entry(pnl_head, tm_panel_info_t, node)) != NULL)
+    {
+        q_list_del(&panel->node);
+        q_free((char*)panel->evt_path);
+        if(panel->mutex) q_mutex_free(panel->mutex);
+        q_free(panel);
+    }
+
 }
 
-void tm_mapping_calibrate_conf()
+tm_errno_t tm_mapping_calibrate_conf()
 {
     int id, n, row, col;
     char *param;
@@ -167,7 +199,7 @@ void tm_mapping_calibrate_conf()
     tm_calibrate_t* cal;
 
     if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
-        return;
+        return TM_ERRNO_PARAM;
 
     for(n=0; n<matrix_num; n++)
     {
@@ -184,7 +216,7 @@ void tm_mapping_calibrate_conf()
         cal = (tm_calibrate_t*)q_calloc(sizeof(tm_calibrate_t));
 
         if(cal == NULL)
-            return;
+            return TM_ERRNO_ALLOC;
 
         cal->id = id;
         cal->pressure.div = 1;
@@ -199,21 +231,22 @@ void tm_mapping_calibrate_conf()
 
         q_mutex_unlock(tm_handler.mutex);
     }
+    return TM_ERRNO_SUCCESS;
 }
 
-void tm_mapping_native_size_conf()
+tm_errno_t tm_mapping_native_size_conf()
 {
     int id;
     tm_native_size_param_t* native_size;
     char *param;
 
     if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
-        return;
+        return TM_ERRNO_PARAM;
 
     native_size = (tm_native_size_param_t*)q_calloc(sizeof(tm_native_size_param_t));
 
     if(native_size == NULL)
-        return;
+        return TM_ERRNO_PARAM;
 
     native_size->id = id;
 
@@ -234,25 +267,26 @@ void tm_mapping_native_size_conf()
 
     q_mutex_unlock(tm_handler.mutex);
 
-    return;
+    return TM_ERRNO_SUCCESS;
 
 err:
     q_free(native_size);
+    return TM_ERRNO_PARAM;
 }
 
-void tm_mapping_pnl_conf(list_head_t* pnl_head)
+tm_errno_t tm_mapping_pnl_conf(list_head_t* pnl_head)
 {
 	int id;
 	tm_panel_info_t* panel;
 	char *param;
 
     if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
-        return;
+        return TM_ERRNO_PARAM;
 
     panel = (tm_panel_info_t*)q_calloc(sizeof(tm_panel_info_t));
 
     if(panel == NULL)
-        return;
+        return TM_ERRNO_ALLOC;
 
     panel->id = id;
 
@@ -267,25 +301,26 @@ void tm_mapping_pnl_conf(list_head_t* pnl_head)
     q_init_head(&panel->display_head);
     q_list_add(pnl_head, &panel->node);
 
-    return;
+    return TM_ERRNO_SUCCESS;
 
 err:
 	q_free(panel);
+	return TM_ERRNO_PARAM;
 }
 
-void tm_mapping_ap_conf(list_head_t* ap_head)
+tm_errno_t tm_mapping_ap_conf(list_head_t* ap_head)
 {
 	int id;
 	tm_ap_info_t* ap;
 	char *param;
 
     if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
-        return;
+        return TM_ERRNO_PARAM;
 
     ap = (tm_ap_info_t*)q_calloc(sizeof(tm_ap_info_t));
 
     if(ap == NULL)
-        return;
+        return TM_ERRNO_ALLOC;
 
     ap->id = id;
 
@@ -293,19 +328,33 @@ void tm_mapping_ap_conf(list_head_t* ap_head)
         goto err;
 
     ap->evt_path = q_strdup((const char*)param);
+
+    if((param = strtok(NULL," ")) == NULL)
+        goto err;
+
+    if(memcmp(param, AT_CONF, sizeof(AT_CONF)) == 0)
+        ap->touch_type = TM_INPUT_TYPE_SINGLE;
+    else if (memcmp(param, MT_CONF, sizeof(MT_CONF)) == 0)
+        ap->touch_type = TM_INPUT_TYPE_MT_B;
+    else
+        goto err_param;
+
     ap->mutex = q_mutex_new(q_true, q_true);
 
     tm_mapping_ap_bind_conf(ap);
 
     q_list_add(ap_head, &ap->node);
 
-    return;
+    return TM_ERRNO_SUCCESS;
 
+err_param:
+    q_free((char*)ap->evt_path);
 err:
 	q_free(ap);
+	return TM_ERRNO_PARAM;
 }
 
-void tm_mapping_pnl_bind_conf(tm_panel_info_t* panel)
+tm_errno_t tm_mapping_pnl_bind_conf(tm_panel_info_t* panel)
 {
 	char *param;
 	panel->cal_param = NULL;
@@ -319,20 +368,21 @@ void tm_mapping_pnl_bind_conf(tm_panel_info_t* panel)
         if(memcmp(param, CAL_CONF, sizeof(CAL_CONF)) == 0)
         {
             if((param = strtok(NULL," ")) == NULL)
-                return;
+                return TM_ERRNO_PARAM;
             panel->cal_param = tm_mapping_get_calibrate_param(atoi(param));
         }
         else if(memcmp(param, SIZE_CONF, sizeof(SIZE_CONF)) == 0)
         {
             if((param = strtok(NULL," ")) == NULL)
-                return;
+                return TM_ERRNO_PARAM;
             panel->native_size = tm_mapping_get_native_size_param(atoi(param));
         }
 	}
+	return TM_ERRNO_SUCCESS;
 }
 
 
-void tm_mapping_ap_bind_conf(tm_ap_info_t* ap)
+tm_errno_t tm_mapping_ap_bind_conf(tm_ap_info_t* ap)
 {
 	char *param;
 	ap->native_size = NULL;
@@ -340,16 +390,17 @@ void tm_mapping_ap_bind_conf(tm_ap_info_t* ap)
 	while(ap->native_size == NULL)
 	{
 		if((param = strtok(NULL," ")) == NULL)
-			break;
+		    return TM_ERRNO_PARAM;
 
         if(memcmp(param, SIZE_CONF, sizeof(SIZE_CONF)) == 0)
         {
     		if((param = strtok(NULL," ")) == NULL)
-    			return;
+    		    return TM_ERRNO_PARAM;
 
     		ap->native_size = tm_mapping_get_native_size_param(atoi(param));
         }
 	}
+	return TM_ERRNO_SUCCESS;
 }
 
 tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head)
@@ -357,24 +408,25 @@ tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_hea
 	q_assert(ap_head);
 	q_assert(pnl_head);
 
+	tm_errno_t err;
+
     tm_handler.mutex = q_mutex_new(q_true, q_true);
 
     q_init_head(&tm_handler.calibrate_head);
     q_init_head(&tm_handler.native_size_head);
 
-    if(tm_mapping_update_conf(ap_head, pnl_head) != TM_ERRNO_SUCCESS)
+    if((err=tm_mapping_update_conf(ap_head, pnl_head)) != TM_ERRNO_SUCCESS)
 	{
-		if(tm_handler.mutex)
-			q_mutex_free(tm_handler.mutex);
-        return TM_ERRNO_NO_CONF;
+        tm_mapping_destroy_handler(ap_head, pnl_head);
+        return err;
 	}
 		
     return TM_ERRNO_SUCCESS;
 }
 
-void tm_mapping_destroy_handler()
+void tm_mapping_destroy_handler(list_head_t* ap_head, list_head_t* pnl_head)
 {
-    tm_mapping_remove_conf();
+    tm_mapping_remove_conf(ap_head, pnl_head);
 	if(tm_handler.mutex)
 		q_mutex_free(tm_handler.mutex);
 }
