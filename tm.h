@@ -24,6 +24,8 @@
 #define IPC_CMD_SET_MAP  (0xa0)
 #define IPC_CMD_CLR_MAP  (0xa1)
 
+
+
 #define IPC_SET_MAP_LEN  (10)
 #define IPC_CLR_MAP_LEN  (1)
 

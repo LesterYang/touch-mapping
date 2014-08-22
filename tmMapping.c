@@ -5,13 +5,7 @@
  *      Author: lester
  */
 #include <string.h>
-#include <stdlib.h>
-
-
-#include "tmMapping.h"
-#include "qUtils.h"
 #include "tm.h"
-#include "tmInput.h"
 
 typedef struct _tm_handler
 {

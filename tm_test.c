@@ -13,9 +13,6 @@
 #include <sys/time.h>
 #include <linux/input.h>
 #include "tm.h"
-#include "qUtils.h"
-#include "tmMapping.h"
-#include "tmInput.h"
 
 typedef struct _tm_input_dev tm_input_dev_t;
 void tm_input_parse_single_touch(tm_input_dev_t* dev, tm_input_event_t* evt);

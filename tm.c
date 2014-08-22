@@ -4,15 +4,8 @@
  *  Created on: Aug 1, 2014
  *      Author: lester
  */
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
 
 #include "tm.h"
-#include "qUtils.h"
-#include "tmMapping.h"
-#include "tmInput.h"
-
 
 typedef struct _tm_info
 {
@@ -160,30 +153,9 @@ tm_errno_t tm_init()
 
 void tm_deinit()
 {
-    //tm_ap_info_t *ap;
-    //tm_panel_info_t *panel;
-
     tm_input_deinit();
     tm_remove_display_conf();
     tm_mapping_destroy_handler(&tm.ap_head, &tm.pnl_head);
-
-    /*
-    while((ap = list_first_entry(&tm.ap_head, tm_ap_info_t, node)) != NULL)
-    {
-    	q_list_del(&ap->node);
-    	q_free((char*)ap->evt_path);
-    	if(ap->mutex) q_mutex_free(ap->mutex);
-    	q_free(ap);
-    }
-
-    while((panel = list_first_entry(&tm.pnl_head, tm_panel_info_t, node)) != NULL)
-    {
-    	q_list_del(&panel->node);
-    	q_free((char*)panel->evt_path);
-    	if(panel->mutex) q_mutex_free(panel->mutex);
-    	q_free(panel);
-    }
-    */
 	
 	if(tm.mutex)
 		q_mutex_free(tm.mutex);
