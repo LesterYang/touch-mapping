@@ -108,54 +108,54 @@ enum _tm_fb{
 
 struct _tm_ap_info
 {
-	union{
-    tm_ap_t                  name;
-    int                      id;
-	};
+    union{
+        tm_ap_t             name;
+        int                 id;
+    };
 
-    const char*              evt_path;
-    int                      fd;
-    tm_input_type_t          touch_type;
-    tm_native_size_param_t*  native_size;
+    const char*             evt_path;
+    int                     fd;
+    tm_input_type_t         touch_type;
+    tm_native_size_param_t* native_size;
 	
-	list_head_t	             node;
-    q_mutex*                 mutex;
+    list_head_t             node;
+    q_mutex*                mutex;
 };
 
 struct _tm_display
 {
-    tm_ap_info_t* ap;
-    tm_fb_param_t from;
-    tm_fb_param_t to;
+    tm_ap_info_t*   ap;
+    tm_fb_param_t   from;
+    tm_fb_param_t   to;
 	
-	list_head_t	   node;
-    tm_display_t* next;
+    list_head_t     node;
+    tm_display_t*   next;
 };
 
 struct _tm_panel_info
 {
-	union{
-    tm_panel_t      name;
-    int             id;
-	};
+    union{
+        tm_panel_t  name;
+        int         id;
+    };
 
     const char*     evt_path;
     int             fd;
     int             link_num;
 
-    tm_calibrate_t*          cal_param;
-    tm_native_size_param_t*  native_size;
+    tm_calibrate_t* cal_param;
+    tm_native_size_param_t* native_size;
 
-	list_head_t	   node;
-	list_head_t	   display_head;
-    q_mutex*       mutex;
-    q_queue*       queue;
+    list_head_t     node;
+    list_head_t     display_head;
+    q_mutex*        mutex;
+    q_queue*        queue;
 };
 
 tm_errno_t  tm_set_fb_param(tm_fb_param_t* fb, int start_x, int start_y, int per_width, int per_high);
 
-void 		_tm_remove_display_conf(tm_panel_info_t* panel);
-void 		tm_remove_display_conf(void);
+void        _tm_remove_display_conf(tm_panel_info_t* panel);
+void        tm_remove_display_conf(void);
 
 void        tm_fill_up_fb_conf(tm_fb_param_t* fb, tm_native_size_param_t* native);
 void        tm_set_default_display();
@@ -169,8 +169,8 @@ void        tm_bind_status(tm_status_t* status);
 void        tm_set_map(unsigned int len, unsigned char *msg);
 void        tm_clear_map(unsigned int len, unsigned char *msg);
 
-tm_ap_info_t*   	tm_mapping_get_ap_info(int id);
-tm_panel_info_t*	tm_mapping_get_panel_info(int id);
+tm_ap_info_t*       tm_mapping_get_ap_info(int id);
+tm_panel_info_t*    tm_mapping_get_panel_info(int id);
 
 tm_ap_info_t* tm_match_ap(int x, int y, tm_panel_info_t* panel);
 tm_display_t* tm_match_display(int x, int y, tm_panel_info_t* panel);

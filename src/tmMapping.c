@@ -11,8 +11,8 @@ typedef struct _tm_handler
 {
     q_mutex*        mutex;
     tm_config_t     conf;
-	list_head_t		calibrate_head;
-	list_head_t     native_size_head;
+    list_head_t	    calibrate_head;
+    list_head_t     native_size_head;
 }tm_handler_t;
 
 static tm_handler_t tm_handler;
@@ -88,7 +88,7 @@ tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head)
     char *param;
     tm_errno_t err;
 
-    if ( (conf_file = getenv("QSI_TM_CONF")) == NULL )
+    if( (conf_file = getenv("QSI_TM_CONF")) == NULL )
         conf_file = default_conf;
 
     q_dbg(Q_INFO, "configure file is %s", conf_file);
@@ -148,8 +148,8 @@ void tm_mapping_remove_conf(list_head_t* ap_head, list_head_t* pnl_head)
 {
     tm_ap_info_t *ap;
     tm_panel_info_t *panel;
-	tm_calibrate_t* cal ;
-	tm_native_size_param_t* native_size;
+    tm_calibrate_t* cal;
+    tm_native_size_param_t* native_size;
 
     tm_handler.conf.calibrate_num = 0;
     tm_handler.conf.native_size_num = 0;
@@ -159,7 +159,7 @@ void tm_mapping_remove_conf(list_head_t* ap_head, list_head_t* pnl_head)
     	q_list_del(&cal->node);
     	q_free(cal);
     }
-
+        
     while((native_size = list_first_entry(&tm_handler.native_size_head, tm_native_size_param_t, node)) != NULL)
     {
     	q_list_del(&native_size->node);
@@ -270,9 +270,9 @@ err:
 
 tm_errno_t tm_mapping_pnl_conf(list_head_t* pnl_head)
 {
-	int id;
-	tm_panel_info_t* panel;
-	char *param;
+    int id;
+    tm_panel_info_t* panel;
+    char *param;
 
     if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
         return TM_ERRNO_PARAM;
@@ -298,15 +298,15 @@ tm_errno_t tm_mapping_pnl_conf(list_head_t* pnl_head)
     return TM_ERRNO_SUCCESS;
 
 err:
-	q_free(panel);
-	return TM_ERRNO_PARAM;
+    q_free(panel);
+    return TM_ERRNO_PARAM;
 }
 
 tm_errno_t tm_mapping_ap_conf(list_head_t* ap_head)
 {
-	int id;
-	tm_ap_info_t* ap;
-	char *param;
+    int id;
+    tm_ap_info_t* ap;
+    char *param;
 
     if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
         return TM_ERRNO_PARAM;
@@ -344,8 +344,8 @@ tm_errno_t tm_mapping_ap_conf(list_head_t* ap_head)
 err_param:
     q_free((char*)ap->evt_path);
 err:
-	q_free(ap);
-	return TM_ERRNO_PARAM;
+    q_free(ap);
+    return TM_ERRNO_PARAM;
 }
 
 tm_errno_t tm_mapping_pnl_bind_conf(tm_panel_info_t* panel)
@@ -399,10 +399,10 @@ tm_errno_t tm_mapping_ap_bind_conf(tm_ap_info_t* ap)
 
 tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head)
 {
-	q_assert(ap_head);
-	q_assert(pnl_head);
+    q_assert(ap_head);
+    q_assert(pnl_head);
 
-	tm_errno_t err;
+    tm_errno_t err;
 
     tm_handler.mutex = q_mutex_new(q_true, q_true);
 
@@ -410,10 +410,10 @@ tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_hea
     q_init_head(&tm_handler.native_size_head);
 
     if((err=tm_mapping_update_conf(ap_head, pnl_head)) != TM_ERRNO_SUCCESS)
-	{
+    {
         tm_mapping_destroy_handler(ap_head, pnl_head);
         return err;
-	}
+    }
 		
     return TM_ERRNO_SUCCESS;
 }
@@ -475,27 +475,28 @@ tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
     coord.x /= cal->scaling;
     coord.y /= cal->scaling;
 
-#if 1 //de-jitter boundary
+#if 1 
+    //de-jitter boundary
     coord.x = dejitter_boundary(coord.x, panel->native_size->max_x, JITTER_BOUNDARY);
-	coord.y = dejitter_boundary(coord.y, panel->native_size->max_y, JITTER_BOUNDARY);
+    coord.y = dejitter_boundary(coord.y, panel->native_size->max_y, JITTER_BOUNDARY);
 #endif
 
 	//q_dbg(Q_DBG_POINT,"pnl : %d, %d",coord.x, coord.y);
 
     if((dis = tm_match_display(coord.x, coord.y, panel)) == NULL)
         return NULL;
-
+#if 0
     int per_x,per_y;
     per_x = ((coord.x-dis->to.abs_st_x)*100)/(dis->to.abs_end_x - dis->to.abs_st_x);
     per_y = ((coord.y-dis->to.abs_st_y)*100)/(dis->to.abs_end_y - dis->to.abs_st_y);
 
-   // q_dbg(Q_DBG_MAP,"pnl : %d%% %d%%",per_x,per_y);
+//    q_dbg(Q_DBG_MAP,"pnl : %d%% %d%%",per_x,per_y);
     tm_mapping_point(dis, coord.x, coord.y, x, y);
 
     per_x = ((*x-dis->from.abs_st_x)*100)/(dis->from.abs_end_x - dis->from.abs_st_x);
     per_y = ((*y-dis->from.abs_st_y)*100)/(dis->from.abs_end_y - dis->from.abs_st_y);
-   // q_dbg(Q_DBG_MAP,"out : %d%% %d%%",per_x,per_y);
-
+//    q_dbg(Q_DBG_MAP,"out : %d%% %d%%",per_x,per_y);
+#endif
     return dis->ap;
 }
 

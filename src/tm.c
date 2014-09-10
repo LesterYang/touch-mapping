@@ -14,9 +14,9 @@ typedef struct _tm_info
     tm_display_t*       dis_conf;
     tm_ipc_status_t     flag;
 	
-	list_head_t       	ap_head;
-	list_head_t       	pnl_head;
-	q_mutex*            mutex;
+    list_head_t       	ap_head;
+    list_head_t       	pnl_head;
+    q_mutex*            mutex;
 }tm_info_t;
 
 static tm_info_t tm;
@@ -40,17 +40,17 @@ tm_errno_t tm_set_fb_param(tm_fb_param_t* fb, int start_x, int start_y, int per_
 
 void _tm_remove_display_conf(tm_panel_info_t* panel)
 {
-	tm_display_t* dis;
-	while((dis = list_first_entry(&panel->display_head, tm_display_t, node)) != NULL)
-	{
-    	q_list_del(&dis->node);
-    	q_free(dis);
-	}
+    tm_display_t* dis;
+    while((dis = list_first_entry(&panel->display_head, tm_display_t, node)) != NULL)
+    {
+        q_list_del(&dis->node);
+        q_free(dis);
+    }
 }
 
 void tm_remove_display_conf()
 {
-	tm_panel_info_t* panel;
+    tm_panel_info_t* panel;
 
     list_for_each_entry(&tm.pnl_head, panel, node)
     {
@@ -71,10 +71,10 @@ void tm_fill_up_fb_conf(tm_fb_param_t* fb, tm_native_size_param_t* native)
 
 void tm_set_default_display()
 {
-	tm_display_t* dis;
-	tm_panel_info_t* panel;
+    tm_display_t* dis;
+    tm_panel_info_t* panel;
 
-	tm_remove_display_conf();
+    tm_remove_display_conf();
 
     list_for_each_entry(&tm.pnl_head, panel, node)
     {
@@ -104,16 +104,16 @@ void tm_set_default_display()
 
 tm_ap_info_t* tm_mapping_get_default_ap(int panel_id)
 {
-	tm_ap_info_t* ap = tm_mapping_get_ap_info(panel_id);
+    tm_ap_info_t* ap = tm_mapping_get_ap_info(panel_id);
 
-	if(ap == NULL)
-	{
-		list_for_each_entry(&tm.ap_head, ap, node)
-		{
-			 if(ap != NULL)
-				 break;
-		}
-	}
+    if(ap == NULL)
+    {
+        list_for_each_entry(&tm.ap_head, ap, node)
+        {
+             if(ap != NULL)
+                 break;
+        }
+    }
     return ap;
 }
 
@@ -132,9 +132,9 @@ tm_errno_t tm_init()
     // do check
     if((err_no = tm_mapping_create_handler(&tm.ap_head, &tm.pnl_head)) != TM_ERRNO_SUCCESS)
     {
-		q_dbg(Q_ERR,"tm_create : %s", tm_err_str(err_no));
-		if(tm.mutex)
-			q_mutex_free(tm.mutex);
+        q_dbg(Q_ERR,"tm_create : %s", tm_err_str(err_no));
+        if(tm.mutex)
+        q_mutex_free(tm.mutex);
         return err_no;
     }
 
@@ -157,8 +157,8 @@ void tm_deinit()
     tm_remove_display_conf();
     tm_mapping_destroy_handler(&tm.ap_head, &tm.pnl_head);
 	
-	if(tm.mutex)
-		q_mutex_free(tm.mutex);
+    if(tm.mutex)
+        q_mutex_free(tm.mutex);
 }
 
 void tm_set_status(tm_status_t status)
@@ -237,7 +237,7 @@ void tm_set_map(unsigned int len, unsigned char *msg)
 
 tm_ap_info_t* tm_mapping_get_ap_info(int id)
 {
-	tm_ap_info_t* ap = NULL;
+    tm_ap_info_t* ap = NULL;
 
     list_for_each_entry(&tm.ap_head, ap, node)
     {
@@ -248,7 +248,7 @@ tm_ap_info_t* tm_mapping_get_ap_info(int id)
 
 tm_panel_info_t* tm_mapping_get_panel_info(int id)
 {
-	tm_panel_info_t* panel = NULL;
+    tm_panel_info_t* panel = NULL;
 
     list_for_each_entry(&tm.pnl_head, panel, node)
     {
@@ -278,7 +278,6 @@ tm_display_t* tm_match_display(int x, int y, tm_panel_info_t* panel)
 
 tm_ap_info_t* tm_transfer(int *x, int *y, tm_panel_info_t* panel)
 {
- 
     if (!x || !y)
         return NULL;
 

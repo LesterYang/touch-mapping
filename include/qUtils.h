@@ -1,12 +1,12 @@
 /*
- * qsiFunc.h
+ * qUtils.h
  *
  *  Created on: Aug 1, 2014
  *      Author: lester
  */
 
-#ifndef QSIFUNC_H_
-#define QSIFUNC_H_
+#ifndef QUTILS_H_
+#define QUTILS_H_
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -451,4 +451,4 @@ static inline q_bool q_isfull_queue(q_queue* q)
 	return (q->front == (q->rear + 1)%(q->len_buf) ) ? q_true:q_false ;
 }
 
-#endif /* QSIFUNC_H_ */
+#endif /* QUTILS_H_ */

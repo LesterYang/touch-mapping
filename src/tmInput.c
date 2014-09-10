@@ -25,20 +25,20 @@
 #define SLOT_NUM (5)
 
 typedef struct _tm_input_coord{
-        int x;
-        int y;
-        int p;
+    int x;
+    int y;
+    int p;
 }tm_input_coord_t;
 
 
 typedef struct _tm_input_queue{
-        tm_input_event_t  evt[BUF_EVT_NUM];
-        int idx_x;
-        int idx_y;
-        int evt_num;
-        tm_ap_info_t* ap;
-        int slot;
-        tm_input_coord_t mt[SLOT_NUM];
+    tm_input_event_t    evt[BUF_EVT_NUM];
+    int                 idx_x;
+    int                 idx_y;
+    int                 evt_num;
+    tm_ap_info_t*       ap;
+    int                 slot;
+    tm_input_coord_t    mt[SLOT_NUM];
 }tm_input_queue_t;
 
 typedef struct _tm_input_dev {
@@ -51,22 +51,22 @@ typedef struct _tm_input_dev {
     tm_ap_info_t**    act_ap;
     uint8_t           max_act_num;
 
-	q_thread*         thread;
-	list_head_t	      node;
+    q_thread*         thread;
+    list_head_t	      node;
 
     q_queue*          queue;
     tm_input_queue_t  input_queue;
 }tm_input_dev_t;
 
 typedef struct _tm_input_handler {
-    volatile q_bool    open;
-    volatile q_bool    suspend;
-    list_head_t* 	   tm_ap_head;
+    volatile q_bool     open;
+    volatile q_bool     suspend;
+    list_head_t*        tm_ap_head;
 
-    uint8_t            ap_num;
-	uint8_t			   dev_num;
+    uint8_t             ap_num;
+    uint8_t             dev_num;
 
-	list_head_t        dev_head;
+    list_head_t         dev_head;
 }tm_input_handler_t;
 
 static tm_input_handler_t tm_input;
@@ -215,7 +215,7 @@ tm_errno_t  tm_input_init_events(list_head_t* pnl_head)
         if((ap->fd = open (ap->evt_path, O_WRONLY )) < 0)
             q_dbg(Q_ERR,"Opened %s error",ap->evt_path);
         else
-        	q_dbg(Q_DBG,"Opened %s done",ap->evt_path);
+            q_dbg(Q_INFO,"Opened %s done",ap->evt_path);
     }
 
     tm_input_clean_stdin();
@@ -225,7 +225,7 @@ tm_errno_t  tm_input_init_events(list_head_t* pnl_head)
     	dev = (tm_input_dev_t*)q_calloc(sizeof(tm_input_dev_t));
 
     	if(dev == NULL)
-    		continue;
+    	    continue;
 
     	dev->panel = panel;
     	dev->queue = panel->queue;
@@ -242,9 +242,9 @@ tm_errno_t  tm_input_init_events(list_head_t* pnl_head)
         }
         else
         {
-        	q_dbg(Q_DBG,"Opened %s done",panel->evt_path);
-        	dev->status = TM_INPUT_STATUS_NONE;
-        	dev->thread = q_thread_new(tm_input_thread_func, dev);
+            q_dbg(Q_INFO,"Opened %s done",panel->evt_path);
+            dev->status = TM_INPUT_STATUS_NONE;
+            dev->thread = q_thread_new(tm_input_thread_func, dev);
         }
         tm_input_set_type(dev);
     }
@@ -261,18 +261,18 @@ void tm_input_close_events()
     {
     	if(ap->fd > 0)
     	{
-    		q_close(ap->fd);
-    		ap->fd = -1;
-    	}
+            q_close(ap->fd);
+            ap->fd = -1;
+        }
     }
 
     list_for_each_entry(&tm_input.dev_head, dev, node)
     {
     	if(dev->panel != NULL && dev->panel->fd > 0)
     	{
-    		q_close(dev->panel->fd);
-    		dev->panel->fd = -1;
-    	}
+            q_close(dev->panel->fd);
+            dev->panel->fd = -1;
+        }
     }
 }
 

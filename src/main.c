@@ -10,36 +10,13 @@
 #include <unistd.h>
 #include <errno.h>
 #include "tm.h"
-
-#define IPC_ENABLE  (1)
-#define IPC_NAME    "QSIQT2"
-#define IPC_DBG     (0)
-#define IPC_RETRY   (3)
+#include "tmIpc.h"
+#include <sys/stat.h>
 
 struct tm_status_info{
     tm_status_t status;
     const char* str;
 };
-
-#if IPC_ENABLE
-
-#include <qsi_ipc_client_lib.h>
-
-typedef struct _tm_ipc_data{
-        QSI_Channel *server;
-        QSI_RECV_EVENT recv_func;
-        QSI_PROTOCOL_ST status;
-        char *name;
-        char debug;
-        char *line;
-        char *target;
-        unsigned char *msg;
-        int  len;
-}tm_ipc_data_t;
-
-tm_ipc_data_t g_client;
-
-#endif
 
 struct tm_status_info status_info[] = {
     {TM_STATUS_NONE,        "None"},
@@ -53,13 +30,9 @@ struct tm_status_info status_info[] = {
     {-1,                    NULL},
 };
 
-
 tm_status_t g_status = TM_STATUS_NONE;
 
 void tm_test(void);
-int  tm_open_ipc(void);
-void tm_close_ipc();
-void tm_recv_event(const char *from,unsigned int len,unsigned char *msg);
 
 void tm_shutdown(int signum)
 {
@@ -154,7 +127,8 @@ int main(int argc, char* argv[])
                 break;
 
             case TM_STATUS_RUNNING:
-#if 1 //test
+#if 1 
+                //test
                 tm_test();
                 tm_switch_main_status(TM_STATUS_DEINIT);
 #else
@@ -168,10 +142,10 @@ int main(int argc, char* argv[])
                 tm_switch_main_status(TM_STATUS_EXIT);
                 break;
 
-			case TM_STATUS_REINIT:
-				tm_deinit();
-				tm_switch_main_status(TM_STATUS_INIT);
-				break;
+            case TM_STATUS_REINIT:
+
+		tm_switch_main_status(TM_STATUS_INIT);
+		break;
 
             case TM_STATUS_ERROR:
                 tm_switch_main_status(TM_STATUS_DEINIT);
@@ -188,66 +162,3 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-int tm_open_ipc()
-{
-#if IPC_ENABLE
-
-    int retry;
-
-    g_client.status = PROTOCOL_IDLE;
-    g_client.recv_func = tm_recv_event;
-    g_client.name = IPC_NAME;
-
-    for(retry=0;;retry++)
-    {
-        g_client.server = qsi_open_channel(g_client.name, 0, IPC_DBG);
-
-        if(g_client.server != NULL)
-            break;
-
-        usleep(100000);
-
-        if(retry == IPC_RETRY)
-        {
-            q_dbg(Q_INFO,"open \"%s\" channel status timeout",g_client.name);
-            tm_switch_main_status(TM_STATUS_ERROR);
-            return 1;
-        }
-    }
-
-    qsi_set_event(g_client.server, g_client.recv_func);     // set receiving event callback function
-
-#endif
-    return 0;
-}
-
-void tm_close_ipc()
-{
-#if IPC_ENABLE
-
-    if(g_client.server)
-    {
-        qsi_close_channel(g_client.server);
-        g_client.server = NULL;
-    }
-
-#endif
-}
-
-void tm_recv_event(const char *from, unsigned int len, unsigned char *msg)
-{
-    // cmd, panel, st_x, st_y, w, h, ap, st_x, st_y, w, h
-    q_dbg(Q_DBG,"recv len %d, from %s", len, from);
-
-    switch(msg[0])
-    {
-        case IPC_CMD_SET_MAP:
-            tm_set_map(len-1, &msg[1]);
-            break;
-        case IPC_CMD_CLR_MAP:
-            tm_clear_map(len-1, &msg[1]);
-            break;
-        default:
-            break;
-    }
-}
