@@ -31,7 +31,7 @@ void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head)
 
     list_for_each_entry(&tm_handler.calibrate_head, cal, node)
     {
-        fprintf(stderr,"cal   id : %d, %d %d %d %d %d %d %d\n",
+        q_dbg(Q_INFO,"  cal id : %d, %d %d %d %d %d %d %d\n",
                 cal->id,
                 cal->trans_matrix.element[0][0],
                 cal->trans_matrix.element[0][1],
@@ -43,21 +43,21 @@ void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head)
     }
     list_for_each_entry(&tm_handler.native_size_head, size, node)
     {
-        fprintf(stderr,"size  id : %d, %d %d\n",
+        q_dbg(Q_INFO," size id : %d, %d %d\n",
                 size->id,
                 size->max_x,
                 size->max_y);
     }
     list_for_each_entry(ap_head, ap, node)
     {
-        fprintf(stderr,"ap    id : %d, %s, bind : size id %d\n",
+        q_dbg(Q_INFO,"   ap id : %d, %s, bind : size id %d\n",
                 ap->id,
                 ap->evt_path,
                 ap->native_size->id);
     }
     list_for_each_entry(pnl_head, panel, node)
     {
-        fprintf(stderr,"panel id : %d, %s, bind : size id %d, cal id : %d\n",
+        q_dbg(Q_INFO,"panel id : %d, %s, bind : size id %d, cal id : %d\n",
                 panel->id,
                 panel->evt_path,
                 panel->native_size->id,
@@ -65,7 +65,7 @@ void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head)
 
         list_for_each_entry(&panel->display_head, dis, node)
         {
-            fprintf(stderr,"           display ap %d, (%d~%d, %d~%d) -> (%d~%d, %d~%d)\n",
+            q_dbg(Q_INFO,"           display ap %d, (%d~%d, %d~%d) -> (%d~%d, %d~%d)\n",
             		dis->ap->id,
             		dis->from.abs_st_x,
             		dis->from.abs_end_x,

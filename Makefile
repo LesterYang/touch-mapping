@@ -4,26 +4,23 @@
 #############################
 
 # cross-compile : set PREFIX and HOST
-PREFIX     = 
-HOST       = 
+PREFIX     = /Space/ltib2/ltib/rootfs
+HOST       = /opt/freescale/usr/local/gcc-4.6.2-glibc-2.13-linaro-multilib-2011.12/fsl-linaro-toolchain/bin/arm-linux-
 
 # Compiler
 CC         = $(HOST)gcc
-DEFINES    = -DQSI_ASSERT -D_GNU_SOURCE
-CFLAGS     = -g3 -Wall -std=gnu99 $(DEFINES)
+DEFINES    = -DQSI_ASSERT -D_GNU_SOURCE -DQ_ARM_A8
+CFLAGS     = -g3 -Wall -Werror -std=gnu99 -march=armv7-a -mfpu=neon $(DEFINES)
 INCPATH    = -I$(PREFIX)/usr/include -I$(PREFIX)/usr/local/include -I. -I./include
 LINK       = $(HOST)gcc
 LIBPATH    = -L$(PREFIX)/usr/lib -L$(PREFIX)/usr/local/lib -L$(PREFIX)/lib
-# -Wl,-rpath=dir : Add a directory to the runtime library search path
 RPATH      =
-# -Wl,-rpath-link : When using ELF, one shared library may require another. It's only effective at link time
 RPATH_LINK = $(PREFIX)/usr/lib
-LFLAGS     =                                  
-LIBS       = $(LIBPATH) -lpthread -lmtdev
+LFLAGS     = -Wl,-rpath-link=$(RPATH_LINK)
+LIBS       = $(LIBPATH) -lpthread -lmtdev -lQSI-IPCLib 
 AR         = $(HOST)ar
 
 
-TARGET     = tm-daemon
 
 OBJECTS    = ./src/main.o      \
              ./src/tm.o        \
@@ -35,11 +32,11 @@ OBJECTS    = ./src/main.o      \
 			 
 			 
 # All Target
-all: tm
+all: tm-daemon
 
-tm: $(OBJECTS)
+tm-daemon: $(OBJECTS)
 	@echo 'Building target: $@'
-	$(CC) -o $(TARGET) $(OBJECTS) $(LFLAGS) $(LIBS)  
+	$(CC) -o $@ $(OBJECTS) $(LFLAGS) $(LIBS)  
 
 $(OBJECTS): %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCPATH) $< -o $@

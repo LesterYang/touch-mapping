@@ -16,18 +16,9 @@
 
 #define TM_VERSION "1.0"
 
-#define TM_HDR_LEN    (2)
-#define TM_HDR_0      (0xff)
-#define TM_HDR_1      (0x55)
-
-// IPC command
-#define IPC_CMD_SET_MAP  (0xa0)
-#define IPC_CMD_CLR_MAP  (0xa1)
-
-
-
-#define IPC_SET_MAP_LEN  (10)
-#define IPC_CLR_MAP_LEN  (1)
+//#define TM_HDR_LEN    (2)
+//#define TM_HDR_0      (0xff)
+//#define TM_HDR_1      (0x55)
 
 #define __tm_list_add(head, new)                    \
 ({                                                  \

@@ -1,5 +1,5 @@
 /*
- * qInput.c
+ * tmInput.c
  *
  *  Created on: Aug 1, 2014
  *      Author: lester
@@ -58,27 +58,28 @@ typedef struct _tm_input_dev {
     tm_input_queue_t  input_queue;
 }tm_input_dev_t;
 
-typedef struct _tm_input_handler {
+typedef struct _tm_input{
     volatile q_bool     open;
     volatile q_bool     suspend;
     list_head_t*        tm_ap_head;
+    list_head_t*        tm_pnl_head;
 
     uint8_t             ap_num;
     uint8_t             dev_num;
 
     list_head_t         dev_head;
-}tm_input_handler_t;
+}tm_input_t;
 
-static tm_input_handler_t tm_input;
+static tm_input_t tm_input;
 
 void tm_send_event(tm_input_dev_t* dev, q_bool all);
 
 void tm_input_clean_stdin();
-int  tm_input_init_events(list_head_t* pnl_head);
+int  tm_input_init_events();
 void tm_input_close_events();
 void tm_input_remove_dev();
 
-int  tm_input_add_fd (tm_panel_info_t* tm_input, fd_set * fdsp);
+//int  tm_input_add_fd (tm_panel_info_t* tm_input, fd_set * fdsp);
 
 void tm_input_thread_func(void *data);
 
@@ -168,11 +169,12 @@ tm_errno_t tm_input_init(list_head_t* ap_head, list_head_t* pnl_head)
 
     q_init_head(&tm_input.dev_head);
 
-    tm_input.open       = q_true;
-    tm_input.suspend    = q_false;
-    tm_input.tm_ap_head	= ap_head;
+    tm_input.open        = q_true;
+    tm_input.suspend     = q_false;
+    tm_input.tm_ap_head	 = ap_head;
+    tm_input.tm_pnl_head = pnl_head;
     
-    if((err_no = tm_input_init_events(pnl_head)) != TM_ERRNO_SUCCESS)
+    if((err_no = tm_input_init_events()) != TM_ERRNO_SUCCESS)
         return err_no;
 
     return TM_ERRNO_SUCCESS;
@@ -200,7 +202,7 @@ void tm_input_set_type(tm_input_dev_t* dev)
     }
 }
 
-tm_errno_t  tm_input_init_events(list_head_t* pnl_head)
+tm_errno_t tm_input_init_events()
 {
     tm_ap_info_t* ap = NULL;
     tm_panel_info_t* panel = NULL;
@@ -220,7 +222,7 @@ tm_errno_t  tm_input_init_events(list_head_t* pnl_head)
 
     tm_input_clean_stdin();
 
-    list_for_each_entry(pnl_head, panel, node)
+    list_for_each_entry(tm_input.tm_pnl_head, panel, node)
     {
     	dev = (tm_input_dev_t*)q_calloc(sizeof(tm_input_dev_t));
 

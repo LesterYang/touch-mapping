@@ -5,15 +5,12 @@
  *      Author: lester
  */
 
-#include <fcntl.h>
 #include <unistd.h>
-#include <errno.h>
 #include "tm.h"
 #include "tmIpc.h"
-#include <sys/stat.h>
 
 #define IPC_NAME    "QSIQT2"
-#define IPC_ENABLE  (0)
+#define IPC_ENABLE  (1)
 #define IPC_DBG     (0)
 #define IPC_RETRY   (3)
 
@@ -59,7 +56,6 @@ int tm_open_ipc()
         if(retry == IPC_RETRY)
         {
             q_dbg(Q_INFO,"open \"%s\" channel status timeout",g_client.name);
-            tm_switch_main_status(TM_STATUS_ERROR);
             return 1;
         }
     }

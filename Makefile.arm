@@ -21,7 +21,6 @@ LIBS       = $(LIBPATH) -lpthread -lmtdev -lQSI-IPCLib
 AR         = $(HOST)ar
 
 
-TARGET     = tm-daemon
 
 OBJECTS    = ./src/main.o      \
              ./src/tm.o        \
@@ -33,11 +32,11 @@ OBJECTS    = ./src/main.o      \
 			 
 			 
 # All Target
-all: tm
+all: tm-daemon
 
-tm: $(OBJECTS)
+tm-daemon: $(OBJECTS)
 	@echo 'Building target: $@'
-	$(CC) -o $(TARGET) $(OBJECTS) $(LFLAGS) $(LIBS)  
+	$(CC) -o $@ $(OBJECTS) $(LFLAGS) $(LIBS)  
 
 $(OBJECTS): %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCPATH) $< -o $@

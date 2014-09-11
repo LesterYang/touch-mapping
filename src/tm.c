@@ -6,6 +6,7 @@
  */
 
 #include "tm.h"
+#include "tmIpc.h"
 
 typedef struct _tm_info
 {

@@ -9,9 +9,9 @@
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include "tm.h"
 #include "tmIpc.h"
-#include <sys/stat.h>
 
 struct tm_status_info{
     tm_status_t status;
@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
                 break;
 
             case TM_STATUS_RUNNING:
-#if 1 
+#if 0 
                 //test
                 tm_test();
                 tm_switch_main_status(TM_STATUS_DEINIT);
