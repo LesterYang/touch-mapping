@@ -17,21 +17,19 @@ typedef struct _tm_handler
 
 static tm_handler_t tm_handler;
 
+void tm_mapping_print_cal_info(void);
+void tm_mapping_print_size_info(void);
 tm_errno_t tm_mapping_pnl_bind_conf(tm_panel_info_t* panel);
 tm_errno_t tm_mapping_ap_bind_conf(tm_ap_info_t* ap);
 void tm_mapping_point(tm_display_t* dis, int src_x, int src_y, int* dest_x, int* dest_y);
 
-void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head)
+
+void tm_mapping_print_cal_info()
 {
     tm_calibrate_t* cal=NULL;
-    tm_native_size_param_t* size = NULL;
-    tm_ap_info_t* ap;
-    tm_panel_info_t* panel;
-    tm_display_t* dis = NULL;
-
     list_for_each_entry(&tm_handler.calibrate_head, cal, node)
     {
-        q_dbg(Q_INFO,"  cal id : %d, %d %d %d %d %d %d %d\n",
+        q_dbg(Q_INFO,"  cal id %2d -> %d %d %d %d %d %d %d\n",
                 cal->id,
                 cal->trans_matrix.element[0][0],
                 cal->trans_matrix.element[0][1],
@@ -41,23 +39,39 @@ void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head)
                 cal->trans_matrix.element[1][2],
                 cal->scaling);
     }
+}
+
+void tm_mapping_print_size_info()
+{
+    tm_native_size_param_t* size=NULL;
     list_for_each_entry(&tm_handler.native_size_head, size, node)
     {
-        q_dbg(Q_INFO," size id : %d, %d %d\n",
+        q_dbg(Q_INFO," size id %2d -> %d %d\n",
                 size->id,
                 size->max_x,
                 size->max_y);
     }
+}
+
+void tm_mapping_print_ap_info(list_head_t* ap_head)
+{
+    tm_ap_info_t* ap;
     list_for_each_entry(ap_head, ap, node)
     {
-        q_dbg(Q_INFO,"   ap id : %d, %s, bind : size id %d\n",
+        q_dbg(Q_INFO,"   ap id %2d -> %s, bind : size id %d\n",
                 ap->id,
                 ap->evt_path,
                 ap->native_size->id);
     }
+}
+
+void tm_mapping_print_panel_info(list_head_t* pnl_head)
+{
+    tm_panel_info_t* panel;
+    tm_display_t* dis = NULL;
     list_for_each_entry(pnl_head, panel, node)
     {
-        q_dbg(Q_INFO,"panel id : %d, %s, bind : size id %d, cal id : %d\n",
+        q_dbg(Q_INFO,"panel id %2d -> %s, bind : size id %d, cal id : %d\n",
                 panel->id,
                 panel->evt_path,
                 panel->native_size->id,
@@ -65,7 +79,7 @@ void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head)
 
         list_for_each_entry(&panel->display_head, dis, node)
         {
-            q_dbg(Q_INFO,"           display ap %d, (%d~%d, %d~%d) -> (%d~%d, %d~%d)\n",
+            q_dbg(Q_INFO,"               display ap %d, (%d~%d, %d~%d) -> (%d~%d, %d~%d)\n",
             		dis->ap->id,
             		dis->from.abs_st_x,
             		dis->from.abs_end_x,
@@ -77,6 +91,14 @@ void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head)
             		dis->to.abs_end_y);
         }
     }
+}
+
+void tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head)
+{
+    tm_mapping_print_cal_info();
+    tm_mapping_print_size_info();
+    tm_mapping_print_ap_info(ap_head);
+    tm_mapping_print_panel_info(pnl_head);
 }
 
 tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head)
@@ -290,9 +312,9 @@ tm_errno_t tm_mapping_pnl_conf(list_head_t* pnl_head)
     panel->evt_path = q_strdup((const char*)param);
     panel->mutex = q_mutex_new(q_true, q_true);
 
-    tm_mapping_pnl_bind_conf(panel);
-
     q_init_head(&panel->display_head);
+
+    tm_mapping_pnl_bind_conf(panel);
     q_list_add(pnl_head, &panel->node);
 
     return TM_ERRNO_SUCCESS;
@@ -350,14 +372,14 @@ err:
 
 tm_errno_t tm_mapping_pnl_bind_conf(tm_panel_info_t* panel)
 {
-	char *param;
-	panel->cal_param = NULL;
-	panel->native_size = NULL;
+    char *param;
+    panel->cal_param = NULL;
+    panel->native_size = NULL;
 
-	while(panel->cal_param == NULL || panel->native_size == NULL)
-	{
-		if((param = strtok(NULL," ")) == NULL)
-			break;
+    while(1)
+    {
+        if((param = strtok(NULL," ")) == NULL)
+                break;
 
         if(memcmp(param, CAL_CONF, sizeof(CAL_CONF)) == 0)
         {
@@ -371,30 +393,56 @@ tm_errno_t tm_mapping_pnl_bind_conf(tm_panel_info_t* panel)
                 return TM_ERRNO_PARAM;
             panel->native_size = tm_mapping_get_native_size_param(atoi(param));
         }
-	}
-	return TM_ERRNO_SUCCESS;
+        else if(memcmp(param, AP_CONF, sizeof(AP_CONF)) == 0)
+        {
+            if((param = strtok(NULL," ")) == NULL)
+                return TM_ERRNO_PARAM;
+
+            tm_display_t* dis =  (tm_display_t*)q_calloc(sizeof(tm_display_t));
+            
+            if(dis == NULL)
+                return TM_ERRNO_ALLOC;
+            
+            dis->ap = tm_mapping_get_ap_info(atoi(param));
+
+            dis->from.st_x = 0;
+            dis->from.st_y = 0;
+            dis->from.w = 100;
+            dis->from.h = 100;
+            dis->to.st_x = 0;
+            dis->to.st_y = 0;
+            dis->to.w = 100;
+            dis->to.h = 100;
+
+            tm_fill_up_fb_conf(&dis->from, dis->ap->native_size);
+            tm_fill_up_fb_conf(&dis->to, panel->native_size);
+
+            q_list_add(&panel->display_head, &dis->node);
+        }
+    }
+    return TM_ERRNO_SUCCESS;
 }
 
 
 tm_errno_t tm_mapping_ap_bind_conf(tm_ap_info_t* ap)
 {
-	char *param;
-	ap->native_size = NULL;
+    char *param;
+    ap->native_size = NULL;
 
-	while(ap->native_size == NULL)
-	{
-		if((param = strtok(NULL," ")) == NULL)
-		    return TM_ERRNO_PARAM;
+    while(ap->native_size == NULL)
+    {
+        if((param = strtok(NULL," ")) == NULL)
+            return TM_ERRNO_PARAM;
 
         if(memcmp(param, SIZE_CONF, sizeof(SIZE_CONF)) == 0)
         {
-    		if((param = strtok(NULL," ")) == NULL)
-    		    return TM_ERRNO_PARAM;
+            if((param = strtok(NULL," ")) == NULL)
+                    return TM_ERRNO_PARAM;
 
-    		ap->native_size = tm_mapping_get_native_size_param(atoi(param));
+             ap->native_size = tm_mapping_get_native_size_param(atoi(param));
         }
-	}
-	return TM_ERRNO_SUCCESS;
+    }
+    return TM_ERRNO_SUCCESS;
 }
 
 tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head)
@@ -421,8 +469,8 @@ tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_hea
 void tm_mapping_destroy_handler(list_head_t* ap_head, list_head_t* pnl_head)
 {
     tm_mapping_remove_conf(ap_head, pnl_head);
-	if(tm_handler.mutex)
-		q_mutex_free(tm_handler.mutex);
+    if(tm_handler.mutex)
+        q_mutex_free(tm_handler.mutex);
 }
 
 
@@ -463,17 +511,19 @@ tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
          };
      }coord;
 
-     q_assert(panel);
-
+    q_assert(panel);
+    
     coord.x = *x;
     coord.y = *y;
     coord.z = 1;
-
+    q_dbg(Q_INFO," -> x y : %d, %d",coord.x, coord.y);
+   
     // raw touch point -> frame buffer point
     tm_mapping_matrix_mult(&cal->trans_matrix, coord.vec);
 
     coord.x /= cal->scaling;
     coord.y /= cal->scaling;
+    q_dbg(Q_INFO," <- x y : %d, %d",coord.x, coord.y);
 
 #if 1 
     //de-jitter boundary
@@ -481,22 +531,24 @@ tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
     coord.y = dejitter_boundary(coord.y, panel->native_size->max_y, JITTER_BOUNDARY);
 #endif
 
-	//q_dbg(Q_DBG_POINT,"pnl : %d, %d",coord.x, coord.y);
+    q_dbg(Q_DBG_POINT,"pnl : %d, %d",coord.x, coord.y);
 
     if((dis = tm_match_display(coord.x, coord.y, panel)) == NULL)
+    {
         return NULL;
-#if 0
+    }
+
     int per_x,per_y;
     per_x = ((coord.x-dis->to.abs_st_x)*100)/(dis->to.abs_end_x - dis->to.abs_st_x);
     per_y = ((coord.y-dis->to.abs_st_y)*100)/(dis->to.abs_end_y - dis->to.abs_st_y);
 
-//    q_dbg(Q_DBG_MAP,"pnl : %d%% %d%%",per_x,per_y);
+    q_dbg(Q_DBG_MAP,"pnl : %d%% %d%%",per_x,per_y);
     tm_mapping_point(dis, coord.x, coord.y, x, y);
 
     per_x = ((*x-dis->from.abs_st_x)*100)/(dis->from.abs_end_x - dis->from.abs_st_x);
     per_y = ((*y-dis->from.abs_st_y)*100)/(dis->from.abs_end_y - dis->from.abs_st_y);
-//    q_dbg(Q_DBG_MAP,"out : %d%% %d%%",per_x,per_y);
-#endif
+    q_dbg(Q_DBG_MAP,"out : %d%% %d%%",per_x,per_y);
+    
     return dis->ap;
 }
 

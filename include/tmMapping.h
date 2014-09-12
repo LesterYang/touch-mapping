@@ -22,6 +22,7 @@
 #define PNL_CONF            "pnl_info"
 #define CAL_CONF            "cal_conf"
 #define SIZE_CONF           "native_size"
+#define FB_CONF             "fb_info"
 #define AT_CONF             "single_touch"
 #define MT_CONF             "multi_touch"
 
@@ -68,7 +69,7 @@ struct _tm_native_size_param
     int16_t max_x;
     int16_t max_y;
 
-	list_head_t	   node;
+    list_head_t node;
 };
 
 struct _tm_trans_matrix
@@ -88,7 +89,7 @@ struct _tm_calibrate
         int div;
     }pressure;
 
-	list_head_t	    node;
+    list_head_t         node;
 };
 
 struct _tm_fb_param // relative proportion to native size
@@ -115,20 +116,22 @@ struct _tm_config
     uint8_t                 native_size_num;
     uint8_t                 calibrate_num;
 	
-	list_head_t	   			native_size_head;
-	list_head_t	   			calibrate_head;
+    list_head_t             native_size_head;
+    list_head_t             calibrate_head;
 };
 
-void 			tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head);
+void        tm_mapping_print_ap_info(list_head_t* ap_head);
+void        tm_mapping_print_panel_info(list_head_t* pnl_head);
+void        tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head);
 
-tm_errno_t 		tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head);
-void            tm_mapping_remove_conf(list_head_t* ap_head, list_head_t* pnl_head);
-tm_errno_t      tm_mapping_calibrate_conf(void);
-tm_errno_t      tm_mapping_native_size_conf(void);
-tm_errno_t 	    tm_mapping_pnl_conf(list_head_t* pnl_head);
-tm_errno_t 		tm_mapping_ap_conf(list_head_t* ap_head);
-tm_errno_t  	tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head);
-void            tm_mapping_destroy_handler(list_head_t* ap_head, list_head_t* pnl_head);
+tm_errno_t  tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head);
+void        tm_mapping_remove_conf(list_head_t* ap_head, list_head_t* pnl_head);
+tm_errno_t  tm_mapping_calibrate_conf(void);
+tm_errno_t  tm_mapping_native_size_conf(void);
+tm_errno_t  tm_mapping_pnl_conf(list_head_t* pnl_head);
+tm_errno_t  tm_mapping_ap_conf(list_head_t* ap_head);
+tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head);
+void        tm_mapping_destroy_handler(list_head_t* ap_head, list_head_t* pnl_head);
 
 tm_calibrate_t*          tm_mapping_get_calibrate_param(int id);
 tm_native_size_param_t*  tm_mapping_get_native_size_param(int id);

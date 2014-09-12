@@ -71,6 +71,17 @@ static inline void tm_input_get_time(tm_input_timeval_t *time)
     gettimeofday(time, NULL);
 }
 
+static inline void tm_input_add_time(tm_input_timeval_t *time, int ms)
+{
+    time->tv_usec += ms;
+
+    if((time->tv_usec / 1000000))
+    {
+        time->tv_sec++;
+    }
+    time->tv_usec %= 1000000;
+}
+
 tm_errno_t tm_input_init(list_head_t* ap_head, list_head_t* panel_head);
 void tm_input_deinit();
 

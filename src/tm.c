@@ -75,10 +75,12 @@ void tm_set_default_display()
     tm_display_t* dis;
     tm_panel_info_t* panel;
 
-    tm_remove_display_conf();
 
     list_for_each_entry(&tm.pnl_head, panel, node)
     {
+        if(panel->display_head.next != NULL)
+            continue;
+
         dis = q_calloc(sizeof(tm_display_t));
 
         if(dis == NULL)
@@ -234,6 +236,7 @@ void tm_set_map(unsigned int len, unsigned char *msg)
 
     q_list_add(&panel->display_head, &dis->node);
     panel->link_num++;
+    tm_mapping_print_panel_info(&tm.pnl_head);
 }
 
 tm_ap_info_t* tm_mapping_get_ap_info(int id)
@@ -271,8 +274,13 @@ tm_display_t* tm_match_display(int x, int y, tm_panel_info_t* panel)
 
     list_for_each_entry(&panel->display_head, dis, node)
     {
+
         if(tm_point_is_in_range(&dis->to, x, y))
             break;
+        else
+            q_dbg(Q_INFO,"(%d,%d) no match (%d - %d,%d - %d)", 
+                    x,y,dis->to.abs_st_x, dis->to.abs_end_x, dis->to.abs_st_y, dis->to.abs_end_y);
+
     }
     return dis;
 }
@@ -281,10 +289,6 @@ tm_ap_info_t* tm_transfer(int *x, int *y, tm_panel_info_t* panel)
 {
     if (!x || !y)
         return NULL;
-
-    // for test
-    panel = tm_mapping_get_panel_info(0);
-    
     return tm_mapping_transfer(x, y, panel);
 }
 

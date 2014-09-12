@@ -19,14 +19,14 @@
 #define Q_INFO  (2)
 #define Q_ERR   (3)
 
-#define Q_DBG_DISABLE   (0xf0)
-#define Q_DBG_ENABLE    (0xf1)
+#define Q_DBG_DISABLE   (0x70)
+#define Q_DBG_ENABLE    (0x71)
 
-#define Q_DBG_POINT Q_DBG_ENABLE
-#define Q_DBG_MAP   Q_DBG_ENABLE
+#define Q_DBG_POINT Q_DBG_DISABLE
+#define Q_DBG_MAP   Q_DBG_DISABLE
 #define Q_DBG_CONF  Q_DBG_DISABLE
 
-#define dbg_level Q_ALL
+#define dbg_level Q_INFO
 
 
 typedef int q_bool;
@@ -49,13 +49,13 @@ typedef int q_bool;
 #define q_nothing() do {} while (q_false)
 
 #ifdef Q_ASSERT
-#define q_assert(expr)                                                                            \
-    do {                                                                                            \
-        if (Q_UNLIKELY(!(expr))) {                                                                \
-            fprintf(stderr, "tm-daemon : Expr '%s' failed at %s:%u, function '%s'. Aborting\n",    \
-                        #expr , __FILE__, __LINE__, Q_PRETTY_FUNCTION);                           \
-            abort();                                                                                \
-        }                                                                                           \
+#define q_assert(expr)                                                                          \
+    do {                                                                                        \
+        if (Q_UNLIKELY(!(expr))) {                                                              \
+            fprintf(stderr, "tm-daemon : Expr '%s' failed at %s:%u, function '%s'. Aborting\n", \
+                        #expr , __FILE__, __LINE__, Q_PRETTY_FUNCTION);                         \
+            abort();                                                                            \
+        }                                                                                       \
     } while (0)
 #else
 #define q_assert(expr) q_nothing()
@@ -69,7 +69,7 @@ typedef int q_bool;
             fprintf(stderr, expr,  ##__VA_ARGS__);                              \
             fprintf(stderr, "\n");                                              \
         }                                                                       \
-        else if( !(lv==Q_DBG_DISABLE || lv < dbg_level) )                       \
+        else if( lv!=Q_DBG_DISABLE && lv >= dbg_level )                         \
         {                                                                       \
             printf("tm-daemon : ");                                             \
             printf(expr,  ##__VA_ARGS__);                                       \
