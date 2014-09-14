@@ -38,6 +38,7 @@ typedef struct _tm_input_queue{
     int                 evt_num;
     tm_ap_info_t*       ap;
     int                 slot;
+    tm_input_coord_t    cur;
     tm_input_coord_t    mt[SLOT_NUM];
 }tm_input_queue_t;
 
@@ -404,9 +405,9 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
 
         case TM_INPUT_STATUS_RELEASE:
             tm_input_get_time(&evt.time);
-            q->mt[q->slot].p = 0;
+            q->cur.p = q->mt[q->slot].p = 0;
 
-            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_PRESSURE, q->mt[q->slot].p);
+            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_PRESSURE, q->cur.p);
             tm_input_send_event(q->ap, &evt, EV_KEY, BTN_TOUCH, 0);
             tm_input_send_event(q->ap, &evt, EV_SYN, SYN_REPORT, 0);
             dev->status = TM_INPUT_STATUS_IDLE;
@@ -414,16 +415,19 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
 
         case TM_INPUT_STATUS_PRESS:
             tm_input_get_time(&evt.time);
+            q->cur.x = q->mt[q->slot].x;
+            q->cur.y = q->mt[q->slot].y;
+            q->cur.p = q->mt[q->slot].p;
 
-            dev->act_ap[0] = tm_transfer(&q->mt[q->slot].x, &q->mt[q->slot].y, dev->panel);
+            dev->act_ap[0] = tm_transfer(&q->cur.x, &q->cur.y, dev->panel);
 
             q->ap = dev->act_ap[0];
             tm_input_send_event(q->ap, &evt, EV_KEY, BTN_TOUCH, 1);
             tm_input_send_event(q->ap, &evt, EV_SYN, SYN_REPORT, 0);
 
-            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_X, q->mt[q->slot].x);
-            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_Y, q->mt[q->slot].y);
-            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_PRESSURE, q->mt[q->slot].p);
+            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_X, q->cur.x);
+            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_Y, q->cur.y);
+            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_PRESSURE, q->cur.p);
             tm_input_send_event(q->ap, &evt, EV_SYN, SYN_REPORT, 0);
 
             dev->status = TM_INPUT_STATUS_DRAG;
@@ -431,8 +435,11 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
 
         case TM_INPUT_STATUS_DRAG:
             tm_input_get_time(&evt.time);
+            q->cur.x = q->mt[q->slot].x;
+            q->cur.y = q->mt[q->slot].y;
+            q->cur.p = q->mt[q->slot].p;
 
-            dev->act_ap[0] = tm_transfer(&q->mt[q->slot].x, &q->mt[q->slot].y, dev->panel);
+            dev->act_ap[0] = tm_transfer(&q->cur.x, &q->cur.y, dev->panel);
 
             if(q->ap != dev->act_ap[0])
             {
@@ -443,9 +450,9 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
                 tm_input_send_event(q->ap, &evt, EV_KEY, BTN_TOUCH, 1);
                 tm_input_send_event(q->ap, &evt, EV_SYN, SYN_REPORT, 0);
             }
-            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_X, q->mt[q->slot].x);
-            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_Y, q->mt[q->slot].y);
-            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_PRESSURE, q->mt[q->slot].p);
+            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_X, q->cur.x);
+            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_Y, q->cur.y);
+            tm_input_send_event(q->ap, &evt, EV_ABS, ABS_PRESSURE, q->cur.p);
             tm_input_send_event(q->ap, &evt, EV_SYN, SYN_REPORT, 0);
             break;
 
