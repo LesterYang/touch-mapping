@@ -182,15 +182,16 @@ void tm_clear_map(unsigned int len, unsigned char *msg)
     unsigned char pnl_id;
     tm_panel_info_t* panel;
 
-    if(len != IPC_CLR_MAP_LEN)
+    if(len-1 == IPC_CLR_MAP_LEN)
         return;
-
+    
     pnl_id = msg[0];
 
     if((panel = tm_mapping_get_panel_info(pnl_id)) == NULL)
         return;
 
     _tm_remove_display_conf(panel);
+    q_dbg(Q_INFO,"panel id %d clear all display ap", pnl_id);
     panel->link_num=0;
 }
 

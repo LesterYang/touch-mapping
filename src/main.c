@@ -44,7 +44,7 @@ void tm_shutdown(int signum)
 
 void tm_switch_main_status(tm_status_t status)
 {
-     q_dbg(Q_INFO,"status : %10s -> %s", q_strnull(status_info[g_status].str), q_strnull(status_info[status].str));
+     q_dbg(Q_INFO,"status, %10s -> %s", q_strnull(status_info[g_status].str), q_strnull(status_info[status].str));
      g_status = status;
 }
 

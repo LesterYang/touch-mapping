@@ -203,7 +203,6 @@ void tm_mapping_remove_conf(list_head_t* ap_head, list_head_t* pnl_head)
         if(panel->mutex) q_mutex_free(panel->mutex);
         q_free(panel);
     }
-
 }
 
 tm_errno_t tm_mapping_calibrate_conf()
@@ -311,7 +310,6 @@ tm_errno_t tm_mapping_pnl_conf(list_head_t* pnl_head)
 
     panel->evt_path = q_strdup((const char*)param);
     panel->mutex = q_mutex_new(q_true, q_true);
-
     q_init_head(&panel->display_head);
 
     tm_mapping_pnl_bind_conf(panel);
@@ -376,11 +374,8 @@ tm_errno_t tm_mapping_pnl_bind_conf(tm_panel_info_t* panel)
     panel->cal_param = NULL;
     panel->native_size = NULL;
 
-    while(1)
+    while((param = strtok(NULL," ")) != NULL)
     {
-        if((param = strtok(NULL," ")) == NULL)
-                break;
-
         if(memcmp(param, CAL_CONF, sizeof(CAL_CONF)) == 0)
         {
             if((param = strtok(NULL," ")) == NULL)
@@ -437,7 +432,7 @@ tm_errno_t tm_mapping_ap_bind_conf(tm_ap_info_t* ap)
         if(memcmp(param, SIZE_CONF, sizeof(SIZE_CONF)) == 0)
         {
             if((param = strtok(NULL," ")) == NULL)
-                    return TM_ERRNO_PARAM;
+                return TM_ERRNO_PARAM;
 
              ap->native_size = tm_mapping_get_native_size_param(atoi(param));
         }
@@ -477,25 +472,25 @@ void tm_mapping_destroy_handler(list_head_t* ap_head, list_head_t* pnl_head)
 void tm_mapping_matrix_mult(tm_trans_matrix_t *matrix, int* vector)
 {
     int i, j;
-    int result_vec[2] = {0};
+    int reslut[2] = {0};
 
     for(i=0; i<CAL_MATRIX_ROW; i++)
     {
         for(j=0; j<CAL_MATRIX_COL; j++)
         {
-            result_vec[i] +=  matrix->element[i][j] * vector[j];
+            reslut[i] +=  matrix->element[i][j] * vector[j];
         }
     }
 
 #if 0
     printf("matrix_mult:\n");
-    printf("|%5d %5d %5d| |%5d|   |%5d|\n",matrix->element[0][0],matrix->element[0][1],matrix->element[0][2],vector[0],result_vec[0]);
-    printf("|%5d %5d %5d| |%5d| = |%5d|\n",matrix->element[1][0],matrix->element[1][1],matrix->element[1][2],vector[1],result_vec[1]);
+    printf("|%5d %5d %5d| |%5d|   |%5d|\n",matrix->element[0][0],matrix->element[0][1],matrix->element[0][2],vector[0],reslut[0]);
+    printf("|%5d %5d %5d| |%5d| = |%5d|\n",matrix->element[1][0],matrix->element[1][1],matrix->element[1][2],vector[1],reslut[1]);
     printf("|    0     0     0| |%5d|   |    0|\n",vector[2]);
 #endif
 
-    vector[0] = result_vec[0];
-    vector[1] = result_vec[1];
+    vector[0] = reslut[0];
+    vector[1] = reslut[1];
 }
 
 tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
@@ -516,39 +511,39 @@ tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
     coord.x = *x;
     coord.y = *y;
     coord.z = 1;
-    q_dbg(Q_INFO," -> x y : %d, %d",coord.x, coord.y);
+    q_dbg(Q_DBG_POINT," -> x y : %d, %d",coord.x, coord.y);
    
     // raw touch point -> frame buffer point
     tm_mapping_matrix_mult(&cal->trans_matrix, coord.vec);
 
     coord.x /= cal->scaling;
     coord.y /= cal->scaling;
-    q_dbg(Q_INFO," <- x y : %d, %d",coord.x, coord.y);
+    q_dbg(Q_DBG_POINT," <- x y : %d, %d",coord.x, coord.y);
 
-#if 1 
     //de-jitter boundary
     coord.x = dejitter_boundary(coord.x, panel->native_size->max_x, JITTER_BOUNDARY);
     coord.y = dejitter_boundary(coord.y, panel->native_size->max_y, JITTER_BOUNDARY);
-#endif
-
-    q_dbg(Q_DBG_POINT,"pnl : %d, %d",coord.x, coord.y);
 
     if((dis = tm_match_display(coord.x, coord.y, panel)) == NULL)
     {
         return NULL;
     }
 
+#if Q_DBG_MAP == Q_DBG_ENABLE
     int per_x,per_y;
     per_x = ((coord.x-dis->to.abs_st_x)*100)/(dis->to.abs_end_x - dis->to.abs_st_x);
     per_y = ((coord.y-dis->to.abs_st_y)*100)/(dis->to.abs_end_y - dis->to.abs_st_y);
+    q_dbg(Q_DBG_MAP,"pnl : %d%% %d%% (%d,%d)",per_x,per_y, coord.x, coord.y);
+#endif
 
-    q_dbg(Q_DBG_MAP,"pnl : %d%% %d%%",per_x,per_y);
     tm_mapping_point(dis, coord.x, coord.y, x, y);
 
+#if Q_DBG_MAP == Q_DBG_ENABLE
     per_x = ((*x-dis->from.abs_st_x)*100)/(dis->from.abs_end_x - dis->from.abs_st_x);
     per_y = ((*y-dis->from.abs_st_y)*100)/(dis->from.abs_end_y - dis->from.abs_st_y);
-    q_dbg(Q_DBG_MAP,"out : %d%% %d%%",per_x,per_y);
-    
+    q_dbg(Q_DBG_MAP,"out : %d%% %d%% (%d,%d)",per_x,per_y, *x, *y);
+#endif
+
     return dis->ap;
 }
 

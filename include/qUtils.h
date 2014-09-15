@@ -23,7 +23,7 @@
 #define Q_DBG_ENABLE    (0x71)
 
 #define Q_DBG_POINT Q_DBG_DISABLE
-#define Q_DBG_MAP   Q_DBG_DISABLE
+#define Q_DBG_MAP   Q_DBG_ENABLE
 #define Q_DBG_CONF  Q_DBG_DISABLE
 
 #define dbg_level Q_INFO

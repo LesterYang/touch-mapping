@@ -54,12 +54,23 @@ check_tmp_file()
 
 set_param()
 {
+    local idx=0
+    local max_idx=0
+
     while IFS=' ' read -r -a line
     do
         if [ "${line[0]}" == "pnl_info" ]; then
             ts_dev[$max_num]=${line[2]}
-            cal_id[$max_num]=${line[4]}
-            fb_dev[$max_num]=${line[8]}
+            max_idx=${#line[*]}
+            idx=3
+            while [ "$idx" -le "$max_idx" ];do
+                case "${line[$idx]}"in
+                    fb_info)    fb_dev[$max_num]=${line[8]};;
+                    cal_conf)   cal_id[$max_num]=${line[4]};;
+                    *) ;;
+                esac
+                idx=$((idx++))
+            done
             max_num=$((max_num+1))
         fi
     done  < $conf_file

@@ -105,7 +105,7 @@ struct _tm_ap_info
     };
 
     const char*             evt_path;
-    int                     fd;
+    volatile int            fd;
     tm_input_type_t         touch_type;
     tm_native_size_param_t* native_size;
 	

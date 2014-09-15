@@ -9,7 +9,7 @@
 #include "tm.h"
 #include "tmIpc.h"
 
-#define IPC_NAME    "QSIQT2"
+#define IPC_NAME    "QSIPL3"
 #define IPC_ENABLE  (1)
 #define IPC_DBG     (0)
 #define IPC_RETRY   (3)
@@ -81,7 +81,7 @@ void tm_close_ipc()
 void tm_recv_event(const char *from, unsigned int len, unsigned char *msg)
 {
     // cmd, panel, st_x, st_y, w, h, ap, st_x, st_y, w, h
-    q_dbg(Q_DBG,"recv len %d, from %s", len, from);
+    q_dbg(Q_INFO,"recv len %d, from %s", len, from);
 
     switch(msg[0])
     {
