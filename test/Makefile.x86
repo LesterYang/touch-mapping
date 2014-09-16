@@ -19,22 +19,18 @@ RPATH      =
 # -Wl,-rpath-link : When using ELF, one shared library may require another. It's only effective at link time
 RPATH_LINK = $(PREFIX)/usr/lib
 LFLAGS     =                                  
-LIBS       = $(LIBPATH) -lpthread -lmtdev
+LIBS       = $(LIBPATH) -lpthread -lts
 AR         = $(HOST)ar
 
 
-OBJECTS    = ./src/main.o      \
-             ./src/tm.o        \
-             ./src/tmMapping.o \
-             ./src/tmInput.o   \
-             ./src/tmIpc.o     \
-			 ./src/qUtils.o    \
-			 
+OBJECTS    = ./tm_test.o   \
+			 ./fbutils.o   \
+			 ./font_8x8.o  \
 			 
 # All Target
-all: tm-daemon
+all: tm-test
 
-tm-daemon: $(OBJECTS)
+tm-test: $(OBJECTS)
 	@echo 'Building target: $@'
 	$(CC) -o $@ $(OBJECTS) $(LFLAGS) $(LIBS)  
 

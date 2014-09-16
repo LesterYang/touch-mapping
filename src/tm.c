@@ -13,7 +13,6 @@ typedef struct _tm_info
     tm_status_t*        status;
 
     tm_display_t*       dis_conf;
-    tm_ipc_status_t     flag;
 	
     list_head_t       	ap_head;
     list_head_t       	pnl_head;
@@ -129,8 +128,6 @@ tm_errno_t tm_init()
 
     tm.mutex    = q_mutex_new(q_true, q_true);
     tm.dis_conf = NULL;
-    tm.flag     = TM_IPC_STATUS_NONE;
-
 
     // do check
     if((err_no = tm_mapping_create_handler(&tm.ap_head, &tm.pnl_head)) != TM_ERRNO_SUCCESS)

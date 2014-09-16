@@ -273,50 +273,29 @@ static inline void q_atomic_ptr_store(q_atomic_ptr_t *a, void *p) {
 }
 
 #else
-#ifdef CONFIG_SMP
-#define LOCK_PREFIX_HERE \
-                 ".section .smp_locks,\"a\"\n"   \
-                 ".balign 4\n"                   \
-                 ".long 671f - .\n" /* offset */ \
-                 ".previous\n"                   \
-                 "671:"
-#define LOCK_PREFIX LOCK_PREFIX_HERE "\n\tlock; "
-#else
-#define LOCK_PREFIX_HERE ""
-#define LOCK_PREFIX ""
-#endif
-
 static inline int q_atomic_read(const q_atomic_t *v)
 {
-	return (*(volatile int *)&(v)->value);
+    return (*(volatile int *)&(v)->value);
 }
-
 static inline void q_atomic_set(q_atomic_t *v, int i)
 {
-	v->value = i;
+    v->value = i;
 }
-
 static inline void q_atomic_add(int i, q_atomic_t *v)
 {
-	__asm volatile(LOCK_PREFIX "addl %1,%0"
-		     : "+m" (v->value)
-		     : "ir" (i));
+    v->value += i;
 }
 static inline void q_atomic_sub(int i, q_atomic_t *v)
 {
-	__asm volatile(LOCK_PREFIX "subl %1,%0"
-		     : "+m" (v->value)
-		     : "ir" (i));
+    v->value -= i;
 }
 static inline void q_atomic_inc(q_atomic_t *v)
 {
-	__asm volatile(LOCK_PREFIX "incl %0"
-		     : "+m" (v->value));
+    v->value++;
 }
 static inline void q_atomic_dec(q_atomic_t *v)
 {
-	__asm volatile(LOCK_PREFIX "decl %0"
-		     : "+m" (v->value));
+    v->value--;
 }
 #endif
 
@@ -335,10 +314,10 @@ typedef struct q_thread {
 }q_thread;
 
 q_thread*   q_thread_new(q_thread_func_t thread_func, void *userdata);
-void 		q_thread_delet(q_thread *t);
-void 		q_thread_free(q_thread *t);
-int 		q_thread_join(q_thread *t);
-void* 		q_thread_get_data(q_thread *t);
+void        q_thread_delet(q_thread *t);
+void        q_thread_free(q_thread *t);
+int         q_thread_join(q_thread *t);
+void*       q_thread_get_data(q_thread *t);
 
 
 // ===============================================
@@ -352,16 +331,16 @@ typedef struct q_cond {
     pthread_cond_t cond;
 }q_cond;
 
-q_mutex* 	q_mutex_new(q_bool recursive, q_bool inherit_priority);
-void 		q_mutex_free(q_mutex *m);
-void 		q_mutex_lock(q_mutex *m);
+q_mutex*    q_mutex_new(q_bool recursive, q_bool inherit_priority);
+void 	    q_mutex_free(q_mutex *m);
+void 	    q_mutex_lock(q_mutex *m);
 q_bool 	    q_mutex_try_lock(q_mutex *m);
-void 		q_mutex_unlock(q_mutex *m);
+void 	    q_mutex_unlock(q_mutex *m);
 
 q_cond*	    q_cond_new();
-void 		q_cond_free(q_cond *c);
-void 		q_cond_signal(q_cond *c, int broadcast);
-int 		q_cond_wait(q_cond *c, q_mutex *m);
+void 	    q_cond_free(q_cond *c);
+void 	    q_cond_signal(q_cond *c, int broadcast);
+int 	    q_cond_wait(q_cond *c, q_mutex *m);
 
 typedef struct q_static_mutex {
     q_atomic_ptr_t ptr;
@@ -374,10 +353,10 @@ typedef struct q_static_mutex {
 typedef struct q_semaphore {
     sem_t sem;
 }q_semaphore;
-q_semaphore* 	q_semaphore_new(unsigned value);
-void 			q_semaphore_free(q_semaphore *s);
-void 			q_semaphore_post(q_semaphore *s);
-void 			q_semaphore_wait(q_semaphore *s);
+q_semaphore*    q_semaphore_new(unsigned value);
+void            q_semaphore_free(q_semaphore *s);
+void            q_semaphore_post(q_semaphore *s);
+void            q_semaphore_wait(q_semaphore *s);
 
 typedef struct q_static_semaphore {
     q_atomic_ptr_t ptr;
@@ -394,16 +373,16 @@ typedef struct q_queue {
   char *buf;
 }q_queue;
 
-q_queue* 	q_create_queue(int size);
-void 		q_destroy_queue(q_queue* q);
-int 		q_get_queue(q_queue* q, char* buf, size_t len);
-int 		q_set_queue(q_queue* q, void* buf, size_t len, q_bool expand);
-int 		q_pop_queue(q_queue* q, char* item);
-int 		q_add_queue(q_queue* q, void* item, q_bool expand);
-int 		q_peek_queue(q_queue* q, char* item, int idx);
-size_t 		q_size_queue(q_queue* q);
-void 		q_expand_queue(q_queue* q);
-void 		q_show_queue(q_queue* q);
+q_queue*    q_create_queue(int size);
+void        q_destroy_queue(q_queue* q);
+int         q_get_queue(q_queue* q, char* buf, size_t len);
+int         q_set_queue(q_queue* q, void* buf, size_t len, q_bool expand);
+int         q_pop_queue(q_queue* q, char* item);
+int         q_add_queue(q_queue* q, void* item, q_bool expand);
+int         q_peek_queue(q_queue* q, char* item, int idx);
+size_t      q_size_queue(q_queue* q);
+void        q_expand_queue(q_queue* q);
+void        q_show_queue(q_queue* q);
 
 
 // ===============================================

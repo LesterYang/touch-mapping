@@ -1,5 +1,5 @@
 /*
- * qsiFunc.c
+ * qUtils.c
  *
  *  Created on: Aug 1, 2014
  *      Author: lester
@@ -223,7 +223,7 @@ q_thread* q_thread_new(q_thread_func_t thread_func, void *userdata)
 	q_atomic_set(&t->running,0);
 	if (pthread_create(&t->id, NULL, internal_thread_func, t) < 0) {
         q_free(t);
-        fprintf (stderr, "qsiFunc : thread_new error\n");
+        fprintf (stderr, "qUtils : thread_new error\n");
         return NULL;
     }
     q_atomic_inc(&t->running);

@@ -9,8 +9,8 @@ HOST       = /opt/freescale/usr/local/gcc-4.6.2-glibc-2.13-linaro-multilib-2011.
 
 # Compiler
 CC         = $(HOST)gcc
-DEFINES    = -DQSI_ASSERT -D_GNU_SOURCE -DQ_ARM_A8
-CFLAGS     = -g3 -Wall -Werror -std=gnu99 -march=armv7-a -mfpu=neon $(DEFINES)
+DEFINES    = -DQSI_ASSERT -D_GNU_SOURCE
+CFLAGS     = -O2 -Wall -Werror -std=gnu99 -march=armv7-a -mfpu=neon $(DEFINES)
 INCPATH    = -I$(PREFIX)/usr/include -I$(PREFIX)/usr/local/include -I. -I./include
 LINK       = $(HOST)gcc
 LIBPATH    = -L$(PREFIX)/usr/lib -L$(PREFIX)/usr/local/lib -L$(PREFIX)/lib
@@ -28,7 +28,6 @@ OBJECTS    = ./src/main.o      \
              ./src/tmInput.o   \
              ./src/tmIpc.o     \
 			 ./src/qUtils.o    \
-			 ./test/tm_test.o
 			 
 			 
 # All Target

@@ -9,9 +9,12 @@
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
+#include <getopt.h>
 #include <sys/stat.h>
 #include "tm.h"
 #include "tmIpc.h"
+
+#define TM_MAIN_DELAY (5)
 
 struct tm_status_info{
     tm_status_t status;
@@ -30,9 +33,32 @@ struct tm_status_info status_info[] = {
     {-1,                    NULL},
 };
 
-tm_status_t g_status = TM_STATUS_NONE;
+struct option long_opts[] = {
+    {"help",                0, 0,   'h'},
+    {"version",             0, 0,   'v'},
+    {"daemon",              0, 0,   'd'},
+    {0,                     0, 0,   0}
+};
 
-void tm_test(void);
+tm_status_t g_status = TM_STATUS_NONE;
+q_bool g_daemonise = q_false;
+
+void tm_usage(char* arg)
+{
+    fprintf(stderr, "Usage : %s [OPTIONS]\n"
+                    "OPTIONS\n"
+                    "   -d, --daemon    daemonise\n"
+                    "   -h, --help      help\n"
+                    "   -v, --version   show version\n"
+                    ,arg);
+    exit(0);
+}
+
+void tm_version()
+{
+    q_dbg(Q_INFO,"version %s", TM_VERSION);
+    exit(0);
+}
 
 void tm_shutdown(int signum)
 {
@@ -97,7 +123,30 @@ void tm_daemonise()
 
 int main(int argc, char* argv[])
 {
-    //tm_daemonise();
+    int opt_idx;
+    char *short_opts = "hdv";
+    int c;
+
+    while ((c = getopt_long(argc, argv, short_opts, long_opts, &opt_idx)) != -1)
+    {
+        switch(c)
+        {
+            case 'd':
+                g_daemonise = q_true;
+                break;
+            case 'h':
+                tm_usage(argv[0]);
+                break;
+            case 'v':
+                tm_version();
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (g_daemonise)
+        tm_daemonise();
 
     while(g_status != TM_STATUS_EXIT)
     {
@@ -116,24 +165,18 @@ int main(int argc, char* argv[])
                     tm_switch_main_status(TM_STATUS_IPC_INIT);
                 }
                 else
-                   sleep(1);
+                   sleep(TM_MAIN_DELAY);
                 break;
 
             case TM_STATUS_IPC_INIT:
             	if(!tm_open_ipc())
             	    tm_switch_main_status(TM_STATUS_RUNNING);
             	else
-            	    sleep(1);
+            	    sleep(TM_MAIN_DELAY);
                 break;
 
             case TM_STATUS_RUNNING:
-#if 0 
-                //test
-                tm_test();
-                tm_switch_main_status(TM_STATUS_DEINIT);
-#else
-                sleep(1);
-#endif
+                sleep(TM_MAIN_DELAY);
                 break;
 
             case TM_STATUS_DEINIT:

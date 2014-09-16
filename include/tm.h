@@ -28,14 +28,13 @@
 
 #define tm_point_is_in_range(fb, x, y)              \
 (!( x < (fb)->abs_st_x    ||                        \
-	x > (fb)->abs_end_x   ||                        \
-	y < (fb)->abs_st_y    ||                        \
-	y > (fb)->abs_end_y   )                         \
+	x > (fb)->abs_end_x   ||                    \
+	y < (fb)->abs_st_y    ||                    \
+	y > (fb)->abs_end_y   )                     \
 )
 
 
 typedef enum _tm_status     tm_status_t;
-typedef enum _tm_ipc_status tm_ipc_status_t;
 
 typedef enum _tm_ap         tm_ap_t;
 typedef enum _tm_fb         tm_fb_t;
@@ -55,15 +54,6 @@ enum _tm_status{
 	TM_STATUS_REINIT,
     TM_STATUS_ERROR,
     TM_STATUS_EXIT
-};
-
-enum _tm_ipc_status{
-    TM_IPC_STATUS_NONE,
-    TM_IPC_STATUS_INIT,
-    TM_IPC_STATUS_RUN,
-    TM_IPC_STATUS_SETTING,
-    TM_IPC_STATUS_ERROR,
-    TM_IPC_STATUS_EXIT
 };
 
 enum _tm_ap{

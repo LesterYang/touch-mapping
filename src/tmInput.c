@@ -73,8 +73,6 @@ typedef struct _tm_input{
 
 static tm_input_t tm_input;
 
-void tm_send_event(tm_input_dev_t* dev, q_bool all);
-
 void tm_input_clean_stdin();
 int  tm_input_init_events();
 void tm_input_close_events();
@@ -417,11 +415,6 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
 
 void tm_input_parse_single_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
 {
-    if(dev == NULL)//for test
-    {
-        dev = list_first_entry(&tm_input.dev_head, tm_input_dev_t, node);
-    }
-
     tm_input_queue_t* q = &dev->input_queue;
 
     if(tm_input.open == q_false)
@@ -471,11 +464,6 @@ void tm_input_sync_multi_touch(tm_input_dev_t* dev)
 
 void tm_input_parse_multi_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
 {
-    if(dev == NULL)//for test
-    {
-        dev = list_first_entry(&tm_input.dev_head, tm_input_dev_t, node);
-    }
-
     tm_input_queue_t* q = &dev->input_queue;
 
     if(tm_input.open == q_false)
