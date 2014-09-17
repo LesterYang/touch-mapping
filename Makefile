@@ -22,15 +22,14 @@ AR         = $(HOST)ar
 
 
 
-OBJECTS    = ./src/main.o      \
-             ./src/tm.o        \
-             ./src/tmMapping.o \
-             ./src/tmInput.o   \
-             ./src/tmIpc.o     \
-			 ./src/qUtils.o    \
-			 ./test/tm_test.o
+#OBJECTS    = ./src/main.o      \
+#             ./src/tm.o        \
+#             ./src/tmMapping.o \
+#             ./src/tmInput.o   \
+#             ./src/tmIpc.o     \
+#			 ./src/qUtils.o    \
 			 
-			 
+OBJECTS    =  $(shell ls ./src/*.c | sed 's/\.c/.o/g')     		 
 # All Target
 all: tm-daemon
 

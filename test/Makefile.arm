@@ -3,11 +3,13 @@
 # Author: Lester
 #############################
 
-# cross-compile : set PREFIX and HOST
+# cross-compile : set PREFIX and PATH
 PREFIX     = /Space/ltib2/ltib/rootfs_l
-HOST       = /opt/freescale/usr/local/gcc-4.6.2-glibc-2.13-linaro-multilib-2011.12/fsl-linaro-toolchain/bin/arm-linux-
+CC_PATH    = /opt/freescale/usr/local/gcc-4.6.2-glibc-2.13-linaro-multilib-2011.12/fsl-linaro-toolchain/bin/
+CROSS      = arm-linux-
 
 # Compiler
+HOST       = $(CC_PATH)$(CROSS)
 CC         = $(HOST)gcc
 DEFINES    = -DQSI_ASSERT -D_GNU_SOURCE
 CFLAGS     = -O2 -Wall -std=gnu99 -march=armv7-a -mfpu=neon $(DEFINES)
@@ -20,12 +22,9 @@ LFLAGS     = -Wl,-rpath-link=$(RPATH_LINK)
 LIBS       = $(LIBPATH) -lpthread -lts -lQSI-IPCLib 
 AR         = $(HOST)ar
 
-
-
-OBJECTS    = ./tm_test.o   \
-			 ./fbutils.o   \
-			 ./font_8x8.o  \
+OBJECTS    = $(shell ls ./*.c | sed 's/\.c/.o/g') 
 			 
+
 # All Target
 all: tm-test
 

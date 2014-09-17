@@ -3,11 +3,14 @@
 # Author: Lester
 #############################
 
-# cross-compile : set PREFIX and HOST
+# cross-compile : set PREFIX and PATH
 PREFIX     = 
 HOST       = 
+CC_PATH    = 
+CROSS      = 
 
 # Compiler
+HOST       = $(CC_PATH)$(CROSS)
 CC         = $(HOST)gcc
 DEFINES    = -DQSI_ASSERT -D_GNU_SOURCE
 CFLAGS     = -g3 -Wall -std=gnu99 $(DEFINES)
@@ -23,12 +26,7 @@ LIBS       = $(LIBPATH) -lpthread -lmtdev
 AR         = $(HOST)ar
 
 
-OBJECTS    = ./src/main.o      \
-             ./src/tm.o        \
-             ./src/tmMapping.o \
-             ./src/tmInput.o   \
-             ./src/tmIpc.o     \
-			 ./src/qUtils.o    \
+OBJECTS    =  $(shell ls ./src/*.c | sed 's/\.c/.o/g') 
 			 
 			 
 # All Target

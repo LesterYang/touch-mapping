@@ -27,6 +27,7 @@
 
 #include "font.h"
 #include "fbutils.h"
+#include "tm_test.h"
 
 union multiptr {
 	unsigned char *p8;
@@ -46,18 +47,15 @@ __u32 xres, yres;
 
 static char *defaultfbdevice = "/dev/fb0";
 static char *defaultconsoledevice = "/dev/tty";
-static char *fbdevice = NULL;
+//static char *fbdevice = NULL;
 static char *consoledevice = NULL;
 
-int open_framebuffer(void)
+int open_framebuffer(thread_data_t* data)
 {
 	struct vt_stat vts;
 	char vtname[128];
 	int fd, nr;
 	unsigned y, addr;
-
-	if ((fbdevice = getenv ("TSLIB_FBDEVICE")) == NULL)
-		fbdevice = defaultfbdevice;
 
 	if ((consoledevice = getenv ("TSLIB_CONSOLEDEVICE")) == NULL)
 		consoledevice = defaultconsoledevice;
@@ -78,59 +76,59 @@ int open_framebuffer(void)
 
         	sprintf(vtname, "%s%d", consoledevice, nr);
 
-        	con_fd = open(vtname, O_RDWR | O_NDELAY);
-        	if (con_fd < 0) {
+        	data->con_fd = open(vtname, O_RDWR | O_NDELAY);
+        	if (data->con_fd < 0) {
         	        perror("open tty");
         	        return -1;
         	}
 
-        	if (ioctl(con_fd, VT_GETSTATE, &vts) == 0)
+        	if (ioctl(data->con_fd, VT_GETSTATE, &vts) == 0)
         	        last_vt = vts.v_active;
 
-        	if (ioctl(con_fd, VT_ACTIVATE, nr) < 0) {
+        	if (ioctl(data->con_fd, VT_ACTIVATE, nr) < 0) {
         	        perror("VT_ACTIVATE");
-        	        close(con_fd);
+        	        close(data->con_fd);
         	        return -1;
         	}
 
-        	if (ioctl(con_fd, VT_WAITACTIVE, nr) < 0) {
+        	if (ioctl(data->con_fd, VT_WAITACTIVE, nr) < 0) {
         	        perror("VT_WAITACTIVE");
-        	        close(con_fd);
+        	        close(data->con_fd);
         	        return -1;
         	}
 
-        	if (ioctl(con_fd, KDSETMODE, KD_GRAPHICS) < 0) {
+        	if (ioctl(data->con_fd, KDSETMODE, KD_GRAPHICS) < 0) {
         	        perror("KDSETMODE");
-        	        close(con_fd);
+        	        close(data->con_fd);
         	        return -1;
         	}
 
 	}
 
-	fb_fd = open(fbdevice, O_RDWR);
-	if (fb_fd == -1) {
+	data->fb_fd = open(data->fb, O_RDWR);
+	if (data->fb_fd == -1) {
 		perror("open fbdevice");
 		return -1;
 	}
 
-	if (ioctl(fb_fd, FBIOGET_FSCREENINFO, &fix) < 0) {
+	if (ioctl(data->fb_fd, FBIOGET_FSCREENINFO, &fix) < 0) {
 		perror("ioctl FBIOGET_FSCREENINFO");
-		close(fb_fd);
+		close(data->fb_fd);
 		return -1;
 	}
 
-	if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &var) < 0) {
+	if (ioctl(data->fb_fd, FBIOGET_VSCREENINFO, &var) < 0) {
 		perror("ioctl FBIOGET_VSCREENINFO");
-		close(fb_fd);
+		close(data->fb_fd);
 		return -1;
 	}
 	xres = var.xres;
 	yres = var.yres;
 
-	fbuffer = mmap(NULL, fix.smem_len, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, fb_fd, 0);
+	fbuffer = mmap(NULL, fix.smem_len, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, data->fb_fd, 0);
 	if (fbuffer == (unsigned char *)-1) {
 		perror("mmap framebuffer");
-		close(fb_fd);
+		close(data->fb_fd);
 		return -1;
 	}
 	memset(fbuffer,0,fix.smem_len);
@@ -144,22 +142,22 @@ int open_framebuffer(void)
 	return 0;
 }
 
-void close_framebuffer(void)
+void close_framebuffer(thread_data_t* data)
 {
 	munmap(fbuffer, fix.smem_len);
-	close(fb_fd);
+	close(data->fb_fd);
 
 
 	if(strcmp(consoledevice,"none")!=0) {
 	
-        	if (ioctl(con_fd, KDSETMODE, KD_TEXT) < 0)
+        	if (ioctl(data->con_fd, KDSETMODE, KD_TEXT) < 0)
         	        perror("KDSETMODE");
 
         	if (last_vt >= 0)
-        	        if (ioctl(con_fd, VT_ACTIVATE, last_vt))
+        	        if (ioctl(data->con_fd, VT_ACTIVATE, last_vt))
         	                perror("VT_ACTIVATE");
 
-        	close(con_fd);
+        	close(data->con_fd);
 	}
 
         free (line_addr);
@@ -215,7 +213,7 @@ void put_string_center(int x, int y, char *s, unsigned colidx)
                     y - font_vga_8x8.height / 2, s, colidx);
 }
 
-void setcolor(unsigned colidx, unsigned value)
+void setcolor(unsigned colidx, unsigned value, thread_data_t* data)
 {
 	unsigned res;
 	unsigned short red, green, blue;
@@ -243,7 +241,7 @@ void setcolor(unsigned colidx, unsigned value)
 		cmap.blue = &blue;
 		cmap.transp = NULL;
 
-        	if (ioctl (fb_fd, FBIOPUTCMAP, &cmap) < 0)
+        	if (ioctl (data->fb_fd, FBIOPUTCMAP, &cmap) < 0)
         	        perror("ioctl FBIOPUTCMAP");
 		break;
 	case 2:

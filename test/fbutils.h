@@ -23,9 +23,9 @@
 
 extern __u32 xres, yres;
 
-int open_framebuffer(void);
-void close_framebuffer(void);
-void setcolor(unsigned colidx, unsigned value);
+//int open_framebuffer(void);
+//void close_framebuffer(void);
+//void setcolor(unsigned colidx, unsigned value);
 void put_cross(int x, int y, unsigned colidx);
 void put_string(int x, int y, char *s, unsigned colidx);
 void put_string_center(int x, int y, char *s, unsigned colidx);
