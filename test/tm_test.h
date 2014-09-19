@@ -1,22 +1,19 @@
 #ifndef _TM_TEST_H
 #define _TM_TEST_H
 
-#include <pthread.h>
+typedef struct _fb_data_t {
+    int   num;
+    char* dev;
+    char* pan;
+} fb_data_t;
 
-typedef struct _thread_data_t {
-    int ap;
-    pthread_t id;
-    char* fb;
-    char* event;
-    int fb_fd;
-    int event_fd;
-    int con_fd;
-} thread_data_t;
+typedef struct _evt_data_t {
+    int   num;
+    char* dev;
+} evt_data_t;
 
 
-int ts_test(thread_data_t* data);
-int open_framebuffer(thread_data_t* data);
-void close_framebuffer(thread_data_t* data);
-void setcolor(unsigned colidx, unsigned value, thread_data_t* data);
-
+int ts_test(fb_data_t* fb, evt_data_t* evt);
+int open_framebuffer(fb_data_t* fb);
+int open_slave_fb(fb_data_t* fb);
 #endif

@@ -2,22 +2,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string.h>
 #include <unistd.h>
 #include <getopt.h>
 #include "tm_test.h"
+#include "fbutils.h"
 #include <qsi_ipc_client_lib.h>
-
-typedef struct _fb_data_t {
-    int   num;
-    char* dev;
-    char* pan;
-} fb_data_t;
-
-typedef struct _evt_data_t {
-    int   num;
-    char* dev;
-} evt_data_t;
-
 
 // depend on panel[0-2] <-> kernel setting
 fb_data_t fb_data[]={
@@ -32,6 +22,8 @@ evt_data_t evt_data[]={
     {6, "/dev/input/event6"}
 };
 
+fb_data_t* fb;
+evt_data_t* evt;
 
 struct option long_opts[] = {
     {"master",              1, 0,   'p'},
@@ -74,29 +66,21 @@ typedef struct _cmd_clear_t {
 typedef struct _tm_cmd_t {
     char len;
     union{
-        char            data[16];
+        unsigned char   data[16];
         cmd_append_t    append;
         cmd_clear_t     clear;
     };
 } tm_cmd_t;
 
-
-
-thread_data_t d[3];
-
-/*
 static void sig(int sig)
 {
-	close_framebuffer(&d[0]);
-        close_framebuffer(&d[1]);
-        close_framebuffer(&d[2]);
-        
-        fflush(stderr);
-	printf("signal %d caught\n", sig);
-	fflush(stdout);
-	_exit(1);
+    close_framebuffer();
+    fflush(stderr);
+    printf("signal %d caught\n", sig);
+    fflush(stdout);
+    _exit(1);
 }
-*/
+
 
 void recv_event(const char *from, unsigned int len, unsigned char *msg)
 {
@@ -141,20 +125,16 @@ void tm_close_ipc()
     }
 }
 
-void test_thread_func(void* data)
-{
-    thread_data_t* d=(thread_data_t*)data; 
-    ts_test(d);
-}
-
 void send_ipc(tm_cmd_t* cmd)
 {       
+#if 0
   int i;
   printf("send ipc ");
   for (i = 0; i < cmd->len; i++) {
       printf("%d ",cmd->data[i]);
   }
   printf("\n");
+#endif
 
    g_ipc.status=qsi_send_buffer(g_ipc.server, "QSIPL3", cmd->data, cmd->len, 0); 
 
@@ -165,8 +145,6 @@ void send_ipc(tm_cmd_t* cmd)
 int main(int argc, const char *argv[])
 { 
     tm_cmd_t cmd;
-    fb_data_t* fb;
-    evt_data_t* evt;
     char pnl=0x1F,ap=0x1F,i;
     int opt_idx;
     char *short_opts = "p:s:a:";
@@ -174,7 +152,7 @@ int main(int argc, const char *argv[])
 
     memset((char*)&cmd, 0, sizeof(cmd));
 
-    while ((c = getopt_long(argc, argv, short_opts, long_opts, &opt_idx)) != -1)
+    while ((c = getopt_long(argc, (char* const*)argv, short_opts, long_opts, &opt_idx)) != -1)
     {
         switch(c)
         {
@@ -197,6 +175,10 @@ int main(int argc, const char *argv[])
         return 0;
     }
 
+    signal(SIGSEGV, sig);
+    signal(SIGINT, sig);
+    signal(SIGTERM, sig);
+    
     open_ipc();
 
     // set ap display
@@ -223,15 +205,15 @@ int main(int argc, const char *argv[])
     }
 
     // set panel fb,event
-    fb  = &fb_data[pnl];
-    evt = &evt_data[pnl];
+    fb  = &fb_data[(int)pnl];
+    evt = &evt_data[(int)pnl];
 
     if(pnl < 3)
     {
         int fd;
         char* arg="0,0";
 
-        fb=&fb_data[pnl];
+        fb=&fb_data[(int)pnl];
         
         if((fd=open(fb->pan, O_RDWR))<0)
             printf("open pan error\n");
@@ -243,7 +225,7 @@ int main(int argc, const char *argv[])
 
         close(fd);
     }
-
+#if 0
     char ts_test_cmd[64]={0};
     char* ts_test_script="./tm_test.sh";
     char* space_str=" ";
@@ -268,9 +250,9 @@ int main(int argc, const char *argv[])
     ts_test_cmd[done]=0x0;
 
     system(ts_test_cmd); 
-
-    //ts_test();
-
+#else
+    ts_test(fb, evt);
+#endif
 
     if(g_ipc.server)
     {
@@ -279,30 +261,5 @@ int main(int argc, const char *argv[])
     }
 
 
-//
-//    d[0].ap=0;
-//    d[0].fb="/dev/fb0";
-//    d[0].event="/dev/input/event0";
-//  
-//    d[1].ap=1;
-//    d[1].fb="/dev/fb1";
-//    d[1].event="/dev/input/event1";
-//  
-//    d[2].ap=2;
-//    d[2].fb="/dev/fb2";
-//    d[2].event="/dev/input/event2";
-//
-//    signal(SIGSEGV, sig);
-//    signal(SIGINT, sig);
-//    signal(SIGTERM, sig);
-//
-//    pthread_create(&d[0].id, NULL, test_thread_func, &d[0]);
-//    pthread_create(&d[1].id, NULL, test_thread_func, &d[1]);
-//    pthread_create(&d[2].id, NULL, test_thread_func, &d[2]);
-//
-//    pthread_join(d[0].id, NULL);
-//    pthread_join(d[1].id, NULL);
-//    pthread_join(d[2].id, NULL);
-//    
     return 0;
 }

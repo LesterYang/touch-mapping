@@ -23,10 +23,10 @@ LIBS       = $(LIBPATH) -lpthread -lmtdev -lQSI-IPCLib
 AR         = $(HOST)ar
 
 
-OBJECTS    =  $(shell ls ./src/*.c | sed 's/\.c/.o/g') 
+OBJECTS    =  $(shell ls ./src/*.c | sed 's/\.c/.o/g')
     		 
 # All Target
-all: tm-daemon
+all: tm-daemon tm-test
 
 tm-daemon: $(OBJECTS)
 	@echo 'Building target: $@'
@@ -35,10 +35,11 @@ tm-daemon: $(OBJECTS)
 $(OBJECTS): %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCPATH) $< -o $@
 	
-
+tm-test:
+	cd test; make
 	
 clean:
 	rm -f $(OBJECTS)
-	
+	cd test; make clean
 
 

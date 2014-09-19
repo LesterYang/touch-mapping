@@ -10,7 +10,7 @@ AP_CONF	include/tmMapping.h	21;"	d
 AT_CONF	include/tmMapping.h	26;"	d
 BUF_EVT_NUM	src/tmInput.c	17;"	d	file:
 BUF_SIZE	include/tmMapping.h	29;"	d
-BUTTON_ACTIVE	test/ts_test.c	38;"	d	file:
+BUTTON_ACTIVE	test/ts_test.c	41;"	d	file:
 CAL_CONF	include/tmMapping.h	23;"	d
 CAL_MATRIX_COL	include/tmMapping.h	34;"	d
 CAL_MATRIX_ROW	include/tmMapping.h	33;"	d
@@ -65,10 +65,11 @@ LIST_POISON2	include/qUtils.h	113;"	d
 LONG_BITS	include/tmInput.h	15;"	d
 MAX_FONT_NAME	test/font.h	36;"	d
 MAX_QUEUE	include/tmMapping.h	31;"	d
+MAX_SLAVES_NUM	test/fbutils.c	40;"	d	file:
 MT_CONF	include/tmMapping.h	27;"	d
 MULTIPLE	include/tmMapping.h	30;"	d
-NR_BUTTONS	test/ts_test.c	48;"	d	file:
-NR_COLORS	test/ts_test.c	32;"	d	file:
+NR_BUTTONS	test/ts_test.c	51;"	d	file:
+NR_COLORS	test/ts_test.c	35;"	d	file:
 NUM_LONGS	include/tmInput.h	16;"	d
 PACKAGE_BUGREPORT	test/config.h	128;"	d
 PACKAGE_NAME	test/config.h	131;"	d
@@ -214,10 +215,10 @@ __setpixel	test/fbutils.c	/^static inline void __setpixel (union multiptr loc, u
 __tm_list_add	include/tm.h	23;"	d
 _cmd_append_t	test/tm_test.c	/^typedef struct _cmd_append_t {$/;"	s	file:
 _cmd_clear_t	test/tm_test.c	/^typedef struct _cmd_clear_t {$/;"	s	file:
-_evt_data_t	test/tm_test.c	/^typedef struct _evt_data_t {$/;"	s	file:
-_fb_data_t	test/tm_test.c	/^typedef struct _fb_data_t {$/;"	s	file:
+_evt_data_t	test/tm_test.h	/^typedef struct _evt_data_t {$/;"	s
+_fb_data_t	test/tm_test.h	/^typedef struct _fb_data_t {$/;"	s
+_fb_slave_t	test/fbutils.c	/^typedef struct _fb_slave_t {$/;"	s	file:
 _list_head	include/qUtils.h	/^struct _list_head{$/;"	s
-_thread_data_t	test/tm_test.h	/^typedef struct _thread_data_t {$/;"	s
 _tm_ap_info	include/tm.h	/^struct _tm_ap_info$/;"	s
 _tm_ap	include/tm.h	/^enum _tm_ap{$/;"	g
 _tm_calibrate	include/tmMapping.h	/^struct _tm_calibrate$/;"	s
@@ -249,6 +250,7 @@ abs_end_y	include/tmMapping.h	/^    int abs_end_y;$/;"	m	struct:_tm_fb_param
 abs_st_x	include/tmMapping.h	/^    int abs_st_x;$/;"	m	struct:_tm_fb_param
 abs_st_y	include/tmMapping.h	/^    int abs_st_y;$/;"	m	struct:_tm_fb_param
 act_ap	src/tmInput.c	/^    tm_ap_info_t**    act_ap;$/;"	m	struct:_tm_input_dev	file:
+active	test/fbutils.c	/^    int active;$/;"	m	struct:_fb_slave_t	file:
 a	qsi_cal.c	/^	int a[7];$/;"	m	struct:__anon4	file:
 ap_head	src/tm.c	/^    list_head_t       	ap_head;$/;"	m	struct:_tm_info	file:
 ap_high	test/tm_test.c	/^    char ap_high;$/;"	m	struct:_cmd_append_t	file:
@@ -259,13 +261,13 @@ ap_width	test/tm_test.c	/^    char ap_width;$/;"	m	struct:_cmd_append_t	file:
 ap	include/tm.h	/^    tm_ap_info_t*   ap;$/;"	m	struct:_tm_display
 ap	src/tmInput.c	/^    tm_ap_info_t*       ap;$/;"	m	struct:_tm_input_queue	file:
 ap	test/tm_test.c	/^    char ap;$/;"	m	struct:_cmd_append_t	file:
-ap	test/tm_test.h	/^    int ap;$/;"	m	struct:_thread_data_t
 append	test/tm_test.c	/^        cmd_append_t    append;$/;"	m	union:_tm_cmd_t::__anon5	file:
 buf	include/qUtils.h	/^  char *buf;$/;"	m	struct:q_queue
 button_draw	test/ts_test.c	/^static void button_draw (struct ts_button *button)$/;"	f	file:
 button_handle	test/ts_test.c	/^static int button_handle (struct ts_button *button, struct ts_sample *samp)$/;"	f	file:
 button_palette	test/ts_test.c	/^static int button_palette [6] =$/;"	v	file:
 buttons	test/ts_test.c	/^static struct ts_button buttons [NR_BUTTONS];$/;"	v	typeref:struct:ts_button	file:
+bytes_per_pixel	test/fbutils.c	/^    int bytes_per_pixel;$/;"	m	struct:_fb_slave_t	file:
 bytes_per_pixel	test/fbutils.c	/^static int bytes_per_pixel;$/;"	v	file:
 cal_param	include/tm.h	/^    tm_calibrate_t* cal_param;$/;"	m	struct:_tm_panel_info
 calibrate_head	include/tmMapping.h	/^    list_head_t             calibrate_head;$/;"	m	struct:_tm_config
@@ -273,18 +275,19 @@ calibrate_head	src/tmMapping.c	/^    list_head_t	    calibrate_head;$/;"	m	struc
 calibrate_num	include/tmMapping.h	/^    uint8_t                 calibrate_num;$/;"	m	struct:_tm_config
 calibration	qsi_cal.c	/^} calibration;$/;"	t	typeref:struct:__anon4	file:
 clear	test/tm_test.c	/^        cmd_clear_t     clear;$/;"	m	union:_tm_cmd_t::__anon5	file:
-close_framebuffer	test/fbutils.c	/^void close_framebuffer(thread_data_t* data)$/;"	f
+close_framebuffer	test/fbutils.c	/^void close_framebuffer()$/;"	f
 cmd_append_t	test/tm_test.c	/^} cmd_append_t;$/;"	t	typeref:struct:_cmd_append_t	file:
 cmd_clear_t	test/tm_test.c	/^} cmd_clear_t;$/;"	t	typeref:struct:_cmd_clear_t	file:
+colormap	test/fbutils.c	/^    unsigned colormap [256];$/;"	m	struct:_fb_slave_t	file:
 colormap	test/fbutils.c	/^static unsigned colormap [256];$/;"	v	file:
-con_fd	test/tm_test.h	/^    int con_fd;$/;"	m	struct:_thread_data_t
+con_fd	test/fbutils.c	/^    int con_fd, fb_fd, last_vt;$/;"	m	struct:_fb_slave_t	file:
 con_fd	test/fbutils.c	/^static int con_fd, fb_fd, last_vt = -1;$/;"	v	file:
 cond	include/qUtils.h	/^    pthread_cond_t cond;$/;"	m	struct:q_cond
 conf	src/tmMapping.c	/^    tm_config_t     conf;$/;"	m	struct:_tm_handler	file:
 consoledevice	test/fbutils.c	/^static char *consoledevice = NULL;$/;"	v	file:
 cur	src/tmInput.c	/^    tm_input_coord_t    cur;$/;"	m	struct:_tm_input_queue	file:
 data	test/font.h	/^    char *data;$/;"	m	struct:fbcon_font_desc
-data	test/tm_test.c	/^        char            data[16];$/;"	m	union:_tm_cmd_t::__anon5	file:
+data	test/tm_test.c	/^        unsigned char   data[16];$/;"	m	union:_tm_cmd_t::__anon5	file:
 dbg_level	include/qUtils.h	29;"	d
 debug	src/tmIpc.c	/^        char debug;$/;"	m	struct:_tm_ipc_data	file:
 debug	test/tm_test.c	/^        char debug;$/;"	m	struct:ipc_data	file:
@@ -293,33 +296,36 @@ defaultfbdevice	test/fbutils.c	/^static char *defaultfbdevice = "\/dev\/fb0";$/;
 dejitter_boundary	include/tmMapping.h	38;"	d
 dev_head	src/tmInput.c	/^    list_head_t         dev_head;$/;"	m	struct:_tm_input	file:
 dev_num	src/tmInput.c	/^    uint8_t             dev_num;$/;"	m	struct:_tm_input	file:
-dev	test/tm_test.c	/^    char* dev;$/;"	m	struct:_evt_data_t	file:
-dev	test/tm_test.c	/^    char* dev;$/;"	m	struct:_fb_data_t	file:
+dev	test/tm_test.h	/^    char* dev;$/;"	m	struct:_evt_data_t
+dev	test/tm_test.h	/^    char* dev;$/;"	m	struct:_fb_data_t
 dis_conf	src/tm.c	/^    tm_display_t*       dis_conf;$/;"	m	struct:_tm_info	file:
 display_head	include/tm.h	/^    list_head_t     display_head;$/;"	m	struct:_tm_panel_info
 div	include/tmMapping.h	/^        int div;$/;"	m	struct:_tm_calibrate::__anon3
-d	test/tm_test.c	/^thread_data_t d[3];$/;"	v
 element	include/tmMapping.h	/^    int element[CAL_MATRIX_ROW][CAL_MATRIX_COL];$/;"	m	struct:_tm_trans_matrix
-event_fd	test/tm_test.h	/^    int event_fd;$/;"	m	struct:_thread_data_t
-event	test/tm_test.h	/^    char* event;$/;"	m	struct:_thread_data_t
 evfds	src/tmInput.c	/^    fd_set            evfds;$/;"	m	struct:_tm_input_dev	file:
-evt_data_t	test/tm_test.c	/^} evt_data_t;$/;"	t	typeref:struct:_evt_data_t	file:
+evt_data_t	test/tm_test.h	/^} evt_data_t;$/;"	t	typeref:struct:_evt_data_t
 evt_data	test/tm_test.c	/^evt_data_t evt_data[]={$/;"	v
 evt_num	src/tmInput.c	/^    int                 evt_num;$/;"	m	struct:_tm_input_queue	file:
 evt_path	include/tm.h	/^    const char*             evt_path;$/;"	m	struct:_tm_ap_info
 evt_path	include/tm.h	/^    const char*     evt_path;$/;"	m	struct:_tm_panel_info
 evt	src/tmInput.c	/^    tm_input_event_t    evt[BUF_EVT_NUM];$/;"	m	struct:_tm_input_queue	file:
-fb_data_t	test/tm_test.c	/^} fb_data_t;$/;"	t	typeref:struct:_fb_data_t	file:
+evt	test/tm_test.c	/^evt_data_t* evt;$/;"	v
+fb_data_t	test/tm_test.h	/^} fb_data_t;$/;"	t	typeref:struct:_fb_data_t
 fb_data	test/tm_test.c	/^fb_data_t fb_data[]={$/;"	v
-fb_fd	test/tm_test.h	/^    int fb_fd;$/;"	m	struct:_thread_data_t
+fb_fd	test/fbutils.c	/^    int con_fd, fb_fd, last_vt;$/;"	m	struct:_fb_slave_t	file:
+fb_fd	test/fbutils.c	/^    int fb_fd;$/;"	m	struct:_fb_slave_t	file:
 fb_fd	test/fbutils.c	/^static int con_fd, fb_fd, last_vt = -1;$/;"	v	file:
 fb_fd	test/fbutils.c	/^static int fb_fd=0;$/;"	v	file:
+fb_slave_t	test/fbutils.c	/^} fb_slave_t;$/;"	t	typeref:struct:_fb_slave_t	file:
 fbcon_font_desc	test/font.h	/^struct fbcon_font_desc {$/;"	s
-fb	test/tm_test.h	/^    char* fb;$/;"	m	struct:_thread_data_t
+fb	test/fbutils.c	/^    fb_data_t* fb;$/;"	m	struct:_fb_slave_t	file:
+fbuffer	test/fbutils.c	/^    unsigned char *fbuffer;$/;"	m	struct:_fb_slave_t	file:
 fbuffer	test/fbutils.c	/^static unsigned char *fbuffer;$/;"	v	file:
+fb	test/tm_test.c	/^fb_data_t* fb;$/;"	v
 fd	include/tm.h	/^    int             fd;$/;"	m	struct:_tm_panel_info
 fd	include/tm.h	/^    volatile int            fd;$/;"	m	struct:_tm_ap_info
 fillrect	test/fbutils.c	/^void fillrect (int x1, int y1, int x2, int y2, unsigned colidx)$/;"	f
+fix	test/fbutils.c	/^    struct fb_fix_screeninfo fix;$/;"	m	struct:_fb_slave_t	typeref:struct:_fb_slave_t::fb_fix_screeninfo	file:
 fix	test/fbutils.c	/^static struct fb_fix_screeninfo fix;$/;"	v	typeref:struct:fb_fix_screeninfo	file:
 flags	test/ts_test.c	/^	int flags;$/;"	m	struct:ts_button	file:
 font_vga_8x8	test/font_8x8.c	/^struct fbcon_font_desc font_vga_8x8 = {$/;"	v	typeref:struct:fbcon_font_desc
@@ -343,7 +349,6 @@ id	include/tm.h	/^        int                 id;$/;"	m	union:_tm_ap_info::__ano
 id	include/tm.h	/^        int         id;$/;"	m	union:_tm_panel_info::__anon2
 id	include/tmMapping.h	/^    int                 id;$/;"	m	struct:_tm_calibrate
 id	include/tmMapping.h	/^    int     id;$/;"	m	struct:_tm_native_size_param
-id	test/tm_test.h	/^    pthread_t id;$/;"	m	struct:_thread_data_t
 idx_x	src/tmInput.c	/^    int                 idx_x;$/;"	m	struct:_tm_input_queue	file:
 idx_y	src/tmInput.c	/^    int                 idx_y;$/;"	m	struct:_tm_input_queue	file:
 idx	test/font.h	/^    int idx;$/;"	m	struct:fbcon_font_desc
@@ -351,11 +356,13 @@ input_queue	src/tmInput.c	/^    tm_input_queue_t  input_queue;$/;"	m	struct:_tm_
 internal_thread_func	src/qUtils.c	/^static void* internal_thread_func(void *userdata)$/;"	f	file:
 ipc_data	test/tm_test.c	/^struct ipc_data{$/;"	s	file:
 joined	include/qUtils.h	/^    q_bool joined;$/;"	m	struct:q_thread
+last_vt	test/fbutils.c	/^    int con_fd, fb_fd, last_vt;$/;"	m	struct:_fb_slave_t	file:
 last_vt	test/fbutils.c	/^static int con_fd, fb_fd, last_vt = -1;$/;"	v	file:
 len_buf	include/qUtils.h	/^  int len_buf;$/;"	m	struct:q_queue
 len	src/tmIpc.c	/^        int  len;$/;"	m	struct:_tm_ipc_data	file:
 len	test/tm_test.c	/^        int  len;$/;"	m	struct:ipc_data	file:
 len	test/tm_test.c	/^    char len;$/;"	m	struct:_tm_cmd_t	file:
+line_addr	test/fbutils.c	/^    unsigned char **line_addr;$/;"	m	struct:_fb_slave_t	file:
 line_addr	test/fbutils.c	/^static unsigned char **line_addr;$/;"	v	file:
 line	test/fbutils.c	/^void line (int x1, int y1, int x2, int y2, unsigned colidx)$/;"	f
 line	src/tmIpc.c	/^        char *line;$/;"	m	struct:_tm_ipc_data	file:
@@ -406,11 +413,12 @@ node	include/tm.h	/^    list_head_t     node;$/;"	m	struct:_tm_panel_info
 node	include/tmMapping.h	/^    list_head_t         node;$/;"	m	struct:_tm_calibrate
 node	include/tmMapping.h	/^    list_head_t node;$/;"	m	struct:_tm_native_size_param
 node	src/tmInput.c	/^    list_head_t	      node;$/;"	m	struct:_tm_input_dev	file:
-num	test/tm_test.c	/^    int   num;$/;"	m	struct:_evt_data_t	file:
-num	test/tm_test.c	/^    int   num;$/;"	m	struct:_fb_data_t	file:
+num	test/tm_test.h	/^    int   num;$/;"	m	struct:_evt_data_t
+num	test/tm_test.h	/^    int   num;$/;"	m	struct:_fb_data_t
 offset	include/tmMapping.h	/^        int offset;$/;"	m	struct:_tm_calibrate::__anon3
-open_framebuffer	test/fbutils.c	/^int open_framebuffer(thread_data_t* data)$/;"	f
+open_framebuffer	test/fbutils.c	/^int open_framebuffer(fb_data_t* fb)$/;"	f
 open_ipc	test/tm_test.c	/^int open_ipc()$/;"	f
+open_slave_fb	test/fbutils.c	/^int open_slave_fb(fb_data_t* fb)$/;"	f
 open	src/tmInput.c	/^    volatile q_bool     open;$/;"	m	struct:_tm_input	file:
 p16	test/fbutils.c	/^	unsigned short *p16;$/;"	m	union:multiptr	file:
 p32	test/fbutils.c	/^	unsigned long *p32;$/;"	m	union:multiptr	file:
@@ -419,7 +427,7 @@ palette	test/ts_test.c	/^static int palette [] =$/;"	v	file:
 panel	src/tmInput.c	/^    tm_panel_info_t*  panel;$/;"	m	struct:_tm_input_dev	file:
 panel	test/tm_test.c	/^    char panel;$/;"	m	struct:_cmd_append_t	file:
 panel	test/tm_test.c	/^    char panel;$/;"	m	struct:_cmd_clear_t	file:
-pan	test/tm_test.c	/^    char* pan;$/;"	m	struct:_fb_data_t	file:
+pan	test/tm_test.h	/^    char* pan;$/;"	m	struct:_fb_data_t
 perform_calibration	qsi_cal.c	/^int perform_calibration(calibration *cal) {$/;"	f
 pixel	test/fbutils.c	/^void pixel (int x, int y, unsigned colidx)$/;"	f
 p	src/tmInput.c	/^    int p;$/;"	m	struct:_tm_input_coord	file:
@@ -542,7 +550,10 @@ server	src/tmIpc.c	/^        QSI_Channel *server;$/;"	m	struct:_tm_ipc_data	file
 server	test/tm_test.c	/^        QSI_Channel *server;$/;"	m	struct:ipc_data	file:
 set_abs_status	include/tmInput.h	61;"	d
 set_calibration	qsi_cal.c	/^void set_calibration(calibration* cal, int i, int xfb, int yfb, int x, int y)$/;"	f
-setcolor	test/fbutils.c	/^void setcolor(unsigned colidx, unsigned value, thread_data_t* data)$/;"	f
+setcolor	test/fbutils.c	/^void setcolor(unsigned colidx, unsigned value)$/;"	f
+sig	test/tm_test.c	/^static void sig(int sig)$/;"	f	file:
+slave_num	test/fbutils.c	/^static int slave_num = -1;$/;"	v	file:
+slave	test/fbutils.c	/^static fb_slave_t slave[MAX_SLAVES_NUM];$/;"	v	file:
 slot	src/tmInput.c	/^    int                 slot;$/;"	m	struct:_tm_input_queue	file:
 st_x	include/tmMapping.h	/^    int st_x;$/;"	m	struct:_tm_fb_param
 st_y	include/tmMapping.h	/^    int st_y;$/;"	m	struct:_tm_fb_param
@@ -558,9 +569,7 @@ swap	include/tmMapping.h	/^    char swap;$/;"	m	struct:_tm_fb_param
 target	src/tmIpc.c	/^        char *target;$/;"	m	struct:_tm_ipc_data	file:
 target	test/tm_test.c	/^        char *target;$/;"	m	struct:ipc_data	file:
 testBit	include/tmInput.h	/^static inline int testBit(long bit, const long *array)$/;"	f
-test_thread_func	test/tm_test.c	/^void test_thread_func(void* data)$/;"	f
 text	test/ts_test.c	/^	char *text;$/;"	m	struct:ts_button	file:
-thread_data_t	test/tm_test.h	/^} thread_data_t;$/;"	t	typeref:struct:_thread_data_t
 thread_func	include/qUtils.h	/^    q_thread_func_t thread_func;$/;"	m	struct:q_thread
 thread	src/tmInput.c	/^    q_thread*         thread;$/;"	m	struct:_tm_input_dev	file:
 tm_ap_head	src/tmInput.c	/^    list_head_t*        tm_ap_head;$/;"	m	struct:_tm_input	file:
@@ -668,12 +677,13 @@ touch_type	include/tm.h	/^    tm_input_type_t         touch_type;$/;"	m	struct:_
 trans_matrix	include/tmMapping.h	/^    tm_trans_matrix_t   trans_matrix;$/;"	m	struct:_tm_calibrate
 ts_button	test/ts_test.c	/^struct ts_button {$/;"	s	file:
 ts_sample	test/tslib.h	/^struct ts_sample {$/;"	s
-ts_test	test/ts_test.c	/^int ts_test(thread_data_t* data)$/;"	f
+ts_test	test/ts_test.c	/^int ts_test(fb_data_t* fb, evt_data_t* evt)$/;"	f
 tv	test/tslib.h	/^	struct timeval	tv;$/;"	m	struct:ts_sample	typeref:struct:ts_sample::timeval
 type	src/tmInput.c	/^    tm_input_type_t   type;$/;"	m	struct:_tm_input_dev	file:
 userdata	include/qUtils.h	/^    void *userdata;$/;"	m	struct:q_thread
 value	include/qUtils.h	/^    volatile int value;$/;"	m	struct:q_atomic
 value	include/qUtils.h	/^    volatile unsigned long value;$/;"	m	struct:q_atomic_ptr
+var	test/fbutils.c	/^    struct fb_var_screeninfo var;$/;"	m	struct:_fb_slave_t	typeref:struct:_fb_slave_t::fb_var_screeninfo	file:
 var	test/fbutils.c	/^static struct fb_var_screeninfo var;$/;"	v	typeref:struct:fb_var_screeninfo	file:
 vertical	include/tmMapping.h	/^    char vertical;$/;"	m	struct:_tm_fb_param
 width	test/font.h	/^    int width, height;$/;"	m	struct:fbcon_font_desc
@@ -684,10 +694,12 @@ x	qsi_cal.c	/^	int x[5], xfb[5];$/;"	m	struct:__anon4	file:
 x	src/tmInput.c	/^    int x;$/;"	m	struct:_tm_input_coord	file:
 x	test/ts_test.c	/^	int x, y, w, h;$/;"	m	struct:ts_button	file:
 x	test/tslib.h	/^	int		x;$/;"	m	struct:ts_sample
+xres	test/fbutils.c	/^    __u32 xres, yres;$/;"	m	struct:_fb_slave_t	file:
 xres	test/fbutils.c	/^__u32 xres, yres;$/;"	v
 yfb	qsi_cal.c	/^	int y[5], yfb[5];$/;"	m	struct:__anon4	file:
 y	qsi_cal.c	/^	int y[5], yfb[5];$/;"	m	struct:__anon4	file:
 y	src/tmInput.c	/^    int y;$/;"	m	struct:_tm_input_coord	file:
 y	test/ts_test.c	/^	int x, y, w, h;$/;"	m	struct:ts_button	file:
 y	test/tslib.h	/^	int		y;$/;"	m	struct:ts_sample
+yres	test/fbutils.c	/^    __u32 xres, yres;$/;"	m	struct:_fb_slave_t	file:
 yres	test/fbutils.c	/^__u32 xres, yres;$/;"	v

@@ -3,11 +3,13 @@
 # Author: Lester
 #############################
 
-# cross-compile : set PREFIX and HOST
+# cross-compile : set PREFIX and PATH
 PREFIX     = /Space/ltib2/ltib/rootfs_l
-HOST       = /opt/freescale/usr/local/gcc-4.6.2-glibc-2.13-linaro-multilib-2011.12/fsl-linaro-toolchain/bin/arm-linux-
+CC_PATH    = /opt/freescale/usr/local/gcc-4.6.2-glibc-2.13-linaro-multilib-2011.12/fsl-linaro-toolchain/bin/
+CROSS      = arm-linux-
 
 # Compiler
+HOST       = $(CC_PATH)$(CROSS)
 CC         = $(HOST)gcc
 DEFINES    = -DQSI_ASSERT -D_GNU_SOURCE
 CFLAGS     = -O2 -Wall -Werror -std=gnu99 -march=armv7-a -mfpu=neon $(DEFINES)
@@ -21,17 +23,10 @@ LIBS       = $(LIBPATH) -lpthread -lmtdev -lQSI-IPCLib
 AR         = $(HOST)ar
 
 
-
-#OBJECTS    = ./src/main.o      \
-#             ./src/tm.o        \
-#             ./src/tmMapping.o \
-#             ./src/tmInput.o   \
-#             ./src/tmIpc.o     \
-#			 ./src/qUtils.o    \
-			 
-OBJECTS    =  $(shell ls ./src/*.c | sed 's/\.c/.o/g')     		 
+OBJECTS    =  $(shell ls ./src/*.c | sed 's/\.c/.o/g')
+    		 
 # All Target
-all: tm-daemon
+all: tm-daemon tm-test
 
 tm-daemon: $(OBJECTS)
 	@echo 'Building target: $@'
@@ -40,10 +35,11 @@ tm-daemon: $(OBJECTS)
 $(OBJECTS): %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCPATH) $< -o $@
 	
-
+tm-test:
+	cd test; make
 	
 clean:
 	rm -f $(OBJECTS)
-	
+	cd test; make clean
 
 

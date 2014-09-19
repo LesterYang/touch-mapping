@@ -20,12 +20,17 @@
  * in the same place will remove the element leaving the background intact).
  */
 #define XORMODE	0x80000000
+#define MAX_SLAVES_NUM (6)
 
 extern __u32 xres, yres;
 
+
+__u32 get_slave_xres(int idx);
+__u32 get_slave_yres(int idx);
+
 //int open_framebuffer(void);
-//void close_framebuffer(void);
-//void setcolor(unsigned colidx, unsigned value);
+void close_framebuffer(void);
+void setcolor(unsigned colidx, unsigned value);
 void put_cross(int x, int y, unsigned colidx);
 void put_string(int x, int y, char *s, unsigned colidx);
 void put_string_center(int x, int y, char *s, unsigned colidx);

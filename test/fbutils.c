@@ -35,22 +35,128 @@ union multiptr {
 	unsigned long *p32;
 };
 
-static int con_fd, fb_fd, last_vt = -1;
+extern fb_data_t fb_data[];
+
+typedef struct _fb_slave_t {
+    fb_data_t* fb;
+    int active;
+    int fb_fd;
+    struct fb_fix_screeninfo fix;
+    struct fb_var_screeninfo var;
+    unsigned char *fbuffer;
+    unsigned char **line_addr;
+    int bytes_per_pixel;
+    unsigned colormap [256];
+    __u32 xres, yres;
+} fb_slave_t;
+
+static fb_slave_t slave[MAX_SLAVES_NUM];
+static int slave_num = -1;
+
+static int con_fd, fb_fd = 0, last_vt = -1;
 static struct fb_fix_screeninfo fix;
 static struct fb_var_screeninfo var;
 static unsigned char *fbuffer;
 static unsigned char **line_addr;
-static int fb_fd=0;
 static int bytes_per_pixel;
 static unsigned colormap [256];
 __u32 xres, yres;
 
-static char *defaultfbdevice = "/dev/fb0";
 static char *defaultconsoledevice = "/dev/tty";
-//static char *fbdevice = NULL;
 static char *consoledevice = NULL;
 
-int open_framebuffer(thread_data_t* data)
+__u32 get_slave_xres(int idx)
+{
+    if (slave[idx].active == 0)
+        return 0;
+
+    return slave[idx].xres;
+}
+
+__u32 get_slave_yres(int idx)
+{
+    if (slave[idx].active == 0)
+        return 0;
+    
+    return slave[idx].yres;
+}
+
+int open_slave_fb(fb_data_t* fb)
+{
+    unsigned y, addr;
+    
+    slave_num = (slave_num+1)%MAX_SLAVES_NUM;
+
+    fb_slave_t* s = &slave[slave_num];
+    
+    s->active = 1;
+    s->fb = fb;
+    s->fb_fd =0 ;
+
+    s->fb_fd = open(s->fb->dev, O_RDWR);
+    if (s->fb_fd == -1) {
+	perror("open fbdevice");
+	return -1;
+    }
+
+    printf("open sfb : %s\n",s->fb->dev);
+
+    if (ioctl(s->fb_fd, FBIOGET_FSCREENINFO, &s->fix) < 0) {
+    	perror("ioctl FBIOGET_FSCREENINFO");
+    	close(s->fb_fd);
+    	return -1;
+    }
+
+    if (ioctl(s->fb_fd, FBIOGET_VSCREENINFO, &s->var) < 0) {
+    	perror("ioctl FBIOGET_VSCREENINFO");
+    	close(s->fb_fd);
+    	return -1;
+    }
+    s->xres = s->var.xres;
+    s->yres = s->var.yres;
+
+    s->fbuffer = mmap(NULL, s->fix.smem_len, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, s->fb_fd, 0);
+    if (s->fbuffer == (unsigned char *)-1) {
+    	perror("mmap framebuffer");
+    	close(s->fb_fd);
+    	return -1;
+    }
+    memset(s->fbuffer,0,s->fix.smem_len);
+
+    s->bytes_per_pixel = (s->var.bits_per_pixel + 7) / 8;
+    s->line_addr = malloc (sizeof (__u32) * s->var.yres_virtual);
+    addr = 0;
+    for (y = 0; y < s->var.yres_virtual; y++, addr += s->fix.line_length)
+	s->line_addr [y] = fbuffer + addr;
+
+    return 0;
+}
+
+void close_slave_fb(fb_data_t* fb)
+{
+    fb_slave_t* s = NULL;
+    int i;
+
+    for (i = 0; i < MAX_SLAVES_NUM; i++) {
+        if(slave[i].fb->num == fb->num)
+        {
+            s = &slave[i];
+            break;
+        }
+    }
+
+    if(!s)
+        return;
+
+
+    munmap(s->fbuffer, s->fix.smem_len);
+    close(s->fb_fd);
+
+    free (s->line_addr);
+}
+
+
+int open_framebuffer(fb_data_t* fb)
 {
 	struct vt_stat vts;
 	char vtname[128];
@@ -76,59 +182,61 @@ int open_framebuffer(thread_data_t* data)
 
         	sprintf(vtname, "%s%d", consoledevice, nr);
 
-        	data->con_fd = open(vtname, O_RDWR | O_NDELAY);
-        	if (data->con_fd < 0) {
+        	con_fd = open(vtname, O_RDWR | O_NDELAY);
+        	if (con_fd < 0) {
         	        perror("open tty");
         	        return -1;
         	}
 
-        	if (ioctl(data->con_fd, VT_GETSTATE, &vts) == 0)
+        	if (ioctl(con_fd, VT_GETSTATE, &vts) == 0)
         	        last_vt = vts.v_active;
 
-        	if (ioctl(data->con_fd, VT_ACTIVATE, nr) < 0) {
+        	if (ioctl(con_fd, VT_ACTIVATE, nr) < 0) {
         	        perror("VT_ACTIVATE");
-        	        close(data->con_fd);
+        	        close(con_fd);
         	        return -1;
         	}
 
-        	if (ioctl(data->con_fd, VT_WAITACTIVE, nr) < 0) {
+        	if (ioctl(con_fd, VT_WAITACTIVE, nr) < 0) {
         	        perror("VT_WAITACTIVE");
-        	        close(data->con_fd);
+        	        close(con_fd);
         	        return -1;
         	}
 
-        	if (ioctl(data->con_fd, KDSETMODE, KD_GRAPHICS) < 0) {
+        	if (ioctl(con_fd, KDSETMODE, KD_GRAPHICS) < 0) {
         	        perror("KDSETMODE");
-        	        close(data->con_fd);
+        	        close(con_fd);
         	        return -1;
         	}
 
 	}
 
-	data->fb_fd = open(data->fb, O_RDWR);
-	if (data->fb_fd == -1) {
+	fb_fd = open(fb->dev, O_RDWR);
+	if (fb_fd == -1) {
 		perror("open fbdevice");
 		return -1;
 	}
 
-	if (ioctl(data->fb_fd, FBIOGET_FSCREENINFO, &fix) < 0) {
+        printf("open fb  : %s\n",fb->dev);
+
+	if (ioctl(fb_fd, FBIOGET_FSCREENINFO, &fix) < 0) {
 		perror("ioctl FBIOGET_FSCREENINFO");
-		close(data->fb_fd);
+		close(fb_fd);
 		return -1;
 	}
 
-	if (ioctl(data->fb_fd, FBIOGET_VSCREENINFO, &var) < 0) {
+	if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &var) < 0) {
 		perror("ioctl FBIOGET_VSCREENINFO");
-		close(data->fb_fd);
+		close(fb_fd);
 		return -1;
 	}
 	xres = var.xres;
 	yres = var.yres;
 
-	fbuffer = mmap(NULL, fix.smem_len, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, data->fb_fd, 0);
+	fbuffer = mmap(NULL, fix.smem_len, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, fb_fd, 0);
 	if (fbuffer == (unsigned char *)-1) {
 		perror("mmap framebuffer");
-		close(data->fb_fd);
+		close(fb_fd);
 		return -1;
 	}
 	memset(fbuffer,0,fix.smem_len);
@@ -142,22 +250,22 @@ int open_framebuffer(thread_data_t* data)
 	return 0;
 }
 
-void close_framebuffer(thread_data_t* data)
+void close_framebuffer()
 {
 	munmap(fbuffer, fix.smem_len);
-	close(data->fb_fd);
+	close(fb_fd);
 
 
 	if(strcmp(consoledevice,"none")!=0) {
 	
-        	if (ioctl(data->con_fd, KDSETMODE, KD_TEXT) < 0)
+        	if (ioctl(con_fd, KDSETMODE, KD_TEXT) < 0)
         	        perror("KDSETMODE");
 
         	if (last_vt >= 0)
-        	        if (ioctl(data->con_fd, VT_ACTIVATE, last_vt))
+        	        if (ioctl(con_fd, VT_ACTIVATE, last_vt))
         	                perror("VT_ACTIVATE");
 
-        	close(data->con_fd);
+        	close(con_fd);
 	}
 
         free (line_addr);
@@ -213,7 +321,7 @@ void put_string_center(int x, int y, char *s, unsigned colidx)
                     y - font_vga_8x8.height / 2, s, colidx);
 }
 
-void setcolor(unsigned colidx, unsigned value, thread_data_t* data)
+void setcolor(unsigned colidx, unsigned value)
 {
 	unsigned res;
 	unsigned short red, green, blue;
@@ -241,7 +349,7 @@ void setcolor(unsigned colidx, unsigned value, thread_data_t* data)
 		cmap.blue = &blue;
 		cmap.transp = NULL;
 
-        	if (ioctl (data->fb_fd, FBIOPUTCMAP, &cmap) < 0)
+        	if (ioctl (fb_fd, FBIOPUTCMAP, &cmap) < 0)
         	        perror("ioctl FBIOPUTCMAP");
 		break;
 	case 2:

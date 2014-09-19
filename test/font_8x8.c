@@ -2578,6 +2578,6 @@ struct fbcon_font_desc font_vga_8x8 = {
 	"VGA8x8",
 	8,
 	8,
-	fontdata_8x8,
+	(char*)fontdata_8x8,
 	0
 };

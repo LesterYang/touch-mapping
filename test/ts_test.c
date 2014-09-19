@@ -25,6 +25,9 @@
 #include "fbutils.h"
 #include "tm_test.h"
 
+extern fb_data_t fb_data[];
+extern evt_data_t evt_data[];
+ 
 static int palette [] =
 {
 	0x000000, 0xffe080, 0xffffff, 0xe0c0a0, 0x304050, 0x80b8c0
@@ -97,30 +100,28 @@ static void refresh_screen ()
 		button_draw (&buttons [i]);
 }
 
-int ts_test(thread_data_t* data)
+int ts_test(fb_data_t* fb, evt_data_t* evt)
 {
 	struct tsdev *ts;
 	int x, y;
 	unsigned int i;
 	unsigned int mode = 0;
 
-	char *tsdevice=NULL;
-	tsdevice = strdup (data->event);
-
-	ts = ts_open (tsdevice, 0);
+	ts = ts_open (evt->dev, 0);
 
 	if (!ts) {
-		perror (tsdevice);
+		perror (evt->dev);
 		exit(1);
 	}
+        printf("open evt : %s\n",evt->dev);
 
 	if (ts_config(ts)) {
 		perror("ts_config");
 		exit(1);
 	}
 
-	if (open_framebuffer(data)) {
-		close_framebuffer(data);
+	if (open_framebuffer(fb)) {
+		close_framebuffer();
 		exit(1);
 	}
 
@@ -128,7 +129,7 @@ int ts_test(thread_data_t* data)
 	y = yres/2;
 
 	for (i = 0; i < NR_COLORS; i++)
-		setcolor (i, palette [i], data);
+		setcolor (i, palette [i]);
 
 	/* Initialize buttons */
 	memset (&buttons, 0, sizeof (buttons));
@@ -148,10 +149,9 @@ int ts_test(thread_data_t* data)
 	
 	buttons [0].text = "Drag";
 	buttons [1].text = "Draw";
-	buttons [2].text = "1";
-	buttons [3].text = "2";
-	buttons [4].text = "3";
-
+	buttons [2].text = evt->dev;
+	buttons [3].text = "";
+	buttons [4].text = fb->dev;
 
 
 
@@ -176,7 +176,7 @@ int ts_test(thread_data_t* data)
 
 		if (ret < 0) {
 			perror("ts_read");
-			close_framebuffer(data);
+			close_framebuffer();
 			exit(1);
 		}
 
@@ -208,5 +208,5 @@ int ts_test(thread_data_t* data)
 		} else
 			mode &= ~0x80000000;
 	}
-	close_framebuffer(data);
+	close_framebuffer();
 }
