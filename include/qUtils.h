@@ -1,10 +1,3 @@
-/*
- * qUtils.h
- *
- *  Created on: Aug 1, 2014
- *      Author: lester
- */
-
 #ifndef QUTILS_H_
 #define QUTILS_H_
 

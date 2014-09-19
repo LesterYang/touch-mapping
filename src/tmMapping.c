@@ -1,9 +1,12 @@
 /*
- * tmMap.c
- *
- *  Created on: Aug 1, 2014
- *      Author: lester
+ *  tmMapping.c
+ *  Copyright © 2014 QSI Inc.
+ *  All rights reserved.
+ *  
+ *       Author : Lester Yang <lester.yang@qsitw.com>
+ *  Description : Mapping algorithm
  */
+ 
 #include <string.h>
 #include "tm.h"
 

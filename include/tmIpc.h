@@ -1,10 +1,3 @@
-/*
- *  tmIpc.h
- *
- *  Created on: Sep 10, 2014
- *      Author: lester
- */
-
 #ifndef _TMIPC_H
 #define _TMIPC_H
 

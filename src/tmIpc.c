@@ -1,10 +1,12 @@
 /*
- * imIpc.c
- *
- *  Created on: Aug 1, 2014
- *      Author: lester
+ *  tmIpc.c
+ *  Copyright © 2014 QSI Inc.
+ *  All rights reserved.
+ *  
+ *       Author : Lester Yang <lester.yang@qsitw.com>
+ *  Description : Open IPC chanel to communicate to AP
  */
-
+ 
 #include <unistd.h>
 #include "tm.h"
 #include "tmIpc.h"

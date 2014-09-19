@@ -1,10 +1,3 @@
-/*
- * tm_error.h
- *
- *  Created on: Aug 1, 2014
- *      Author: lester
- */
-
 #ifndef TMERROR_H_
 #define TMERROR_H_
 

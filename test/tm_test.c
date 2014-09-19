@@ -1,3 +1,12 @@
+/*
+ *  tm_test.c
+ *  Copyright © 2014 QSI Inc.
+ *  All rights reserved.
+ *  
+ *       Author : Lester Yang <lester.yang@qsitw.com>
+ *  Description : Test tools
+ */
+ 
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>

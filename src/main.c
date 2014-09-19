@@ -1,10 +1,12 @@
 /*
- * main.c
- *
- *  Created on: Aug 1, 2014
- *      Author: lester
+ *  main.c
+ *  Copyright © 2014 QSI Inc.
+ *  All rights reserved.
+ *  
+ *       Author : Lester Yang <lester.yang@qsitw.com>
+ *  Description : tm-daemon 
  */
-
+ 
 #include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>

@@ -1,10 +1,3 @@
-/*
- * qInput.h
- *
- *  Created on: Aug 1, 2014
- *      Author: lester
- */
-
 #ifndef TMINPUT_H_
 #define TMINPUT_H_
 

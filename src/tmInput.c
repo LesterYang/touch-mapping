@@ -1,10 +1,13 @@
 /*
- * tmInput.c
- *
- *  Created on: Aug 1, 2014
- *      Author: lester
+ *  tmInput.c
+ *  Copyright © 2014 QSI Inc.
+ *  All rights reserved.
+ *  
+ *       Author : Lester Yang <lester.yang@qsitw.com>
+ *  Description : Initialize touch event device and frambuffer device. Receive and 
+ *                parse touch event, then redirect event
  */
-
+ 
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>

@@ -1,9 +1,12 @@
 /*
- * qUtils.c
- *
- *  Created on: Aug 1, 2014
- *      Author: lester
+ *  qUtils.c
+ *  Copyright © 2014 QSI Inc.
+ *  All rights reserved.
+ *  
+ *       Author : Lester Yang <lester.yang@qsitw.com>
+ *  Description : Utilities function
  */
+ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

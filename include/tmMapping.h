@@ -1,10 +1,3 @@
-/*
- * tmMapping.h
- *
- *  Created on: Aug 1, 2014
- *      Author: lester
- */
-
 #ifndef TMMAPPING_H_
 #define TMMAPPING_H_
 

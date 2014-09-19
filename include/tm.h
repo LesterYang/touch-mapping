@@ -1,10 +1,3 @@
-/*
- * _tm.h
- *
- *  Created on: Aug 1, 2014
- *      Author: lester
- */
-
 #ifndef TM_H_
 #define TM_H_
 

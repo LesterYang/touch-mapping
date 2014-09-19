@@ -1,10 +1,12 @@
 /*
- * tm.c
- *
- *  Created on: Aug 1, 2014
- *      Author: lester
+ *  tm.c
+ *  Copyright © 2014 QSI Inc.
+ *  All rights reserved.
+ *  
+ *       Author : Lester Yang <lester.yang@qsitw.com>
+ *  Description : tm-daemon manger
  */
-
+ 
 #include "tm.h"
 #include "tmIpc.h"
 
