@@ -57,19 +57,19 @@ struct option long_opts[] = {
     {0,                     0, 0,   0}
 };
 
-struct pos_conf mono_conf[MAX_AP_NUM] = {
+struct pos_conf mono_conf[] = {
     {0,   0, 100, 100}
 };
-struct pos_conf de_conf[MAX_AP_NUM] = {
+struct pos_conf de_conf[] = {
     {0,   0,  50, 100},
     {50,  0,  50, 100}
 };
-struct pos_conf tri_conf[MAX_AP_NUM] = {
+struct pos_conf tri_conf[] = {
     {0,   0,  33, 100},
     {33,  0,  34, 100},
     {37,  0,  33, 100}
 };
-struct pos_conf tetra_conf[MAX_AP_NUM] = {
+struct pos_conf tetra_conf[] = {
     {0,   0,  50, 50},
     {50,  0,  50, 50},
     {0,  50,  50, 50},
@@ -81,11 +81,6 @@ struct ipc_data{
         QSI_RECV_EVENT recv_func;
         QSI_PROTOCOL_ST status;
         char *name;
-        char debug;
-        char *line;
-        char *target;
-        unsigned char *msg;
-        int  len;
 }g_ipc;
 
 typedef struct _cmd_append_t {
@@ -293,8 +288,7 @@ void set_ttm()
 
 void set_pnl_append_cmd(cmd_append_t* a, int idx)
 {
-    //struct pos_conf (*pconf)[10] = NULL;
-    void * pconf = NULL;
+    struct pos_conf (*pconf)[] = NULL;
 
     if(idx > ttm.mode)
         return;
@@ -317,10 +311,10 @@ void set_pnl_append_cmd(cmd_append_t* a, int idx)
     if(!pconf)
         return;
 
-    a->pnl_start_pos_x = ((struct pos_conf (*)[MAX_AP_NUM])pconf)[idx]->pos_x;
-    a->pnl_start_pos_y = ((struct pos_conf (*)[MAX_AP_NUM])pconf)[idx]->pos_y;
-    a->pnl_width       = ((struct pos_conf (*)[MAX_AP_NUM])pconf)[idx]->width;
-    a->pnl_high        = ((struct pos_conf (*)[MAX_AP_NUM])pconf)[idx]->high;           
+    a->pnl_start_pos_x = (*pconf)[idx].pos_x;
+    a->pnl_start_pos_y = (*pconf)[idx].pos_y;
+    a->pnl_width       = (*pconf)[idx].width;
+    a->pnl_high        = (*pconf)[idx].high;           
 }
 
 void set_ap_append_cmd(cmd_append_t* a, int idx)
@@ -334,8 +328,7 @@ void set_ap_append_cmd(cmd_append_t* a, int idx)
         return;
     }
     
-    //struct pos_conf (*pconf)[MAX_AP_NUM] = NULL;
-    void * pconf = NULL;
+    struct pos_conf (*pconf)[] = NULL;
 
     if(idx > ttm.mode)
         return;
@@ -358,11 +351,10 @@ void set_ap_append_cmd(cmd_append_t* a, int idx)
     if(!pconf)
         return;
 
-    a->ap_start_pos_x = ((struct pos_conf [MAX_AP_NUM])*pconf)[idx]->pos_x;
-    a->ap_start_pos_y = ((struct pos_conf [MAX_AP_NUM])*pconf)[idx]->pos_y;
-    a->ap_width       = ((struct pos_conf [MAX_AP_NUM])*pconf)[idx]->width;
-    a->ap_high        = ((struct pos_conf [MAX_AP_NUM])*pconf)[idx]->high;   
-
+    a->ap_start_pos_x = (*pconf)[idx].pos_x;
+    a->ap_start_pos_y = (*pconf)[idx].pos_y;
+    a->ap_width       = (*pconf)[idx].width;
+    a->ap_high        = (*pconf)[idx].high;   
 }
 
 int main(int argc, const char *argv[])

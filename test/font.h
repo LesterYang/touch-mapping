@@ -29,7 +29,7 @@ struct fbcon_font_desc {
 #define SUN12x22_IDX	5
 #define ACORN8x8_IDX	6
 
-extern struct fbcon_font_desc	font_vga_8x8, font_vga_8x8s,
+extern struct fbcon_font_desc	font_vga_8x8,
 				font_vga_8x16;
 
 /* Max. length for the name of a predefined font */
