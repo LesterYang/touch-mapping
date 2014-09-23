@@ -35,9 +35,8 @@ union multiptr {
 	unsigned long *p32;
 };
 
-extern fb_data_t fb_data[];
 
-typedef struct _fb_slave_t {
+struct _fb_slave {
     fb_data_t* fb;
     int active;
     int fb_fd;
@@ -48,7 +47,10 @@ typedef struct _fb_slave_t {
     int bytes_per_pixel;
     unsigned colormap [256];
     __u32 xres, yres;
-} fb_slave_t;
+};
+
+
+
 
 static fb_slave_t slave[MAX_SLAVES_NUM];
 static int slave_num = -1;
@@ -84,6 +86,9 @@ __u32 get_slave_yres(int idx)
 int open_slave_fb(fb_data_t* fb)
 {
     unsigned y, addr;
+
+    if(!fb)
+        return -1;
     
     slave_num = (slave_num+1)%MAX_SLAVES_NUM;
 
@@ -93,13 +98,13 @@ int open_slave_fb(fb_data_t* fb)
     s->fb = fb;
     s->fb_fd =0 ;
 
-    s->fb_fd = open(s->fb->dev, O_RDWR);
+    s->fb_fd = open(fb->dev, O_RDWR);
     if (s->fb_fd == -1) {
-	perror("open fbdevice");
-	return -1;
+	    perror("open fbdevice");
+	    return -1;
     }
 
-    printf("open sfb : %s\n",s->fb->dev);
+    printf("open sfb : %s\n",fb->dev);
 
     if (ioctl(s->fb_fd, FBIOGET_FSCREENINFO, &s->fix) < 0) {
     	perror("ioctl FBIOGET_FSCREENINFO");
@@ -137,8 +142,11 @@ void close_slave_fb(fb_data_t* fb)
     fb_slave_t* s = NULL;
     int i;
 
+    if(!fb)
+        return;
+
     for (i = 0; i < MAX_SLAVES_NUM; i++) {
-        if(slave[i].fb->num == fb->num)
+        if(slave[i].fb->fb_num == fb->fb_num)
         {
             s = &slave[i];
             break;
@@ -147,7 +155,6 @@ void close_slave_fb(fb_data_t* fb)
 
     if(!s)
         return;
-
 
     munmap(s->fbuffer, s->fix.smem_len);
     close(s->fb_fd);
@@ -158,10 +165,14 @@ void close_slave_fb(fb_data_t* fb)
 
 int open_framebuffer(fb_data_t* fb)
 {
+    unsigned y, addr;
+
+    /*
+
 	struct vt_stat vts;
 	char vtname[128];
 	int fd, nr;
-	unsigned y, addr;
+	
 
 	if ((consoledevice = getenv ("TSLIB_CONSOLEDEVICE")) == NULL)
 		consoledevice = defaultconsoledevice;
@@ -171,11 +182,13 @@ int open_framebuffer(fb_data_t* fb)
         	fd = open (vtname, O_WRONLY);
         	if (fd < 0) {
         	        perror("open consoledevice");
+                    dbg_log("");
         	        return -1;
         	}
 
 		if (ioctl(fd, VT_OPENQRY, &nr) < 0) {
         	        perror("ioctl VT_OPENQRY");
+                    dbg_log("");
         	        return -1;
         	}
         	close(fd);
@@ -185,6 +198,7 @@ int open_framebuffer(fb_data_t* fb)
         	con_fd = open(vtname, O_RDWR | O_NDELAY);
         	if (con_fd < 0) {
         	        perror("open tty");
+                    dbg_log("");
         	        return -1;
         	}
 
@@ -194,6 +208,7 @@ int open_framebuffer(fb_data_t* fb)
         	if (ioctl(con_fd, VT_ACTIVATE, nr) < 0) {
         	        perror("VT_ACTIVATE");
         	        close(con_fd);
+                    dbg_log("");
         	        return -1;
         	}
 
@@ -206,27 +221,29 @@ int open_framebuffer(fb_data_t* fb)
         	if (ioctl(con_fd, KDSETMODE, KD_GRAPHICS) < 0) {
         	        perror("KDSETMODE");
         	        close(con_fd);
+                    dbg_log("");
         	        return -1;
         	}
 
 	}
-
+*/
 	fb_fd = open(fb->dev, O_RDWR);
 	if (fb_fd == -1) {
 		perror("open fbdevice");
+        dbg_log("fb:%s",fb->dev);
 		return -1;
 	}
 
-        printf("open fb  : %s\n",fb->dev);
-
 	if (ioctl(fb_fd, FBIOGET_FSCREENINFO, &fix) < 0) {
 		perror("ioctl FBIOGET_FSCREENINFO");
+        dbg_log("");
 		close(fb_fd);
 		return -1;
 	}
 
 	if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &var) < 0) {
 		perror("ioctl FBIOGET_VSCREENINFO");
+        dbg_log("");
 		close(fb_fd);
 		return -1;
 	}
@@ -237,6 +254,7 @@ int open_framebuffer(fb_data_t* fb)
 	if (fbuffer == (unsigned char *)-1) {
 		perror("mmap framebuffer");
 		close(fb_fd);
+        dbg_log("");
 		return -1;
 	}
 	memset(fbuffer,0,fix.smem_len);
@@ -252,8 +270,12 @@ int open_framebuffer(fb_data_t* fb)
 
 void close_framebuffer()
 {
+        if(!consoledevice)
+            return;
+
 	munmap(fbuffer, fix.smem_len);
 	close(fb_fd);
+
 
 
 	if(strcmp(consoledevice,"none")!=0) {
@@ -319,6 +341,60 @@ void put_string_center(int x, int y, char *s, unsigned colidx)
 	size_t sl = strlen (s);
         put_string (x - (sl / 2) * font_vga_8x8.width,
                     y - font_vga_8x8.height / 2, s, colidx);
+}
+
+void put_char_slave(int x, int y, int c, int colidx, fb_slave_t* s)
+{
+	int i,j,bits;
+
+	for (i = 0; i < font_vga_8x8s.height; i++) {
+		bits = font_vga_8x8s.data [font_vga_8x8s.height * c + i];
+		for (j = 0; j < font_vga_8x8s.width; j++, bits <<= 1)
+			if (bits & 0x80)
+				pixel_slave (x + j, y + i, colidx, s);
+	}
+}
+
+void put_string_center_slave(int x, int y, char *s, unsigned colidx, fb_slave_t* sfb)
+{
+    	size_t sl = strlen (s);
+    	int pos_x = x - (sl / 2) * font_vga_8x8s.width;
+    	int pos_y = y - font_vga_8x8s.height / 2;
+        int i;
+
+        for (i = 0; *s; i++, pos_x += font_vga_8x8s.width, s++)
+            put_char_slave(pos_x, pos_y, *s, colidx, sfb);
+}
+
+void refresh_slave_screen(char *s, void* fb)
+{
+        int i;
+        fb_slave_t* sfb = NULL;
+
+        if(!fb)
+            return;
+
+        for (i = 0; i < MAX_SLAVES_NUM; i++) 
+        {
+            if(slave[i].fb == (fb_data_t*)fb)
+            {
+                sfb = &slave[i];
+                break;
+            }
+        }
+
+        if(!sfb)
+            return;
+
+        char str1[]="slave_apx";
+        char str2[]="slave_apx";
+
+        str1[8]=sfb->fb->fb_num + '0';
+        str2[8]=sfb->fb->fb_num + '0';
+printf("==== put slave string\n");
+        put_string_center_slave(sfb->xres/2, sfb->yres/4, s, 1, sfb);
+        put_string_center_slave(sfb->xres/2, sfb->yres/4 + 20, str1, 2, sfb);
+        put_string_center_slave(sfb->xres/2, sfb->yres/4 + 40, str2, 3, sfb);
 }
 
 void setcolor(unsigned colidx, unsigned value)
@@ -387,6 +463,46 @@ static inline void __setpixel (union multiptr loc, unsigned xormode, unsigned co
 			*loc.p32 = color;
 		break;
 	}
+}
+
+static inline void __setpixel_slave (union multiptr loc, unsigned xormode, unsigned color, fb_slave_t* s)
+{
+	switch(s->bytes_per_pixel) {
+	case 1:
+	default:
+		if (xormode)
+			*loc.p8 ^= color;
+		else
+			*loc.p8 = color;
+		break;
+	case 2:
+		if (xormode)
+			*loc.p16 ^= color;
+		else
+			*loc.p16 = color;
+		break;
+	case 4:
+		if (xormode)
+			*loc.p32 ^= color;
+		else
+			*loc.p32 = color;
+		break;
+	}
+}
+void pixel_slave (int x, int y, unsigned colidx, fb_slave_t* s)
+{
+	unsigned xormode;
+	union multiptr loc;
+
+	if ((x < 0) || ((__u32)x >= s->var.xres_virtual) ||
+	    (y < 0) || ((__u32)y >= s->var.yres_virtual))
+		return;
+
+	xormode = colidx & XORMODE;
+	colidx &= ~XORMODE;
+
+	loc.p8 = s->line_addr [y] + x * s->bytes_per_pixel;
+        __setpixel_slave (loc, xormode, s->colormap[colidx], s); 
 }
 
 void pixel (int x, int y, unsigned colidx)

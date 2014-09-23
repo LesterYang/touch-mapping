@@ -19,20 +19,14 @@
 #include <qsi_ipc_client_lib.h>
 
 // depend on panel[0-2] <-> kernel setting
-fb_data_t fb_data[]={
-    {0, "/dev/fb0", "/sys/class/graphics/fb0/pan"},
-    {4, "/dev/fb4", "/sys/class/graphics/fb4/pan"},
-    {9, "/dev/fb9", "/sys/class/graphics/fb9/pan"}
-};
+static fb_data_t fb;
 // depend on panel[0-2] <-> ap setting
-evt_data_t evt_data[]={
-    {0, "/dev/input/event0"},
-    {4, "/dev/input/event4"},
-    {6, "/dev/input/event6"}
-};
+static evt_data_t evt;
 
-fb_data_t* fb;
-evt_data_t* evt;
+static fb_data_t fb_slave[PNL_NUM-1];
+
+static int mode = MONO_AP;
+static int matched = 0;
 
 struct option long_opts[] = {
     {"master",              1, 0,   'p'},
@@ -151,11 +145,163 @@ void send_ipc(tm_cmd_t* cmd)
        printf("send ipc error\n");
 }
 
+int select_fb(int ap)
+{
+    if (ap == 6)
+        return PNL2_FB_NUM;
+    else if(ap == 4)
+        return PNL1_FB_NUM;
+    else
+        return PNL0_FB_NUM;
+}
+
+void init_fb_data(fb_data_t* fb_data)
+{
+    int i;
+    
+    memcpy(fb_data->dev, default_fb, sizeof(default_fb));
+    memcpy(fb_data->pan, default_pan, sizeof(default_pan));
+
+    for (i = 0; i < STR_NUM; i++)
+        memset(fb_data->str[i], 0, MAX_STR_LEN);
+}
+
+void set_fb_path(fb_data_t* fb_data, int ap)
+{
+    fb_data->fb_num = select_fb(ap);
+    fb_data->dev[FB_NUM_POS]= '0' + fb_data->fb_num;
+    fb_data->pan[PAN_NUM_POS]= '0' + fb_data->fb_num;
+}
+
+void set_mono_comment()
+{
+    int i = PNL_NUM - 1, j;
+
+    while(i)
+    {   
+        printf("set comment %d\n", i);
+        i--;
+        memcpy(fb_slave[i].str[0], "slave x", 7);
+        memcpy(fb_slave[i].str[1], "display panel x screen", 22);
+
+        fb_slave[i].str[0][6]  = fb_slave[i].pnl_id + '0';
+        fb_slave[i].str[1][14] = fb.pnl_id + '0';
+        
+        if( !matched && fb.pnl_arg== fb_slave[i].pnl_id) 
+            memcpy(fb_slave[i].str[2], "it's master", 11);
+        else  
+            memcpy(fb_slave[i].str[2], "-", 1);
+
+        for(j = 3; j < STR_NUM; j++)
+            memcpy(fb_slave[i].str[j], "-", 1);
+    }
+}
+
+void set_de_comment()
+{
+}
+
+void set_comment()
+{
+    switch(mode)
+    {
+        case MONO_AP:
+            set_mono_comment();
+            break;
+        case DE_AP:
+            set_de_comment();
+            break;
+        case TRI_AP:
+        case TETRA_AP:
+        case PENTA_AP:
+        case HEXA_AP:
+        case HEPTA_AP:
+        case OCTA_AP:
+        case NONA_AP:
+        case DECA_AP:
+        default:
+                break;
+    }
+}
+
+void set_fb()
+{ 
+    int i = PNL_NUM - 1;
+    int pnl = fb.pnl_arg;
+    int ap = fb.ap_arg[0];
+    
+    init_fb_data(&fb);
+    set_fb_path(&fb, ap);
+
+    while(i)
+    {
+        init_fb_data(&fb_slave[--i]);
+    }
+    
+    matched = (pnl == 0 && (ap >=0 && ap <=3)) || 
+              (pnl == 1 && ap == 4) || 
+              (pnl == 2 && ap == 6);
+    
+    fb.ap_id = ap;
+    fb.pnl_arg = pnl;
+
+    switch(fb.fb_num)
+    {
+        case PNL0_FB_NUM:
+            fb.pnl_id = 0;
+            fb_slave[i].pnl_id = 1;
+            set_fb_path(&fb_slave[i++], PNL1_DEFAULT_AP);
+            fb_slave[i].pnl_id = 2;
+            set_fb_path(&fb_slave[i++], PNL2_DEFAULT_AP);
+            set_comment();
+            break;
+        case PNL1_FB_NUM:
+            fb.pnl_id = 1;
+            fb_slave[i].pnl_id = 0;
+            set_fb_path(&fb_slave[i++], PNL0_DEFAULT_AP);
+            fb_slave[i].pnl_id = 2;
+            set_fb_path(&fb_slave[i++], PNL2_DEFAULT_AP);
+            set_comment();
+            break;
+        case PNL2_FB_NUM:
+            fb.pnl_id = 2;
+            fb_slave[i].pnl_id = 0;
+            set_fb_path(&fb_slave[i++], PNL0_DEFAULT_AP);
+            fb_slave[i].pnl_id = 1;
+            set_fb_path(&fb_slave[i++], PNL1_DEFAULT_AP);
+            set_comment();
+            break;
+        default:
+            return;
+    }
+
+    
+#if 0
+    open_slave_fb(&fb_slave[0]);
+    open_slave_fb(&fb_slave[1]);
+
+    refresh_slave_screen("slave0", &fb_slave[0]);
+    refresh_slave_screen("slave1", &fb_slave[1]);
+
+    close_slave_fb(&fb_slave[0]);
+    close_slave_fb(&fb_slave[1]);
+#endif
+}
+
+void set_evt()
+{
+    int ap = fb.ap_arg[0];
+    
+    memcpy(evt.dev, default_evt, sizeof(default_evt));
+    evt.num = ap;
+    evt.dev[EVT_NUM_POS] = '0' + evt.num;
+}
+
 int main(int argc, const char *argv[])
 { 
     tm_cmd_t cmd;
     char pnl=0x1F,ap=0x1F,i;
-    int opt_idx;
+    int fd, opt_idx;
     char *short_opts = "p:s:a:";
     int c;
 
@@ -167,9 +313,12 @@ int main(int argc, const char *argv[])
         {
             case 'a':
                 ap = optarg[0] - '0';
+                fb.ap_arg[0] = ap;
+                printf("set ap %d\n", ap);
                 break;
             case 'p':
                 pnl = optarg[0] - '0';
+                fb.pnl_arg = pnl;
                 break;
             case 's':
                 break;
@@ -187,88 +336,123 @@ int main(int argc, const char *argv[])
     signal(SIGSEGV, sig);
     signal(SIGINT, sig);
     signal(SIGTERM, sig);
+
+    set_fb();
+    set_evt();
     
-    open_ipc();
+    printf("open pan : %s\n",fb.pan);
+    printf("open fb  : %s\n",fb.dev);
+    printf("open evt : %s\n",evt.dev);
 
-    // set ap display
-    for (i = 0; i < 3; i++) 
+    // set fb position and draw
+    for (i = 0; i < PNL_NUM - 1; i++) 
     {
-        cmd.clear.hdr=0xa1;
-        cmd.clear.panel=i;
-        cmd.len=2;
-        send_ipc(&cmd);
-
-        cmd.append.hdr=0xa0;
-        cmd.append.panel=i;
-        cmd.append.pnl_start_pos_x=0;
-        cmd.append.pnl_start_pos_y=0;
-        cmd.append.pnl_width=100;
-        cmd.append.pnl_high=100;
-        cmd.append.ap=ap;
-        cmd.append.ap_start_pos_x=0;
-        cmd.append.ap_start_pos_y=0;
-        cmd.append.ap_width=100;
-        cmd.append.ap_high=100;
-        cmd.len=11;
-        send_ipc(&cmd);
+        if((fd=open(fb_slave[(int)i].pan, O_RDWR))>=0)
+        {
+            if (write(fd, "0,0", 3)<0) {
+                dbg_log("write pan error, pan : %s",fb_slave[(int)i].pan);
+            }
+            close(fd);
+        }
+        else
+        {
+            printf("open pan error\n");
+        }
+        ts_test(&fb_slave[(int)i], NULL);
     }
 
-    // set panel fb,event
-    fb  = &fb_data[(int)pnl];
-    evt = &evt_data[(int)pnl];
-
-    if(pnl < 3)
+    if((fd=open(fb.pan, O_RDWR))>=0)
     {
-        int fd;
-        char* arg="0,0";
-
-        fb=&fb_data[(int)pnl];
-        
-        if((fd=open(fb->pan, O_RDWR))<0)
-            printf("open pan error\n");
-
-        printf("write %s to %s\n",arg,fb->pan);
-
-        if (write(fd, arg, sizeof(arg))<0)  
+        if (write(fd, "0,0", 3)<0)  
             printf("write pan error\n");
 
         close(fd);
     }
-#if 0
-    char ts_test_cmd[64]={0};
-    char* ts_test_script="./tm_test.sh";
-    char* space_str=" ";
-    int done=0;
+    else
+    {
+        printf("open pan error\n");
+    }
 
+    pid_t pid = fork();
+    
+    if (pid == -1) 
+    {
+        printf("fork 1 error \n");
+    } 
+    else if (pid == 0) 
+    {
+         printf("fork 1\n");
+        ap=4;
+        evt.num = ap;
+        evt.dev[EVT_NUM_POS] = '0' + evt.num;
+        fb.fb_num = select_fb(ap);
+        fb.dev[FB_NUM_POS]= '0' + fb.fb_num;
+        fb.pan[PAN_NUM_POS]= '0' + fb.fb_num;
+        ts_test(&fb, &evt);
+        _exit(0);
+    }
 
-    memcpy(&ts_test_cmd[done], ts_test_script, strlen(ts_test_script));
-    done += strlen(ts_test_script);
+    pid = fork();
 
-    memcpy(&ts_test_cmd[done], " ", 1);
-    done++;
+    if (pid == -1) 
+    {
+        printf("fork 2 error \n");
+    } 
+    else if (pid == 0) 
+    {
+        printf("fork 2\n");
+        ap=6;
+        evt.num = ap;
+        evt.dev[EVT_NUM_POS] = '0' + evt.num;
+        fb.fb_num = select_fb(ap);
+        fb.dev[FB_NUM_POS]= '0' + fb.fb_num;
+        fb.pan[PAN_NUM_POS]= '0' + fb.fb_num;
+        ts_test(&fb, &evt);
+        _exit(0);
+    }
 
-    memcpy(&ts_test_cmd[done], fb->dev, strlen(fb->dev));
-    done += strlen(fb->dev);
-
-    memcpy(&ts_test_cmd[done], " ", 1);
-    done++;
-
-    memcpy(&ts_test_cmd[done], evt->dev, strlen(evt->dev));
-    done += strlen(evt->dev);
-
-    ts_test_cmd[done]=0x0;
-
-    system(ts_test_cmd); 
-#else
-    ts_test(fb, evt);
+#if 1    
+        open_ipc();
+    
+        // set ap display
+        for (i = 0; i < 3; i++) 
+        {
+            cmd.clear.hdr=0xa1;
+            cmd.clear.panel=i;
+            cmd.len=2;
+            send_ipc(&cmd);
+    
+            cmd.append.hdr=0xa0;
+            cmd.append.panel=i;
+            cmd.append.pnl_start_pos_x=0;
+            cmd.append.pnl_start_pos_y=0;
+            cmd.append.pnl_width=100;
+            cmd.append.pnl_high=100;
+            cmd.append.ap=ap;
+            cmd.append.ap_start_pos_x=0;
+            cmd.append.ap_start_pos_y=0;
+            cmd.append.ap_width=100;
+            cmd.append.ap_high=100;
+            cmd.len=11;
+           // send_ipc(&cmd);
+        }
 #endif
+
+
+    // start test
+    ap=0;
+    evt.num = ap;
+    evt.dev[EVT_NUM_POS] = '0' + evt.num;
+    fb.fb_num = select_fb(ap);
+    fb.dev[FB_NUM_POS]= '0' + fb.fb_num;
+    fb.pan[PAN_NUM_POS]= '0' + fb.fb_num;
+    ts_test(&fb, &evt);
 
     if(g_ipc.server)
     {
         qsi_close_channel(g_ipc.server);
         g_ipc.server = NULL;
     }
-
 
     return 0;
 }

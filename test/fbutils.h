@@ -25,6 +25,9 @@
 extern __u32 xres, yres;
 
 
+typedef struct _fb_slave fb_slave_t;
+
+
 __u32 get_slave_xres(int idx);
 __u32 get_slave_yres(int idx);
 
@@ -35,8 +38,12 @@ void put_cross(int x, int y, unsigned colidx);
 void put_string(int x, int y, char *s, unsigned colidx);
 void put_string_center(int x, int y, char *s, unsigned colidx);
 void pixel (int x, int y, unsigned colidx);
+
+void put_string_center_slave(int x, int y, char *s, unsigned colidx, fb_slave_t* sfb);
+void pixel_slave(int x, int y, unsigned colidx, fb_slave_t* s);
+
 void line (int x1, int y1, int x2, int y2, unsigned colidx);
 void rect (int x1, int y1, int x2, int y2, unsigned colidx);
 void fillrect (int x1, int y1, int x2, int y2, unsigned colidx);
-
+void refresh_slave_screen(char *s, void* fb);
 #endif /* _FBUTILS_H */

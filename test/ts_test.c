@@ -24,6 +24,8 @@
 #include "tslib.h"
 #include "fbutils.h"
 #include "tm_test.h"
+#include "../include/tm.h"
+
 
 extern fb_data_t fb_data[];
 extern evt_data_t evt_data[];
@@ -48,8 +50,8 @@ static int button_palette [6] =
 	1, 5, 0
 };
 
-#define NR_BUTTONS 5
 static struct ts_button buttons [NR_BUTTONS];
+
 static void button_draw (struct ts_button *button)
 {
 	int s = (button->flags & BUTTON_ACTIVE) ? 3 : 0;
@@ -82,6 +84,7 @@ static int button_handle (struct ts_button *button, struct ts_sample *samp)
 	} else if (button->flags & BUTTON_ACTIVE) {
 		button->flags &= ~BUTTON_ACTIVE;
 		button_draw (button);
+            dbg_log("");
                 return 1;
 	}
 
@@ -91,10 +94,17 @@ static int button_handle (struct ts_button *button, struct ts_sample *samp)
 static void refresh_screen ()
 {
 	int i;
+    
+    char substr[]="tm-daemon version : ";
+    char str[32]={0};
+
+    memcpy(str, substr, sizeof(substr));
+    //memcpy(&str[sizeof(substr)], TM_VERSION, sizeof(TM_VERSION));
+    memcpy(&str[20], TM_VERSION, sizeof(TM_VERSION));
 
 	fillrect (0, 0, xres - 1, yres - 1, 0);
-	put_string_center (xres/2, yres/4,   "tm-daemon test program", 1);
-	put_string_center (xres/2, yres/4+20,"Touch screen to move crosshair", 2);
+	put_string_center (xres/2, yres/3,   "test program", 1);
+	put_string_center (xres/2, yres/3+20, str, 2);
 
 	for (i = 0; i < NR_BUTTONS; i++)
 		button_draw (&buttons [i]);
@@ -103,22 +113,31 @@ static void refresh_screen ()
 int ts_test(fb_data_t* fb, evt_data_t* evt)
 {
 	struct tsdev *ts;
-	int x, y;
+	int x, y, pos_y;
 	unsigned int i;
 	unsigned int mode = 0;
+        int loop = 1;
 
-	ts = ts_open (evt->dev, 0);
+        if (evt)
+        {
+            printf("%s\n",evt->dev);
 
-	if (!ts) {
-		perror (evt->dev);
-		exit(1);
-	}
-        printf("open evt : %s\n",evt->dev);
+            ts = ts_open (evt->dev, 0);
 
-	if (ts_config(ts)) {
-		perror("ts_config");
-		exit(1);
-	}
+            if (!ts) {
+                    perror (evt->dev);
+                    exit(1);
+            }
+
+            if (ts_config(ts)) {
+                    perror("ts_config");
+                    exit(1);
+            }
+        }
+        else
+        {
+            loop = 0;
+        }
 
 	if (open_framebuffer(fb)) {
 		close_framebuffer();
@@ -133,40 +152,67 @@ int ts_test(fb_data_t* fb, evt_data_t* evt)
 
 	/* Initialize buttons */
 	memset (&buttons, 0, sizeof (buttons));
-	buttons [0].w = buttons [1].w = xres / 4;
-	buttons [2].w = buttons [3].w = buttons [4].w = xres / 6;
-	buttons [0].h = buttons [1].h = 20;
-        buttons [2].h = buttons [3].h = buttons [4].h = 20;
 
-	buttons [0].x = xres / 4 - buttons [0].w / 2;
-	buttons [1].x = (3 * xres) / 4 - buttons [0].w / 2;
-        buttons [2].x = buttons [0].x; 
-        buttons [3].x = xres / 2 - buttons [2].w / 2; 
-	buttons [4].x = (7 * xres) / 8 - buttons [2].w;
+    for (i = 0; i < NR_BUTTONS; i++)
+    {
+		buttons [i].w = xres / 4;
+        buttons [i].h = 20;
+    }
+    
+    buttons [2].w = xres / 6;
 
+
+	buttons [0].x = xres / 4 - buttons [0].w / 2 - 20;
+	buttons [1].x = (3 * xres) / 4 - buttons [0].w / 2 + 20;
+    buttons [2].x = xres / 2 - buttons [2].w / 2; 
+    buttons [3].x = buttons [0].x;
+
+    for (i = 4; i < NR_BUTTONS; i++)
+        buttons [i].x = buttons [1].x;
+    
 	buttons [0].y = buttons [1].y = 10;
-	buttons [2].y = buttons [3].y = buttons [4].y = 40;
+    buttons [2].y = 40;
+	buttons [3].y = buttons [4].y = 70;
+
+    for (i = 5, pos_y = 100; i < NR_BUTTONS; i++, pos_y += 30)
+        buttons [i].y = pos_y;
 	
 	buttons [0].text = "Drag";
 	buttons [1].text = "Draw";
-	buttons [2].text = evt->dev;
-	buttons [3].text = "";
-	buttons [4].text = fb->dev;
-
-
-
+	
+	if(loop)
+    {
+        buttons [2].text = "master";
+        buttons [3].text = evt->dev;
+        buttons [4].text = fb->dev;
+        buttons [5].text = " ";
+        buttons [6].text = " ";
+        buttons [7].text = " ";
+        buttons [8].text = " ";
+    }
+    else
+    {
+        printf("panel id   : %d\n",fb->pnl_id);
+        for (i = 2; i < NR_BUTTONS; i++)
+        {
+            buttons [i].text = fb->str[i-2];
+            printf("slave str %d : %s\n", i-2, buttons [i].text);
+        }
+    }
 
 
         
 	refresh_screen ();
 
-	while (1) {
+	while (loop) {
 		struct ts_sample samp;
 		int ret;
 
 		/* Show the cross */
 		if ((mode & 15) != 1)
 			put_cross(x, y, 2 | XORMODE);
+
+        printf("read %s\n",evt->dev);
 
 		ret = ts_read(ts, &samp, 1);
 
@@ -207,6 +253,8 @@ int ts_test(fb_data_t* fb, evt_data_t* evt)
 			mode |= 0x80000000;
 		} else
 			mode &= ~0x80000000;
+
 	}
 	close_framebuffer();
+    return 0;
 }
