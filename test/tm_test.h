@@ -15,20 +15,19 @@
 
 #define PNL_NUM     (3)
 
-#define PNL0_FB_NUM (0)
-#define PNL1_FB_NUM (4)
-#define PNL2_FB_NUM (9)
-#define PNL0_DEFAULT_AP (0)
-#define PNL1_DEFAULT_AP (4)
-#define PNL2_DEFAULT_AP (6)
-
-#define MAX_STR_LEN (32)
-#define NR_BUTTONS  (9)
-#define STR_NUM     (NR_BUTTONS - 2)
+#define PNL0_FB_NUM      (0)
+#define PNL1_FB_NUM      (4)
+#define PNL2_FB_NUM      (9)
+#define PNL0_DEFAULT_AP  (0)
+#define PNL1_DEFAULT_AP  (4)
+#define PNL2_DEFAULT_AP  (6)
+#define PNL0_DEFAULT_EVT (0)
+#define PNL1_DEFAULT_EVT (4)
+#define PNL2_DEFAULT_EVT (6)
 
 enum test_mode
 {
-    MONO_AP,
+    MONO_AP = 0,
     DE_AP,
     TRI_AP,
     TETRA_AP,
@@ -42,17 +41,18 @@ enum test_mode
     MAX_AP_NUM
 };
 
+#define MAX_STR_LEN (32)
+#define NR_BUTTONS  (MAX_AP_NUM + 3)
+#define STR_NUM     (MAX_AP_NUM + 1)
+
 
 typedef struct _fb_data fb_data_t;
 typedef struct _evt_data evt_data_t;
 
 struct _fb_data{
-    int   fb_num;
+    int   fb_id;
     int   pnl_id;
     int   ap_id;
-    int   pnl_arg;
-    int   ap_arg[MAX_AP_NUM];
-    fb_data_t* m;
     char  dev[FB_LEN];
     char  pan[PAN_LEN];
     char  str[STR_NUM][MAX_STR_LEN];
@@ -60,6 +60,7 @@ struct _fb_data{
 
 struct _evt_data{
     int   num;
+    int   act;
     char  dev[EVT_LEN];
     char  calibrate;
 };
@@ -74,8 +75,7 @@ do {                                                                     \
 
 
 int ts_test(fb_data_t* fb, evt_data_t* evt);
+void set_button_num(int num);
 int open_framebuffer(fb_data_t* fb);
-int open_slave_fb(fb_data_t* fb);
-void close_slave_fb(fb_data_t* fb);
 
 #endif

@@ -230,7 +230,7 @@ void tm_set_map(unsigned int len, unsigned char *msg)
         q_free(dis);
         return;
     }
-
+    
     tm_fill_up_fb_conf(&dis->from, dis->ap->native_size);
     tm_fill_up_fb_conf(&dis->to, panel->native_size);
 

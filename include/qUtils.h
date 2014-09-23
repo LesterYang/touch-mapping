@@ -16,7 +16,7 @@
 #define Q_DBG_ENABLE    (0x71)
 
 #define Q_DBG_POINT Q_DBG_DISABLE
-#define Q_DBG_MAP   Q_DBG_ENABLE
+#define Q_DBG_MAP   Q_DBG_DISABLE
 #define Q_DBG_CONF  Q_DBG_DISABLE
 
 #define dbg_level Q_INFO
@@ -64,9 +64,9 @@ typedef int q_bool;
         }                                                                       \
         else if( lv!=Q_DBG_DISABLE && lv >= dbg_level )                         \
         {                                                                       \
-            printf("tm-daemon : ");                                             \
-            printf(expr,  ##__VA_ARGS__);                                       \
-            printf("\n");                                                       \
+            fprintf(stderr, "tm-daemon : ");                                             \
+            fprintf(stderr, expr,  ##__VA_ARGS__);                                       \
+            fprintf(stderr, "\n");                                                       \
         }                                                                       \
     } while (0)
 

@@ -18,21 +18,62 @@
 #include "fbutils.h"
 #include <qsi_ipc_client_lib.h>
 
-// depend on panel[0-2] <-> kernel setting
-static fb_data_t fb;
-// depend on panel[0-2] <-> ap setting
-static evt_data_t evt;
+struct test_conf{
+    int pnl;
+    int fb;
+    int ap;
+    int evt;
+};
 
-static fb_data_t fb_slave[PNL_NUM-1];
+struct pos_conf{
+    int pos_x;
+    int pos_y;
+    int width;
+    int high;
+};
 
-static int mode = MONO_AP;
-static int matched = 0;
+struct test_data{
+    fb_data_t  fb[PNL_NUM];
+    evt_data_t evt[PNL_NUM];
+    int   pnl_arg;
+    int   ap_arg[MAX_AP_NUM];
+    int   ap_num;
+    int   mode;
+    int   split;
+};
+
+static struct test_data ttm;
+
+struct test_conf tconf[] = {
+    {0, PNL0_FB_NUM, PNL0_DEFAULT_AP, PNL0_DEFAULT_EVT},
+    {1, PNL1_FB_NUM, PNL1_DEFAULT_AP, PNL1_DEFAULT_EVT},
+    {2, PNL2_FB_NUM, PNL2_DEFAULT_AP, PNL2_DEFAULT_EVT},
+};
 
 struct option long_opts[] = {
     {"master",              1, 0,   'p'},
-    {"slave",               1, 0,   's'},
+    {"split",               0, 0,   's'},
     {"ap",                  1, 0,   'a'},
     {0,                     0, 0,   0}
+};
+
+struct pos_conf mono_conf[MAX_AP_NUM] = {
+    {0,   0, 100, 100}
+};
+struct pos_conf de_conf[MAX_AP_NUM] = {
+    {0,   0,  50, 100},
+    {50,  0,  50, 100}
+};
+struct pos_conf tri_conf[MAX_AP_NUM] = {
+    {0,   0,  33, 100},
+    {33,  0,  34, 100},
+    {37,  0,  33, 100}
+};
+struct pos_conf tetra_conf[MAX_AP_NUM] = {
+    {0,   0,  50, 50},
+    {50,  0,  50, 50},
+    {0,  50,  50, 50},
+    {50, 50,  50, 50}
 };
 
 struct ipc_data{
@@ -84,7 +125,6 @@ static void sig(int sig)
     _exit(1);
 }
 
-
 void recv_event(const char *from, unsigned int len, unsigned char *msg)
 {
     printf("recv len %d, from %s\n", len, from);
@@ -130,7 +170,7 @@ void tm_close_ipc()
 
 void send_ipc(tm_cmd_t* cmd)
 {       
-#if 0
+#if 1
   int i;
   printf("send ipc ");
   for (i = 0; i < cmd->len; i++) {
@@ -145,6 +185,19 @@ void send_ipc(tm_cmd_t* cmd)
        printf("send ipc error\n");
 }
 
+int get_fb(int pnl)
+{
+    return tconf[pnl].fb;
+}
+int get_default_ap(int pnl)
+{
+    return tconf[pnl].ap;
+}
+int get_default_evt(int pnl)
+{
+    return tconf[pnl].evt;
+}
+
 int select_fb(int ap)
 {
     if (ap == 6)
@@ -155,155 +208,170 @@ int select_fb(int ap)
         return PNL0_FB_NUM;
 }
 
-void init_fb_data(fb_data_t* fb_data)
+int select_pnl(int ap)
 {
-    int i;
-    
-    memcpy(fb_data->dev, default_fb, sizeof(default_fb));
-    memcpy(fb_data->pan, default_pan, sizeof(default_pan));
-
-    for (i = 0; i < STR_NUM; i++)
-        memset(fb_data->str[i], 0, MAX_STR_LEN);
-}
-
-void set_fb_path(fb_data_t* fb_data, int ap)
-{
-    fb_data->fb_num = select_fb(ap);
-    fb_data->dev[FB_NUM_POS]= '0' + fb_data->fb_num;
-    fb_data->pan[PAN_NUM_POS]= '0' + fb_data->fb_num;
-}
-
-void set_mono_comment()
-{
-    int i = PNL_NUM - 1, j;
-
-    while(i)
-    {   
-        printf("set comment %d\n", i);
-        i--;
-        memcpy(fb_slave[i].str[0], "slave x", 7);
-        memcpy(fb_slave[i].str[1], "display panel x screen", 22);
-
-        fb_slave[i].str[0][6]  = fb_slave[i].pnl_id + '0';
-        fb_slave[i].str[1][14] = fb.pnl_id + '0';
-        
-        if( !matched && fb.pnl_arg== fb_slave[i].pnl_id) 
-            memcpy(fb_slave[i].str[2], "it's master", 11);
-        else  
-            memcpy(fb_slave[i].str[2], "-", 1);
-
-        for(j = 3; j < STR_NUM; j++)
-            memcpy(fb_slave[i].str[j], "-", 1);
-    }
-}
-
-void set_de_comment()
-{
+    if (ap == 6)
+        return 2;
+    else if(ap == 4)
+        return 1;
+    else
+        return 0;
 }
 
 void set_comment()
 {
-    switch(mode)
+    int i,j;
+
+    for(i=0; i<PNL_NUM; i++)
+    {   
+        if(i == ttm.pnl_arg)
+        {
+            memcpy(ttm.fb[i].str[0], "master", 6);
+            
+            for(j=1; j<STR_NUM; j++)
+            {
+                if(j < ttm.ap_num + 1)
+                {
+                    int p;
+                    sprintf(ttm.fb[i].str[j], "ap %d", ttm.ap_arg[j-1]);
+                    if ((p = select_pnl(ttm.ap_arg[j-1])) != ttm.pnl_arg)
+                    {
+                        int pos = strlen(ttm.fb[i].str[j]);
+                        sprintf(&ttm.fb[i].str[j][pos], "(see panel %d)", p);
+                    }
+                }
+                else
+                    memcpy(ttm.fb[i].str[j], " ", 1);
+            }
+        }
+        else
+        {
+            sprintf(ttm.fb[i].str[0], "watch panel %d", ttm.pnl_arg);
+            for(j=1; j<STR_NUM; j++)
+                    memcpy(ttm.fb[i].str[j], " ", 1);
+        }
+    }
+}
+
+void init_fb(fb_data_t* fb, int pnl)
+{
+    int i;
+    
+    memcpy(fb->dev, default_fb, sizeof(default_fb));
+    memcpy(fb->pan, default_pan, sizeof(default_pan));
+
+    for (i = 0; i < STR_NUM; i++)
+        memset(fb->str[i], 0, MAX_STR_LEN);
+
+    fb->fb_id = get_fb(pnl);
+    fb->dev[FB_NUM_POS]= '0' + fb->fb_id;
+    fb->pan[PAN_NUM_POS]= '0' + fb->fb_id;
+}
+
+
+void init_evt(evt_data_t *evt, int pnl)
+{
+    memcpy(evt->dev, default_evt, sizeof(default_evt));
+
+    evt->act = 0;
+    evt->num = get_default_ap(pnl);
+    evt->dev[EVT_NUM_POS] = '0' + evt->num;
+}
+
+void set_ttm()
+{
+    int i;
+    for(i=0; i<PNL_NUM; i++)
     {
-        case MONO_AP:
-            set_mono_comment();
-            break;
-        case DE_AP:
-            set_de_comment();
-            break;
-        case TRI_AP:
-        case TETRA_AP:
+        init_evt(&ttm.evt[i], i);
+        init_fb(&ttm.fb[i], i);
+    }
+
+    for(i=0; i<ttm.ap_num; i++)
+        ttm.evt[select_pnl(ttm.ap_arg[i])].act = 1;
+}
+
+void set_pnl_append_cmd(cmd_append_t* a, int idx)
+{
+    //struct pos_conf (*pconf)[10] = NULL;
+    void * pconf = NULL;
+
+    if(idx > ttm.mode)
+        return;
+        
+    switch(ttm.mode)
+    {
+        case MONO_AP:   pconf = &mono_conf;     break;
+        case DE_AP:     pconf = &de_conf;       break;
+        case TRI_AP:    pconf = &tri_conf;      break;
+        case TETRA_AP:  pconf = &tetra_conf;    break;
         case PENTA_AP:
         case HEXA_AP:
-        case HEPTA_AP:
+        case HEPTA_AP:;
         case OCTA_AP:
         case NONA_AP:
         case DECA_AP:
-        default:
-                break;
+        default:        break;
     }
+    
+    if(!pconf)
+        return;
+
+    a->pnl_start_pos_x = ((struct pos_conf (*)[MAX_AP_NUM])pconf)[idx]->pos_x;
+    a->pnl_start_pos_y = ((struct pos_conf (*)[MAX_AP_NUM])pconf)[idx]->pos_y;
+    a->pnl_width       = ((struct pos_conf (*)[MAX_AP_NUM])pconf)[idx]->width;
+    a->pnl_high        = ((struct pos_conf (*)[MAX_AP_NUM])pconf)[idx]->high;           
 }
 
-void set_fb()
-{ 
-    int i = PNL_NUM - 1;
-    int pnl = fb.pnl_arg;
-    int ap = fb.ap_arg[0];
-    
-    init_fb_data(&fb);
-    set_fb_path(&fb, ap);
-
-    while(i)
-    {
-        init_fb_data(&fb_slave[--i]);
-    }
-    
-    matched = (pnl == 0 && (ap >=0 && ap <=3)) || 
-              (pnl == 1 && ap == 4) || 
-              (pnl == 2 && ap == 6);
-    
-    fb.ap_id = ap;
-    fb.pnl_arg = pnl;
-
-    switch(fb.fb_num)
-    {
-        case PNL0_FB_NUM:
-            fb.pnl_id = 0;
-            fb_slave[i].pnl_id = 1;
-            set_fb_path(&fb_slave[i++], PNL1_DEFAULT_AP);
-            fb_slave[i].pnl_id = 2;
-            set_fb_path(&fb_slave[i++], PNL2_DEFAULT_AP);
-            set_comment();
-            break;
-        case PNL1_FB_NUM:
-            fb.pnl_id = 1;
-            fb_slave[i].pnl_id = 0;
-            set_fb_path(&fb_slave[i++], PNL0_DEFAULT_AP);
-            fb_slave[i].pnl_id = 2;
-            set_fb_path(&fb_slave[i++], PNL2_DEFAULT_AP);
-            set_comment();
-            break;
-        case PNL2_FB_NUM:
-            fb.pnl_id = 2;
-            fb_slave[i].pnl_id = 0;
-            set_fb_path(&fb_slave[i++], PNL0_DEFAULT_AP);
-            fb_slave[i].pnl_id = 1;
-            set_fb_path(&fb_slave[i++], PNL1_DEFAULT_AP);
-            set_comment();
-            break;
-        default:
-            return;
-    }
-
-    
-#if 0
-    open_slave_fb(&fb_slave[0]);
-    open_slave_fb(&fb_slave[1]);
-
-    refresh_slave_screen("slave0", &fb_slave[0]);
-    refresh_slave_screen("slave1", &fb_slave[1]);
-
-    close_slave_fb(&fb_slave[0]);
-    close_slave_fb(&fb_slave[1]);
-#endif
-}
-
-void set_evt()
+void set_ap_append_cmd(cmd_append_t* a, int idx)
 {
-    int ap = fb.ap_arg[0];
+    if(!ttm.split)
+    {
+        a->ap_start_pos_x=0;
+        a->ap_start_pos_y=0;
+        a->ap_width=100;
+        a->ap_high=100;
+        return;
+    }
     
-    memcpy(evt.dev, default_evt, sizeof(default_evt));
-    evt.num = ap;
-    evt.dev[EVT_NUM_POS] = '0' + evt.num;
+    //struct pos_conf (*pconf)[MAX_AP_NUM] = NULL;
+    void * pconf = NULL;
+
+    if(idx > ttm.mode)
+        return;
+        
+    switch(ttm.mode)
+    {
+        case MONO_AP:   pconf = &mono_conf;     break;
+        case DE_AP:     pconf = &de_conf;       break;
+        case TRI_AP:    pconf = &tri_conf;      break;
+        case TETRA_AP:  pconf = &tetra_conf;    break;
+        case PENTA_AP:
+        case HEXA_AP:
+        case HEPTA_AP:;
+        case OCTA_AP:
+        case NONA_AP:
+        case DECA_AP:
+        default:        break;
+    }
+    
+    if(!pconf)
+        return;
+
+    a->ap_start_pos_x = ((struct pos_conf [MAX_AP_NUM])*pconf)[idx]->pos_x;
+    a->ap_start_pos_y = ((struct pos_conf [MAX_AP_NUM])*pconf)[idx]->pos_y;
+    a->ap_width       = ((struct pos_conf [MAX_AP_NUM])*pconf)[idx]->width;
+    a->ap_high        = ((struct pos_conf [MAX_AP_NUM])*pconf)[idx]->high;   
+
 }
 
 int main(int argc, const char *argv[])
 { 
     tm_cmd_t cmd;
-    char pnl=0x1F,ap=0x1F,i;
-    int fd, opt_idx;
-    char *short_opts = "p:s:a:";
-    int c;
+    char i;
+    int fd, opt_idx, c;
+    char *short_opts = "p:sa:";
+    pid_t pid;
 
     memset((char*)&cmd, 0, sizeof(cmd));
 
@@ -312,24 +380,29 @@ int main(int argc, const char *argv[])
         switch(c)
         {
             case 'a':
-                ap = optarg[0] - '0';
-                fb.ap_arg[0] = ap;
-                printf("set ap %d\n", ap);
+                ttm.ap_arg[ttm.ap_num] = optarg[0] - '0';
+                ttm.ap_num++;
                 break;
             case 'p':
-                pnl = optarg[0] - '0';
-                fb.pnl_arg = pnl;
+                ttm.pnl_arg = optarg[0] - '0';
                 break;
             case 's':
+                ttm.split = 1;
                 break;
             default:
                 break;
         }
     }
 
-    if(pnl==0x1F || ap==0x1F)
+    if(ttm.pnl_arg < 0 || ttm.pnl_arg > PNL_NUM)
     {
-        printf("error : need to set panel and ap number\n");
+        printf("set panel error\n");
+        return 0;
+    }    
+
+    if(!ttm.ap_num)
+    {
+        printf("no ap id\n");
         return 0;
     }
 
@@ -337,20 +410,22 @@ int main(int argc, const char *argv[])
     signal(SIGINT, sig);
     signal(SIGTERM, sig);
 
-    set_fb();
-    set_evt();
-    
-    printf("open pan : %s\n",fb.pan);
-    printf("open fb  : %s\n",fb.dev);
-    printf("open evt : %s\n",evt.dev);
+    ttm.mode =  ttm.ap_num - 1;
 
-    // set fb position and draw
-    for (i = 0; i < PNL_NUM - 1; i++) 
+    set_ttm();
+    set_button_num(ttm.ap_num + 3);
+    set_comment();
+
+    // set fb position
+    for (i = 0; i < PNL_NUM; i++) 
     {
-        if((fd=open(fb_slave[(int)i].pan, O_RDWR))>=0)
+        printf("panel %d pan : %s\n",i,ttm.fb[(int)i].pan);
+        printf("panel %d fb  : %s\n",i,ttm.fb[(int)i].dev);
+        printf("panel %d evt : %s\n",i,ttm.evt[(int)i].dev);
+        if((fd=open(ttm.fb[(int)i].pan, O_RDWR))>=0)
         {
             if (write(fd, "0,0", 3)<0) {
-                dbg_log("write pan error, pan : %s",fb_slave[(int)i].pan);
+                dbg_log("write pan error, pan : %s",ttm.fb[(int)i].pan);
             }
             close(fd);
         }
@@ -358,95 +433,45 @@ int main(int argc, const char *argv[])
         {
             printf("open pan error\n");
         }
-        ts_test(&fb_slave[(int)i], NULL);
-    }
-
-    if((fd=open(fb.pan, O_RDWR))>=0)
-    {
-        if (write(fd, "0,0", 3)<0)  
-            printf("write pan error\n");
-
-        close(fd);
-    }
-    else
-    {
-        printf("open pan error\n");
-    }
-
-    pid_t pid = fork();
-    
-    if (pid == -1) 
-    {
-        printf("fork 1 error \n");
-    } 
-    else if (pid == 0) 
-    {
-         printf("fork 1\n");
-        ap=4;
-        evt.num = ap;
-        evt.dev[EVT_NUM_POS] = '0' + evt.num;
-        fb.fb_num = select_fb(ap);
-        fb.dev[FB_NUM_POS]= '0' + fb.fb_num;
-        fb.pan[PAN_NUM_POS]= '0' + fb.fb_num;
-        ts_test(&fb, &evt);
-        _exit(0);
-    }
-
-    pid = fork();
-
-    if (pid == -1) 
-    {
-        printf("fork 2 error \n");
-    } 
-    else if (pid == 0) 
-    {
-        printf("fork 2\n");
-        ap=6;
-        evt.num = ap;
-        evt.dev[EVT_NUM_POS] = '0' + evt.num;
-        fb.fb_num = select_fb(ap);
-        fb.dev[FB_NUM_POS]= '0' + fb.fb_num;
-        fb.pan[PAN_NUM_POS]= '0' + fb.fb_num;
-        ts_test(&fb, &evt);
-        _exit(0);
-    }
-
-#if 1    
-        open_ipc();
-    
-        // set ap display
-        for (i = 0; i < 3; i++) 
+#if 1      
+        pid = fork();
+        if (pid == -1) 
         {
-            cmd.clear.hdr=0xa1;
-            cmd.clear.panel=i;
-            cmd.len=2;
-            send_ipc(&cmd);
-    
-            cmd.append.hdr=0xa0;
-            cmd.append.panel=i;
-            cmd.append.pnl_start_pos_x=0;
-            cmd.append.pnl_start_pos_y=0;
-            cmd.append.pnl_width=100;
-            cmd.append.pnl_high=100;
-            cmd.append.ap=ap;
-            cmd.append.ap_start_pos_x=0;
-            cmd.append.ap_start_pos_y=0;
-            cmd.append.ap_width=100;
-            cmd.append.ap_high=100;
-            cmd.len=11;
-           // send_ipc(&cmd);
+            printf("fork %d error \n", i);
+        }
+        else if (pid == 0)
+        {
+            ts_test(&ttm.fb[(int)i], &ttm.evt[(int)i]);
+            _exit(0);
         }
 #endif
+    }
+  
+    open_ipc();
 
+    // set ap display
+    for (i = 0; i < 3; i++) 
+    {
+        cmd.clear.hdr=0xa1;
+        cmd.clear.panel=i;
+        cmd.len=2;
+        
+        send_ipc(&cmd);
+  
+        for(int j=0; j<ttm.ap_num; j++)
+        {
+            cmd.append.hdr=0xa0;
+            cmd.append.panel=i;
+            cmd.append.ap=ttm.ap_arg[j];
 
-    // start test
-    ap=0;
-    evt.num = ap;
-    evt.dev[EVT_NUM_POS] = '0' + evt.num;
-    fb.fb_num = select_fb(ap);
-    fb.dev[FB_NUM_POS]= '0' + fb.fb_num;
-    fb.pan[PAN_NUM_POS]= '0' + fb.fb_num;
-    ts_test(&fb, &evt);
+            set_pnl_append_cmd(&cmd.append, j);
+            set_ap_append_cmd(&cmd.append, j);
+            
+            cmd.len=11;
+            
+            send_ipc(&cmd);
+        }
+    }
 
     if(g_ipc.server)
     {

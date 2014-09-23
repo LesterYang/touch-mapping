@@ -26,9 +26,6 @@
 #include "tm_test.h"
 #include "../include/tm.h"
 
-
-extern fb_data_t fb_data[];
-extern evt_data_t evt_data[];
  
 static int palette [] =
 {
@@ -51,6 +48,12 @@ static int button_palette [6] =
 };
 
 static struct ts_button buttons [NR_BUTTONS];
+static int button_num = 2;
+
+void set_button_num(int num)
+{
+    button_num = num;
+}
 
 static void button_draw (struct ts_button *button)
 {
@@ -103,41 +106,122 @@ static void refresh_screen ()
     memcpy(&str[20], TM_VERSION, sizeof(TM_VERSION));
 
 	fillrect (0, 0, xres - 1, yres - 1, 0);
-	put_string_center (xres/2, yres/3,   "test program", 1);
-	put_string_center (xres/2, yres/3+20, str, 2);
+	put_string_center (xres/2, yres/4,   "test program", 1);
+	put_string_center (xres/2, yres/4+20, str, 2);
 
-	for (i = 0; i < NR_BUTTONS; i++)
+	for (i = 0; i < button_num; i++)
 		button_draw (&buttons [i]);
 }
+
+void set_button(fb_data_t* fb)
+{
+    int i, pos_x[STR_NUM], pos_y[STR_NUM];
+    int mode = button_num - 4;
+    int w = xres / 4, h = 20;
+
+    /* Initialize buttons */
+    memset (&buttons, 0, sizeof (buttons));
+
+    /* set size and text */
+    buttons [0].w = buttons [1].w = w;
+    buttons [0].h = buttons [1].h = h;
+
+    buttons [0].text = "Drag";
+    buttons [1].text = "Draw";
+
+    for (i = 0; i < STR_NUM; i++)
+    {
+        buttons [i+2].w = w;
+        buttons [i+2].h = h;
+        buttons [i+2].text = fb->str[i];
+
+       
+    }
+    buttons [2].w = xres / 6 + 20;
+
+    /* set buttons position */
+    buttons [0].x = xres / 4 - w / 2 - 20;
+    buttons [1].x = (3 * xres) / 4 - w / 2 + 20;
+    buttons [0].y = buttons [1].y = 10;
+
+    pos_x[0] = xres / 2 - buttons [2].w / 2;
+    pos_y[0] = 40;
+
+    switch(mode)
+    {
+        case MONO_AP:
+            pos_x[1] = xres / 2 - w / 2;
+            pos_y[1] = yres / 2;
+            break;
+        case DE_AP:
+            pos_x[1] = xres / 4 - w / 2 - 20;
+            pos_y[1] = yres / 2 - h / 2;
+            pos_x[2] = (3 * xres) / 4 - w / 2 + 20;
+            pos_y[2] = yres / 2 - h / 2;
+            break;
+        case TRI_AP:
+            pos_x[1] = xres / 6 - w / 2;
+            pos_y[1] = yres / 2 - h / 2;
+            pos_x[2] = xres / 2 - w / 2;
+            pos_y[2] = yres / 2 - h / 2;
+            pos_x[3] = (5 * xres) / 6 - w / 2;
+            pos_y[3] = yres / 2 - h / 2;
+            break;
+        case TETRA_AP:
+            pos_x[1] = xres / 4 - w / 2 - 20;
+            pos_y[1] = yres / 4 - h / 2;
+            pos_x[2] = (3 * xres) / 4 - w / 2 + 20;
+            pos_y[2] = yres / 4 - h / 2;
+            pos_x[3] = xres / 4 - w / 2 - 20;
+            pos_y[3] = (3 * yres) / 4 - h / 2;
+            pos_x[4] = (3 * xres) / 4 - w / 2 + 20;
+            pos_y[4] = (3 * yres) / 4 - h / 2;
+            break;
+        case PENTA_AP:
+            break;
+        case HEXA_AP:
+            break;
+        case HEPTA_AP:
+            break;
+        case OCTA_AP:
+            break;
+        case NONA_AP:
+            break;
+        case DECA_AP:
+            break;
+        default:
+            break;
+    }
+
+    for (i = 0; i < STR_NUM; i++)
+    {
+        buttons [i+2].x = pos_x[i];
+        buttons [i+2].y = pos_y[i];  
+    } 
+}
+
 
 int ts_test(fb_data_t* fb, evt_data_t* evt)
 {
 	struct tsdev *ts;
-	int x, y, pos_y;
+	int x, y;
 	unsigned int i;
 	unsigned int mode = 0;
-        int loop = 1;
 
-        if (evt)
-        {
-            printf("%s\n",evt->dev);
+    if (evt->act)
+    {
+        ts = ts_open (evt->dev, 0);
 
-            ts = ts_open (evt->dev, 0);
-
-            if (!ts) {
-                    perror (evt->dev);
-                    exit(1);
-            }
-
-            if (ts_config(ts)) {
-                    perror("ts_config");
-                    exit(1);
-            }
+        if (!ts) {
+                perror (evt->dev);
+                exit(1);
         }
-        else
-        {
-            loop = 0;
+
+        if (ts_config(ts)) {
+                perror("ts_config");
+                exit(1);
         }
+    }
 
 	if (open_framebuffer(fb)) {
 		close_framebuffer();
@@ -150,61 +234,10 @@ int ts_test(fb_data_t* fb, evt_data_t* evt)
 	for (i = 0; i < NR_COLORS; i++)
 		setcolor (i, palette [i]);
 
-	/* Initialize buttons */
-	memset (&buttons, 0, sizeof (buttons));
-
-    for (i = 0; i < NR_BUTTONS; i++)
-    {
-		buttons [i].w = xres / 4;
-        buttons [i].h = 20;
-    }
-    
-    buttons [2].w = xres / 6;
-
-
-	buttons [0].x = xres / 4 - buttons [0].w / 2 - 20;
-	buttons [1].x = (3 * xres) / 4 - buttons [0].w / 2 + 20;
-    buttons [2].x = xres / 2 - buttons [2].w / 2; 
-    buttons [3].x = buttons [0].x;
-
-    for (i = 4; i < NR_BUTTONS; i++)
-        buttons [i].x = buttons [1].x;
-    
-	buttons [0].y = buttons [1].y = 10;
-    buttons [2].y = 40;
-	buttons [3].y = buttons [4].y = 70;
-
-    for (i = 5, pos_y = 100; i < NR_BUTTONS; i++, pos_y += 30)
-        buttons [i].y = pos_y;
-	
-	buttons [0].text = "Drag";
-	buttons [1].text = "Draw";
-	
-	if(loop)
-    {
-        buttons [2].text = "master";
-        buttons [3].text = evt->dev;
-        buttons [4].text = fb->dev;
-        buttons [5].text = " ";
-        buttons [6].text = " ";
-        buttons [7].text = " ";
-        buttons [8].text = " ";
-    }
-    else
-    {
-        printf("panel id   : %d\n",fb->pnl_id);
-        for (i = 2; i < NR_BUTTONS; i++)
-        {
-            buttons [i].text = fb->str[i-2];
-            printf("slave str %d : %s\n", i-2, buttons [i].text);
-        }
-    }
-
-
-        
+    set_button(fb);      
 	refresh_screen ();
 
-	while (loop) {
+	while (evt->act) {
 		struct ts_sample samp;
 		int ret;
 
@@ -229,7 +262,7 @@ int ts_test(fb_data_t* fb, evt_data_t* evt)
 		if (ret != 1)
 			continue;
 
-		for (i = 0; i < NR_BUTTONS; i++)
+		for (i = 0; i < button_num; i++)
 			if (button_handle (&buttons [i], &samp))
 				switch (i) {
 				case 0:
