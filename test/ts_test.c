@@ -87,7 +87,7 @@ static int button_handle (struct ts_button *button, struct ts_sample *samp)
 	} else if (button->flags & BUTTON_ACTIVE) {
 		button->flags &= ~BUTTON_ACTIVE;
 		button_draw (button);
-            dbg_log("");
+            dbg_log(" ");
                 return 1;
 	}
 
@@ -291,3 +291,4 @@ int ts_test(fb_data_t* fb, evt_data_t* evt)
 	close_framebuffer();
     return 0;
 }
+

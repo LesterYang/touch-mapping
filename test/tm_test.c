@@ -67,7 +67,7 @@ struct pos_conf de_conf[] = {
 struct pos_conf tri_conf[] = {
     {0,   0,  33, 100},
     {33,  0,  34, 100},
-    {37,  0,  33, 100}
+    {67,  0,  33, 100}
 };
 struct pos_conf tetra_conf[] = {
     {0,   0,  50, 50},
@@ -283,7 +283,23 @@ void set_ttm()
     }
 
     for(i=0; i<ttm.ap_num; i++)
-        ttm.evt[select_pnl(ttm.ap_arg[i])].act = 1;
+    {
+        int pnl = select_pnl(ttm.ap_arg[i]);
+        ttm.evt[pnl].act = 1;
+
+        // if panel supports multi-ap, replace default ap for ts_test
+        switch(pnl)
+        {   
+            case 0:
+                ttm.evt[0].num = ttm.ap_arg[i];
+                ttm.evt[0].dev[EVT_NUM_POS] = '0' + ttm.evt[0].num;
+                break;
+            case 1:
+            case 2:
+            default:
+                break;
+        }
+    }
 }
 
 void set_pnl_append_cmd(cmd_append_t* a, int idx)
