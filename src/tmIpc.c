@@ -26,7 +26,6 @@ typedef struct _tm_ipc_data{
         QSI_PROTOCOL_ST status;
         char *name;
         char debug;
-        char *line;
         char *target;
         unsigned char *msg;
         int  len;
@@ -82,18 +81,29 @@ void tm_close_ipc()
 
 void tm_recv_event(const char *from, unsigned int len, unsigned char *msg)
 {
-    // cmd, panel, st_x, st_y, w, h, ap, st_x, st_y, w, h
     q_dbg(Q_INFO,"recv len %d, from %s", len, from);
 
     switch(msg[0])
     {
         case IPC_CMD_SET_MAP:
+            // cmd, panel, st_x, st_y, w, h, ap, st_x, st_y, w, h
             tm_set_map(len-1, &msg[1]);
             break;
         case IPC_CMD_CLR_MAP:
             tm_clear_map(len-1, &msg[1]);
             break;
+        case IPC_CMD_GET_VER:
+            tm_return_version(len-1, (char*)from);
+            break;
         default:
             break;
     }
+}
+
+void tm_send_ipc(char *to, unsigned char *msg, int len)
+{
+    g_client.status = qsi_send_buffer(g_client.server, to, msg, len, IPC_NOACK);  
+    
+    if(g_client.status!=PROTOCOL_ACK_OK)
+        q_dbg(Q_INFO, "send to %s error", to);
 }

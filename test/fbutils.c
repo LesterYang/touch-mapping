@@ -115,33 +115,33 @@ int open_framebuffer(fb_data_t* fb)
 #endif
 	fb_fd = open(fb->dev, O_RDWR);
 	if (fb_fd == -1) {
-		perror("open fbdevice");
-        dbg_log("fb:%s",fb->dev);
-		return -1;
+            perror("open fbdevice");
+            dbg_log("fb:%s",fb->dev);
+            return -1;
 	}
 
 	if (ioctl(fb_fd, FBIOGET_FSCREENINFO, &fix) < 0) {
-		perror("ioctl FBIOGET_FSCREENINFO");
-        dbg_log(" ");
-		close(fb_fd);
-		return -1;
+            perror("ioctl FBIOGET_FSCREENINFO");
+            dbg_log(" ");
+            close(fb_fd);
+            return -1;
 	}
 
 	if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &var) < 0) {
-		perror("ioctl FBIOGET_VSCREENINFO");
-        dbg_log(" ");
-		close(fb_fd);
-		return -1;
+            perror("ioctl FBIOGET_VSCREENINFO");
+            dbg_log(" ");
+            close(fb_fd);
+            return -1;
 	}
 	xres = var.xres;
 	yres = var.yres;
 
 	fbuffer = mmap(NULL, fix.smem_len, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, fb_fd, 0);
 	if (fbuffer == (unsigned char *)-1) {
-		perror("mmap framebuffer");
-		close(fb_fd);
-        dbg_log(" ");
-		return -1;
+            perror("mmap framebuffer");
+            close(fb_fd);
+            dbg_log(" ");
+            return -1;
 	}
 	memset(fbuffer,0,fix.smem_len);
 

@@ -6,7 +6,7 @@
  *       Author : Lester Yang <lester.yang@qsitw.com>
  *  Description : tm-daemon manger
  */
- 
+ #include <string.h>
 #include "tm.h"
 #include "tmIpc.h"
 
@@ -174,6 +174,20 @@ void tm_bind_status(tm_status_t* status)
 {
     q_assert(status);
     tm.status = status;
+}
+
+void tm_return_version(unsigned int len, char* from)
+{
+    if(len != IPC_GET_VER_LEN)
+        return;
+    
+    int size = sizeof(TM_VERSION) + 1;
+    unsigned char *ver = (unsigned char*)q_malloc(size);
+
+    ver[0]=IPC_CMD_GET_VER;
+    memcpy(&ver[1], TM_VERSION, size-1);
+    tm_send_ipc(from, ver, (int)sizeof(TM_VERSION));
+    free(ver);
 }
 
 void tm_clear_map(unsigned int len, unsigned char *msg)

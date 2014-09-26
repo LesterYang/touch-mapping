@@ -9,10 +9,6 @@
 
 #define TM_VERSION "1.0"
 
-//#define TM_HDR_LEN    (2)
-//#define TM_HDR_0      (0xff)
-//#define TM_HDR_1      (0x55)
-
 #define __tm_list_add(head, new)                    \
 ({                                                  \
     new->next  = (head.next) ? head.next : NULL;    \
@@ -44,7 +40,7 @@ enum _tm_status{
     TM_STATUS_IPC_INIT,
     TM_STATUS_RUNNING,
     TM_STATUS_DEINIT,
-	TM_STATUS_REINIT,
+    TM_STATUS_REINIT,
     TM_STATUS_ERROR,
     TM_STATUS_EXIT
 };
@@ -142,6 +138,7 @@ void        tm_bind_status(tm_status_t* status);
 
 void        tm_set_map(unsigned int len, unsigned char *msg);
 void        tm_clear_map(unsigned int len, unsigned char *msg);
+void        tm_return_version(unsigned int len, char* from);
 
 tm_ap_info_t*       tm_mapping_get_ap_info(int id);
 tm_panel_info_t*    tm_mapping_get_panel_info(int id);

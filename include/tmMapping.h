@@ -7,9 +7,6 @@
 #include "qUtils.h"
 #include "tmError.h"
 
-//#define QSI_TM_CONF         "/mnt/hgfs/Win_7/workspace-cpp2/touch-mapping/qsi_tm.conf"
-//#define QSI_TM_CONF           "/root/script/qsi_tm.conf"
-//#define QSI_TM_CONF         "/home/lester/Git/touch-mapping/qsi_tm.conf"
 #define QSI_TM_CONF         "/etc/qsi_tm.conf"
 #define AP_CONF             "ap_info"
 #define PNL_CONF            "pnl_info"

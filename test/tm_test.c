@@ -18,6 +18,7 @@
 #include "fbutils.h"
 #include <qsi_ipc_client_lib.h>
 
+
 struct test_conf{
     int pnl;
     int fb;
@@ -40,6 +41,7 @@ struct test_data{
     int   ap_num;
     int   mode;
     int   split;
+    int   wait_ver;
 };
 
 static struct test_data ttm;
@@ -83,7 +85,12 @@ struct ipc_data{
         char *name;
 }g_ipc;
 
-typedef struct _cmd_append_t {
+typedef struct _cmd_general {
+    char hdr;
+    char raw_data[15];
+}cmd_general_t;
+
+typedef struct _cmd_append {
     char hdr;
     char panel;
     char pnl_start_pos_x;
@@ -97,15 +104,16 @@ typedef struct _cmd_append_t {
     char ap_high;
 } cmd_append_t;
 
-typedef struct _cmd_clear_t {
+typedef struct _cmd_clear {
     char hdr;
     char panel;
 } cmd_clear_t;
 
-typedef struct _tm_cmd_t {
+typedef struct _tm_cmd {
     char len;
     union{
         unsigned char   data[16];
+        cmd_general_t   general;
         cmd_append_t    append;
         cmd_clear_t     clear;
     };
@@ -122,9 +130,18 @@ static void sig(int sig)
 
 void recv_event(const char *from, unsigned int len, unsigned char *msg)
 {
-    printf("recv len %d, from %s\n", len, from);
-}
+//    printf("recv len %d, from %s\n", len, from);
+//
+//    for (int i = 0; i < len; i++) {
+//        printf("0x%2x ",msg[i]);
+//    }
+//    printf("\n");
 
+    if (msg[0] == 0xd0)
+    {
+        ttm.wait_ver=0;
+    }
+}
 int open_ipc()
 {
     int retry;
@@ -251,7 +268,7 @@ void set_comment()
 void init_fb(fb_data_t* fb, int pnl)
 {
     int i;
-    
+
     memcpy(fb->dev, default_fb, sizeof(default_fb));
     memcpy(fb->pan, default_pan, sizeof(default_pan));
 
@@ -441,7 +458,7 @@ int main(int argc, const char *argv[])
         {
             printf("open pan error\n");
         }
-#if 1      
+#if 0      
         pid = fork();
         if (pid == -1) 
         {
@@ -456,6 +473,14 @@ int main(int argc, const char *argv[])
     }
   
     open_ipc();
+
+    cmd.general.hdr=0xd0;
+    cmd.len=1;
+    ttm.wait_ver=1;
+    send_ipc(&cmd);
+
+    while(ttm.wait_ver)
+        sleep(1);
 
     // set ap display
     for (i = 0; i < 3; i++) 
