@@ -91,15 +91,19 @@ void q_free(void *p)
 
 char* q_strdup(const char *s)
 {
-    if (!s)
-        return NULL;
-    else {
-    	int l;
-    	l=strlen(s)+1;
-        char *r = (char*)q_calloc(l);
+    if (s)
+    {
+    	int l = strlen(s);
+
+    	if(s[l-1] == 0xa)
+            l = ( l>=2 && s[l-2] == 0xd) ? l-2 : l-1;
+        
+        char *r = (char*)q_calloc(l+1);
         memcpy(r, s, l);
         return r;
     }
+    else
+        return NULL;
 }
 
 char *q_strlcpy(char *b, const char *s, size_t l)

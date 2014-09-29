@@ -203,92 +203,92 @@ void set_button(fb_data_t* fb)
 
 int ts_test(fb_data_t* fb, evt_data_t* evt)
 {
-	struct tsdev *ts;
-	int x, y;
-	unsigned int i;
-	unsigned int mode = 0;
+    struct tsdev *ts;
+    int x, y;
+    unsigned int i;
+    unsigned int mode = 0;
 
     if (evt->act)
     {
         ts = ts_open (evt->dev, 0);
 
         if (!ts) {
-                perror (evt->dev);
-                exit(1);
+            perror (evt->dev);
+            exit(1);
         }
 
         if (ts_config(ts)) {
-                perror("ts_config");
-                exit(1);
+            perror("ts_config");
+            exit(1);
         }
     }
 
-	if (open_framebuffer(fb)) {
-		close_framebuffer();
-		exit(1);
-	}
+    if (open_framebuffer(fb)) {
+        close_framebuffer();
+        exit(1);
+    }
 
-	x = xres/2;
-	y = yres/2;
+    x = xres/2;
+    y = yres/2;
 
-	for (i = 0; i < NR_COLORS; i++)
-		setcolor (i, palette [i]);
+    for (i = 0; i < NR_COLORS; i++)
+        setcolor (i, palette [i]);
 
     set_button(fb);      
-	refresh_screen ();
+    refresh_screen ();
 
-	while (evt->act) {
-		struct ts_sample samp;
-		int ret;
+    while (evt->act) {
+        struct ts_sample samp;
+        int ret;
 
-		/* Show the cross */
-		if ((mode & 15) != 1)
-			put_cross(x, y, 2 | XORMODE);
+        /* Show the cross */
+        if ((mode & 15) != 1)
+            put_cross(x, y, 2 | XORMODE);
 
         printf("read %s\n",evt->dev);
 
-		ret = ts_read(ts, &samp, 1);
+        ret = ts_read(ts, &samp, 1);
 
-		/* Hide it */
-		if ((mode & 15) != 1)
-			put_cross(x, y, 2 | XORMODE);
+        /* Hide it */
+        if ((mode & 15) != 1)
+            put_cross(x, y, 2 | XORMODE);
 
-		if (ret < 0) {
-			perror("ts_read");
-			close_framebuffer();
-			exit(1);
-		}
+        if (ret < 0) {
+            perror("ts_read");
+            close_framebuffer();
+            exit(1);
+        }
 
-		if (ret != 1)
-			continue;
+        if (ret != 1)
+            continue;
 
-		for (i = 0; i < button_num; i++)
-			if (button_handle (&buttons [i], &samp))
-				switch (i) {
-				case 0:
-					mode = 0;
-					refresh_screen ();
-					break;
-				case 1:
-					mode = 1;
-					refresh_screen ();
-					break;
-				}
+        for (i = 0; i < button_num; i++)
+            if (button_handle (&buttons [i], &samp))
+                switch (i) {
+                    case 0:
+                        mode = 0;
+                        refresh_screen ();
+                        break;
+                    case 1:
+                        mode = 1;
+                        refresh_screen ();
+                        break;
+                }
 
-		printf("%ld.%06ld: %6d %6d %6d\n", samp.tv.tv_sec, samp.tv.tv_usec,
-			samp.x, samp.y, samp.pressure);
+        printf("%ld.%06ld: %6d %6d %6d\n", samp.tv.tv_sec, samp.tv.tv_usec,
+                samp.x, samp.y, samp.pressure);
 
-		if (samp.pressure > 0) {
-			if (mode == 0x80000001)
-				line (x, y, samp.x, samp.y, 2);
-			x = samp.x;
-			y = samp.y;
-			mode |= 0x80000000;
-		} else
-			mode &= ~0x80000000;
+        if (samp.pressure > 0) {
+            if (mode == 0x80000001)
+                line (x, y, samp.x, samp.y, 2);
+            x = samp.x;
+            y = samp.y;
+            mode |= 0x80000000;
+        } else
+            mode &= ~0x80000000;
 
-	}
-	close_framebuffer();
+    }
+    close_framebuffer();
     return 0;
 }
 

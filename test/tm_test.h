@@ -1,6 +1,8 @@
 #ifndef _TM_TEST_H
 #define _TM_TEST_H
 
+#define TM_TEST_VERSION "1.0"
+
 #define default_evt "/dev/input/event0"
 #define default_fb  "/dev/fb0"
 #define default_pan "/sys/class/graphics/fb0/pan"
@@ -24,6 +26,9 @@
 #define PNL0_DEFAULT_EVT (0)
 #define PNL1_DEFAULT_EVT (4)
 #define PNL2_DEFAULT_EVT (6)
+#define PNL0_ORG_EVT     (20)
+#define PNL1_ORG_EVT     (21)
+#define PNL2_ORG_EVT     (22)
 
 enum test_mode
 {
@@ -75,6 +80,7 @@ do {                                                                     \
 
 
 int ts_test(fb_data_t* fb, evt_data_t* evt);
+int ts_cal(fb_data_t* fb, char* evt_path);
 void set_button_num(int num);
 int open_framebuffer(fb_data_t* fb);
 

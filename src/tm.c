@@ -6,7 +6,7 @@
  *       Author : Lester Yang <lester.yang@qsitw.com>
  *  Description : tm-daemon manger
  */
- #include <string.h>
+#include <string.h>
 #include "tm.h"
 #include "tmIpc.h"
 
@@ -136,7 +136,7 @@ tm_errno_t tm_init()
     {
         q_dbg(Q_ERR,"tm_create : %s", tm_err_str(err_no));
         if(tm.mutex)
-        q_mutex_free(tm.mutex);
+            q_mutex_free(tm.mutex);
         return err_no;
     }
 

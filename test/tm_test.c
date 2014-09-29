@@ -24,6 +24,7 @@ struct test_conf{
     int fb;
     int ap;
     int evt;
+    int org_evt;
 };
 
 struct pos_conf{
@@ -42,20 +43,24 @@ struct test_data{
     int   mode;
     int   split;
     int   wait_ver;
+    int   calibrate;
 };
 
 static struct test_data ttm;
 
 struct test_conf tconf[] = {
-    {0, PNL0_FB_NUM, PNL0_DEFAULT_AP, PNL0_DEFAULT_EVT},
-    {1, PNL1_FB_NUM, PNL1_DEFAULT_AP, PNL1_DEFAULT_EVT},
-    {2, PNL2_FB_NUM, PNL2_DEFAULT_AP, PNL2_DEFAULT_EVT},
+    {0, PNL0_FB_NUM, PNL0_DEFAULT_AP, PNL0_DEFAULT_EVT, PNL0_ORG_EVT},
+    {1, PNL1_FB_NUM, PNL1_DEFAULT_AP, PNL1_DEFAULT_EVT, PNL1_ORG_EVT},
+    {2, PNL2_FB_NUM, PNL2_DEFAULT_AP, PNL2_DEFAULT_EVT, PNL2_ORG_EVT}
 };
 
 struct option long_opts[] = {
     {"master",              1, 0,   'p'},
     {"split",               0, 0,   's'},
     {"ap",                  1, 0,   'a'},
+    {"calibrate",           0, 0,   'c'},
+    {"help",                0, 0,   'h'},
+    {"version",             0, 0,   'v'},
     {0,                     0, 0,   0}
 };
 
@@ -118,6 +123,25 @@ typedef struct _tm_cmd {
         cmd_clear_t     clear;
     };
 } tm_cmd_t;
+
+void tm_test_usage()
+{
+    fprintf(stderr, "Usage: tm-test OPTION\n"
+                    "OPTION\n"
+                    "   -p  --master        panel which is set\n"
+                    "   -a  --ap            append application programs\n"
+                    "   -s  --split         split mode\n"
+                    "   -c  --calibrate     calibrateon\n"
+                    "   -h  --help          show usage\n"
+                    "   -v  --version       show version\n");
+    _exit(0);
+}
+
+void tm_test_version()
+{
+    fprintf(stderr,"tm-test version : %s\n",TM_TEST_VERSION);
+    _exit(0);
+}
 
 static void sig(int sig)
 {
@@ -209,6 +233,11 @@ int get_default_evt(int pnl)
 {
     return tconf[pnl].evt;
 }
+int get_org_evt(int pnl)
+{
+    return tconf[pnl].org_evt;
+}
+
 
 int select_fb(int ap)
 {
@@ -390,12 +419,60 @@ void set_ap_append_cmd(cmd_append_t* a, int idx)
     a->ap_high        = (*pconf)[idx].high;   
 }
 
+void tm_calibrate()
+{
+    int fd, i;
+    fb_data_t fb;
+    evt_data_t evt;
+
+    memset(&fb, 0, sizeof(fb_data_t));
+    memset(&evt, 0, sizeof(evt_data_t));
+
+    memcpy(fb.dev, default_fb, sizeof(default_fb));
+    memcpy(fb.pan, default_pan, sizeof(default_pan));
+    memcpy(evt.dev, default_evt, sizeof(default_evt));
+
+    for (i = 0; i < PNL_NUM; i++) 
+    {
+        fb.fb_id = get_fb(i);
+        fb.dev[FB_NUM_POS]= '0' + fb.fb_id;
+        fb.pan[PAN_NUM_POS]= '0' + fb.fb_id;
+        evt.num = get_org_evt(i);
+
+        if((evt.dev[EVT_NUM_POS] = evt.num/10))
+        {
+            evt.dev[EVT_NUM_POS] += '0';
+            evt.dev[EVT_NUM_POS+1] = '0' + evt.num%10;
+        }
+        else
+            evt.dev[EVT_NUM_POS] = '0' + evt.num;
+    
+        printf("calibrate %d pan : %s\n",i,fb.pan);
+        printf("calibrate %d fb  : %s\n",i,fb.dev);
+        printf("calibrate %d evt : %s\n",i,evt.dev);
+        
+        if((fd=open(fb.pan, O_RDWR))>=0)
+        {
+            if (write(fd, "0,0", 3)<0) {
+                dbg_log("write pan error, pan : %s",fb.pan);
+            }
+            close(fd);
+        }
+        else
+        {
+            printf("open pan error\n");
+        }
+        ts_cal(&fb, evt.dev);
+    }
+}
+
+
 int main(int argc, const char *argv[])
 { 
     tm_cmd_t cmd;
     char i;
     int fd, opt_idx, c;
-    char *short_opts = "p:sa:";
+    char *short_opts = "p:sa:chv";
     pid_t pid;
 
     memset((char*)&cmd, 0, sizeof(cmd));
@@ -408,21 +485,36 @@ int main(int argc, const char *argv[])
                 ttm.ap_arg[ttm.ap_num] = optarg[0] - '0';
                 ttm.ap_num++;
                 break;
+            case 'c':
+                ttm.calibrate = 1;
+                break;
             case 'p':
                 ttm.pnl_arg = optarg[0] - '0';
                 break;
             case 's':
                 ttm.split = 1;
                 break;
+            case 'h':
+                tm_test_usage();
+                break;
+            case 'v':
+                tm_test_version();
+                break;
             default:
                 break;
         }
     }
 
+    if(ttm.calibrate)
+    {
+        tm_calibrate();
+        return 0;
+    }
+
     if(ttm.pnl_arg < 0 || ttm.pnl_arg > PNL_NUM)
     {
         printf("set panel error\n");
-        return 0;
+        tm_test_usage();
     }    
 
     if(!ttm.ap_num)
@@ -458,7 +550,7 @@ int main(int argc, const char *argv[])
         {
             printf("open pan error\n");
         }
-#if 0      
+#if 1      
         pid = fork();
         if (pid == -1) 
         {
@@ -474,13 +566,13 @@ int main(int argc, const char *argv[])
   
     open_ipc();
 
-    cmd.general.hdr=0xd0;
-    cmd.len=1;
-    ttm.wait_ver=1;
-    send_ipc(&cmd);
-
-    while(ttm.wait_ver)
-        sleep(1);
+//    cmd.general.hdr=0xd0;
+//    cmd.len=1;
+//    ttm.wait_ver=1;
+//    send_ipc(&cmd);
+//
+//    while(ttm.wait_ver)
+//        sleep(1);
 
     // set ap display
     for (i = 0; i < 3; i++) 

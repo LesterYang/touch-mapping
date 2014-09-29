@@ -8,6 +8,11 @@
  */
  
 #include <string.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/fb.h>
 #include "tm.h"
 
 typedef struct _tm_handler
@@ -109,11 +114,11 @@ tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head)
     FILE *fr;
     char buf[BUF_SIZE];
     char *conf_file = NULL;
-    char *default_conf = QSI_TM_CONF;
+    char *default_conf = QSI_TM_CFG;
     char *param;
     tm_errno_t err;
 
-    if( (conf_file = getenv("QSI_TM_CONF")) == NULL )
+    if( (conf_file = getenv("QSI_TM_CFG")) == NULL )
         conf_file = default_conf;
 
     q_dbg(Q_INFO, "configure file is %s", conf_file);
@@ -137,28 +142,30 @@ tm_errno_t tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head)
         if(buf[0] == '#' || buf[0] == 0 || buf[BUF_SIZE - 2] != 0)
             continue;
 
-       // if((param = strtok(buf," ")) == NULL || (strlen(param) != 1))
-       //     continue;
-
         if((param = strtok(buf," ")) == NULL)
             continue;
 
-        if(memcmp(param, CAL_CONF, sizeof(CAL_CONF)) == 0)
+        if(memcmp(param, CAL_CFG, sizeof(CAL_CFG)) == 0)
         {
             if((err = tm_mapping_calibrate_conf()) != TM_ERRNO_SUCCESS)
                 return err;
         }
-        else if(memcmp(param, SIZE_CONF, sizeof(SIZE_CONF)) == 0)
+//        else if(memcmp(param, SIZE_CFG, sizeof(SIZE_CFG)) == 0)
+//        {
+//            if((err = tm_mapping_native_size_conf()) != TM_ERRNO_SUCCESS)
+//                return err;
+//        }
+        else if(memcmp(param, FB_CFG, sizeof(FB_CFG)) == 0)
         {
-            if((err = tm_mapping_native_size_conf()) != TM_ERRNO_SUCCESS)
+            if((err = tm_mapping_fb_conf()) != TM_ERRNO_SUCCESS)
                 return err;
         }
-        else if(memcmp(param, AP_CONF, sizeof(AP_CONF)) == 0)
+        else if(memcmp(param, AP_CFG, sizeof(AP_CFG)) == 0)
         {
             if((err = tm_mapping_ap_conf(ap_head)) != TM_ERRNO_SUCCESS)
                 return err;
         }
-        else if(memcmp(param, PNL_CONF, sizeof(PNL_CONF)) == 0)
+        else if(memcmp(param, PNL_CFG, sizeof(PNL_CFG)) == 0)
         {
             if((err = tm_mapping_pnl_conf(pnl_head)) != TM_ERRNO_SUCCESS)
                 return err;
@@ -188,6 +195,7 @@ void tm_mapping_remove_conf(list_head_t* ap_head, list_head_t* pnl_head)
     while((native_size = list_first_entry(&tm_handler.native_size_head, tm_native_size_param_t, node)) != NULL)
     {
     	q_list_del(&native_size->node);
+    	q_free((char*)native_size->fb_path);
     	q_free(native_size);
     }
 
@@ -204,7 +212,7 @@ void tm_mapping_remove_conf(list_head_t* ap_head, list_head_t* pnl_head)
         q_list_del(&panel->node);
         q_free((char*)panel->evt_path);
         if(panel->mutex) q_mutex_free(panel->mutex);
-        q_free(panel);
+            q_free(panel);
     }
 }
 
@@ -264,7 +272,7 @@ tm_errno_t tm_mapping_native_size_conf()
     native_size = (tm_native_size_param_t*)q_calloc(sizeof(tm_native_size_param_t));
 
     if(native_size == NULL)
-        return TM_ERRNO_PARAM;
+        return TM_ERRNO_ALLOC;
 
     native_size->id = id;
 
@@ -290,6 +298,67 @@ tm_errno_t tm_mapping_native_size_conf()
 err:
     q_free(native_size);
     return TM_ERRNO_PARAM;
+}
+
+tm_errno_t tm_mapping_fb_conf()
+{
+    int id, fd;
+    struct fb_var_screeninfo fb_var;
+    tm_native_size_param_t* native_size;
+    char *param;
+    char path[64]={0};
+
+    if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
+        return TM_ERRNO_PARAM;
+
+    native_size = (tm_native_size_param_t*)q_calloc(sizeof(tm_native_size_param_t));
+
+    if(native_size == NULL)
+        return TM_ERRNO_ALLOC;
+
+    native_size->id = id;
+
+    if((param = strtok(NULL," ")) == NULL)
+        goto err;
+
+    memcpy(path, param, strlen(param)-1);
+
+    native_size->fb_path = q_strdup((const char*)param);
+
+    if((fd = open(native_size->fb_path, O_RDWR)) == -1)
+    {
+        q_dbg(Q_ERR,"open %s error", native_size->fb_path);
+        goto err_param;
+    }
+ 
+    if(ioctl(fd, FBIOGET_VSCREENINFO, &fb_var) < 0)
+    {
+        q_dbg(Q_ERR,"get fb size error");
+        goto err_fd;
+    }
+    
+    native_size->max_x = fb_var.xres;
+    native_size->max_y = fb_var.yres;
+
+    close(fd);
+
+    q_mutex_lock(tm_handler.mutex);
+
+    q_list_add(&tm_handler.native_size_head, &native_size->node);
+    tm_handler.conf.native_size_num++;
+
+    q_mutex_unlock(tm_handler.mutex);
+
+    return TM_ERRNO_SUCCESS;
+
+err_fd:
+    close(fd);
+err_param:
+    q_free((char*)native_size->fb_path);
+err:
+    q_free(native_size);
+    return TM_ERRNO_PARAM;
+   
 }
 
 tm_errno_t tm_mapping_pnl_conf(list_head_t* pnl_head)
@@ -327,10 +396,11 @@ err:
 
 tm_errno_t tm_mapping_ap_conf(list_head_t* ap_head)
 {
-    int id;
+    int id, fd;
     tm_ap_info_t* ap;
     char *param;
-
+    long absbits[NUM_LONGS(ABS_CNT)]={0};
+    
     if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
         return TM_ERRNO_PARAM;
 
@@ -346,15 +416,28 @@ tm_errno_t tm_mapping_ap_conf(list_head_t* ap_head)
 
     ap->evt_path = q_strdup((const char*)param);
 
-    if((param = strtok(NULL," ")) == NULL)
-        goto err;
+//    if((param = strtok(NULL," ")) == NULL)
+//        goto err;
+//
+//    if(memcmp(param, AT_CFG, sizeof(AT_CFG)) == 0)
+//        ap->touch_type = TM_INPUT_TYPE_SINGLE;
+//    else if (memcmp(param, MT_CFG, sizeof(MT_CFG)) == 0)
+//        ap->touch_type = TM_INPUT_TYPE_MT_B;
+//    else
+//        goto err_param;
 
-    if(memcmp(param, AT_CONF, sizeof(AT_CONF)) == 0)
-        ap->touch_type = TM_INPUT_TYPE_SINGLE;
-    else if (memcmp(param, MT_CONF, sizeof(MT_CONF)) == 0)
-        ap->touch_type = TM_INPUT_TYPE_MT_B;
+    if((fd=open(ap->evt_path, O_RDWR))<0)
+    {
+        q_dbg(Q_ERR,"open %s error", ap->evt_path);
+        goto err_param; 
+    }
+
+    if (ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(absbits)), absbits) >= 0)
+        ap->touch_type = testBit(ABS_MT_POSITION_X, absbits)?TM_INPUT_TYPE_MT_B:TM_INPUT_TYPE_SINGLE;
     else
-        goto err_param;
+        goto err_fd;
+
+    close(fd);
 
     ap->mutex = q_mutex_new(q_true, q_true);
 
@@ -364,6 +447,8 @@ tm_errno_t tm_mapping_ap_conf(list_head_t* ap_head)
 
     return TM_ERRNO_SUCCESS;
 
+err_fd:
+    close(fd);
 err_param:
     q_free((char*)ap->evt_path);
 err:
@@ -379,19 +464,25 @@ tm_errno_t tm_mapping_pnl_bind_conf(tm_panel_info_t* panel)
 
     while((param = strtok(NULL," ")) != NULL)
     {
-        if(memcmp(param, CAL_CONF, sizeof(CAL_CONF)) == 0)
+        if(memcmp(param, CAL_CFG, sizeof(CAL_CFG)) == 0)
         {
             if((param = strtok(NULL," ")) == NULL)
                 return TM_ERRNO_PARAM;
             panel->cal_param = tm_mapping_get_calibrate_param(atoi(param));
         }
-        else if(memcmp(param, SIZE_CONF, sizeof(SIZE_CONF)) == 0)
+        //else if(memcmp(param, SIZE_CFG, sizeof(SIZE_CFG)) == 0)
+        //{
+        //    if((param = strtok(NULL," ")) == NULL)
+        //        return TM_ERRNO_PARAM;
+        //    panel->native_size = tm_mapping_get_native_size_param(atoi(param));
+        //}
+        else if(memcmp(param, FB_CFG, sizeof(FB_CFG)) == 0)
         {
             if((param = strtok(NULL," ")) == NULL)
                 return TM_ERRNO_PARAM;
             panel->native_size = tm_mapping_get_native_size_param(atoi(param));
         }
-        else if(memcmp(param, AP_CONF, sizeof(AP_CONF)) == 0)
+        else if(memcmp(param, AP_CFG, sizeof(AP_CFG)) == 0)
         {
             if((param = strtok(NULL," ")) == NULL)
                 return TM_ERRNO_PARAM;
@@ -432,7 +523,15 @@ tm_errno_t tm_mapping_ap_bind_conf(tm_ap_info_t* ap)
         if((param = strtok(NULL," ")) == NULL)
             return TM_ERRNO_PARAM;
 
-        if(memcmp(param, SIZE_CONF, sizeof(SIZE_CONF)) == 0)
+        //if(memcmp(param, SIZE_CFG, sizeof(SIZE_CFG)) == 0)
+        //{
+        //    if((param = strtok(NULL," ")) == NULL)
+        //        return TM_ERRNO_PARAM;
+
+        //     ap->native_size = tm_mapping_get_native_size_param(atoi(param));
+        //}
+
+        if(memcmp(param, FB_CFG, sizeof(FB_CFG)) == 0)
         {
             if((param = strtok(NULL," ")) == NULL)
                 return TM_ERRNO_PARAM;

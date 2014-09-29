@@ -7,14 +7,14 @@
 #include "qUtils.h"
 #include "tmError.h"
 
-#define QSI_TM_CONF         "/etc/qsi_tm.conf"
-#define AP_CONF             "ap_info"
-#define PNL_CONF            "pnl_info"
-#define CAL_CONF            "cal_conf"
-#define SIZE_CONF           "native_size"
-#define FB_CONF             "fb_info"
-#define AT_CONF             "single_touch"
-#define MT_CONF             "multi_touch"
+#define QSI_TM_CFG         "/etc/qsi_tm.conf"
+#define AP_CFG             "ap_info"
+#define PNL_CFG            "pnl_info"
+#define CAL_CFG            "cal_conf"
+//#define SIZE_CFG           "native_size"
+#define FB_CFG             "fb_info"
+//#define AT_CFG             "single_touch"
+//#define MT_CFG             "multi_touch"
 
 #define BUF_SIZE            (256)
 #define MULTIPLE            (4096)
@@ -58,7 +58,7 @@ struct _tm_native_size_param
     int     id;
     int16_t max_x;
     int16_t max_y;
-
+    const char* fb_path;
     list_head_t node;
 };
 
@@ -118,6 +118,7 @@ tm_errno_t  tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head);
 void        tm_mapping_remove_conf(list_head_t* ap_head, list_head_t* pnl_head);
 tm_errno_t  tm_mapping_calibrate_conf(void);
 tm_errno_t  tm_mapping_native_size_conf(void);
+tm_errno_t  tm_mapping_fb_conf(void);
 tm_errno_t  tm_mapping_pnl_conf(list_head_t* pnl_head);
 tm_errno_t  tm_mapping_ap_conf(list_head_t* ap_head);
 tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head);

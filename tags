@@ -6,28 +6,22 @@
 !_TAG_PROGRAM_VERSION	5.8	//
 ABS_MT_SLOT	src/tmInput.c	25;"	d	file:
 ACORN8x8_IDX	test/font.h	30;"	d
-AP_CONF	include/tmMapping.h	11;"	d
-AP_CONF	tm_config.h	5;"	d
-AT_CONF	include/tmMapping.h	16;"	d
-AT_CONF	tm_config.h	10;"	d
+AP_CFG	include/tmMapping.h	11;"	d
 BUF_EVT_NUM	src/tmInput.c	20;"	d	file:
 BUF_SIZE	include/tmMapping.h	19;"	d
-BUF_SIZE	tm_config.h	13;"	d
 BUTTON_ACTIVE	test/ts_test.c	40;"	d	file:
-CAL_CONF	include/tmMapping.h	13;"	d
-CAL_CONF	tm_config.h	7;"	d
+CAL_CFG	include/tmMapping.h	13;"	d
 CAL_MATRIX_COL	include/tmMapping.h	24;"	d
 CAL_MATRIX_ROW	include/tmMapping.h	23;"	d
 DECA_AP	test/tm_test.h	/^    DECA_AP,$/;"	e	enum:test_mode
 DE_AP	test/tm_test.h	/^    DE_AP,$/;"	e	enum:test_mode
-EVT_LEN	test/tm_test.h	8;"	d
-EVT_NUM_POS	test/tm_test.h	12;"	d
-FB_CONF	include/tmMapping.h	15;"	d
-FB_CONF	tm_config.h	9;"	d
+EVT_LEN	test/tm_test.h	10;"	d
+EVT_NUM_POS	test/tm_test.h	14;"	d
+FB_CFG	include/tmMapping.h	15;"	d
 FB_LEN_X	include/tmMapping.h	30;"	d
 FB_LEN_Y	include/tmMapping.h	31;"	d
-FB_LEN	test/tm_test.h	9;"	d
-FB_NUM_POS	test/tm_test.h	13;"	d
+FB_LEN	test/tm_test.h	11;"	d
+FB_NUM_POS	test/tm_test.h	15;"	d
 FONTDATAMAX	test/font_8x8.c	9;"	d	file:
 HAVE_ALLOCA_H	test/config.h	17;"	d
 HAVE_ALLOCA	test/config.h	13;"	d
@@ -64,7 +58,6 @@ HAVE_UNISTD_H	test/config.h	115;"	d
 HAVE_VPRINTF	test/config.h	118;"	d
 HEPTA_AP	test/tm_test.h	/^    HEPTA_AP,$/;"	e	enum:test_mode
 HEXA_AP	test/tm_test.h	/^    HEXA_AP ,$/;"	e	enum:test_mode
-IPC_ACK	include/tmIpc.h	16;"	d
 IPC_CLR_MAP_LEN	include/tmIpc.h	11;"	d
 IPC_CMD_CLR_MAP	include/tmIpc.h	6;"	d
 IPC_CMD_GET_VER	include/tmIpc.h	8;"	d
@@ -73,7 +66,6 @@ IPC_DBG	src/tmIpc.c	16;"	d	file:
 IPC_ENABLE	src/tmIpc.c	15;"	d	file:
 IPC_GET_VER_LEN	include/tmIpc.h	12;"	d
 IPC_NAME	src/tmIpc.c	14;"	d	file:
-IPC_NO_ACK	include/tmIpc.h	15;"	d
 IPC_RETRY	src/tmIpc.c	17;"	d	file:
 IPC_SET_MAP_LEN	include/tmIpc.h	10;"	d
 JITTER_BOUNDARY	include/tmMapping.h	26;"	d
@@ -83,16 +75,15 @@ LONG_BITS	include/tmInput.h	8;"	d
 MAX_AP_NUM	test/tm_test.h	/^    MAX_AP_NUM$/;"	e	enum:test_mode
 MAX_FONT_NAME	test/font.h	36;"	d
 MAX_QUEUE	include/tmMapping.h	21;"	d
-MAX_QUEUE	tm_config.h	15;"	d
-MAX_STR_LEN	test/tm_test.h	44;"	d
+MAX_SAMPLES	test/testutils.c	35;"	d	file:
+MAX_STR_LEN	test/tm_test.h	49;"	d
 MONO_AP	test/tm_test.h	/^    MONO_AP = 0,$/;"	e	enum:test_mode
-MT_CONF	include/tmMapping.h	17;"	d
-MT_CONF	tm_config.h	11;"	d
 MULTIPLE	include/tmMapping.h	20;"	d
-MULTIPLE	tm_config.h	14;"	d
 NONA_AP	test/tm_test.h	/^    NONA_AP,$/;"	e	enum:test_mode
-NR_BUTTONS	test/tm_test.h	45;"	d
+NR_BUTTONS	test/tm_test.h	50;"	d
+NR_COLORS	test/ts_calibrate.c	40;"	d	file:
 NR_COLORS	test/ts_test.c	34;"	d	file:
+NR_STEPS	test/ts_calibrate.c	142;"	d	file:
 NUM_LONGS	include/tmInput.h	9;"	d
 OCTA_AP	test/tm_test.h	/^    OCTA_AP,$/;"	e	enum:test_mode
 PACKAGE_BUGREPORT	test/config.h	128;"	d
@@ -101,24 +92,25 @@ PACKAGE_STRING	test/config.h	134;"	d
 PACKAGE_TARNAME	test/config.h	137;"	d
 PACKAGE_VERSION	test/config.h	140;"	d
 PACKAGE	test/config.h	125;"	d
-PAN_LEN	test/tm_test.h	10;"	d
-PAN_NUM_POS	test/tm_test.h	14;"	d
+PAN_LEN	test/tm_test.h	12;"	d
+PAN_NUM_POS	test/tm_test.h	16;"	d
 PEARL8x8_IDX	test/font.h	26;"	d
 PENTA_AP	test/tm_test.h	/^    PENTA_AP,$/;"	e	enum:test_mode
-PNL0_DEFAULT_AP	test/tm_test.h	21;"	d
-PNL0_DEFAULT_EVT	test/tm_test.h	24;"	d
-PNL0_FB_NUM	test/tm_test.h	18;"	d
-PNL1_DEFAULT_AP	test/tm_test.h	22;"	d
-PNL1_DEFAULT_EVT	test/tm_test.h	25;"	d
-PNL1_FB_NUM	test/tm_test.h	19;"	d
-PNL2_DEFAULT_AP	test/tm_test.h	23;"	d
-PNL2_DEFAULT_EVT	test/tm_test.h	26;"	d
-PNL2_FB_NUM	test/tm_test.h	20;"	d
-PNL_CONF	include/tmMapping.h	12;"	d
-PNL_CONF	tm_config.h	6;"	d
-PNL_NUM	test/tm_test.h	16;"	d
-QSI_TM_CONF	include/tmMapping.h	10;"	d
-QSI_TM_CONF	tm_config.h	4;"	d
+PNL0_DEFAULT_AP	test/tm_test.h	23;"	d
+PNL0_DEFAULT_EVT	test/tm_test.h	26;"	d
+PNL0_FB_NUM	test/tm_test.h	20;"	d
+PNL0_ORG_EVT	test/tm_test.h	29;"	d
+PNL1_DEFAULT_AP	test/tm_test.h	24;"	d
+PNL1_DEFAULT_EVT	test/tm_test.h	27;"	d
+PNL1_FB_NUM	test/tm_test.h	21;"	d
+PNL1_ORG_EVT	test/tm_test.h	30;"	d
+PNL2_DEFAULT_AP	test/tm_test.h	25;"	d
+PNL2_DEFAULT_EVT	test/tm_test.h	28;"	d
+PNL2_FB_NUM	test/tm_test.h	22;"	d
+PNL2_ORG_EVT	test/tm_test.h	31;"	d
+PNL_CFG	include/tmMapping.h	12;"	d
+PNL_NUM	test/tm_test.h	18;"	d
+QSI_TM_CFG	include/tmMapping.h	10;"	d
 QUTILS_H_	include/qUtils.h	2;"	d
 Q_ABS	include/qUtils.h	91;"	d
 Q_ALL	include/qUtils.h	10;"	d
@@ -155,11 +147,9 @@ SELECT_TYPE_ARG1	test/config.h	146;"	d
 SELECT_TYPE_ARG234	test/config.h	149;"	d
 SELECT_TYPE_ARG5	test/config.h	152;"	d
 SELECT_USEC	src/tmInput.c	22;"	d	file:
-SIZE_CONF	include/tmMapping.h	14;"	d
-SIZE_CONF	tm_config.h	8;"	d
 SLOT_NUM	src/tmInput.c	28;"	d	file:
 STDC_HEADERS	test/config.h	163;"	d
-STR_NUM	test/tm_test.h	46;"	d
+STR_NUM	test/tm_test.h	51;"	d
 SUN12x22_IDX	test/font.h	29;"	d
 SUN8x16_IDX	test/font.h	28;"	d
 TETRA_AP	test/tm_test.h	/^    TETRA_AP,$/;"	e	enum:test_mode
@@ -175,7 +165,6 @@ TM_AP_NUM	include/tm.h	/^    TM_AP_NUM = TM_AP_MAX,$/;"	e	enum:_tm_ap
 TM_AP_QSI_L	include/tm.h	/^    TM_AP_QSI_L,$/;"	e	enum:_tm_ap
 TM_AP_QSI_R	include/tm.h	/^    TM_AP_QSI_R,$/;"	e	enum:_tm_ap
 TM_AP_QSI	include/tm.h	/^    TM_AP_QSI,$/;"	e	enum:_tm_ap
-TM_CONFIG_H	tm_config.h	2;"	d
 TM_ERRNO_ALLOC	include/tmError.h	/^    TM_ERRNO_ALLOC      = -5,       \/\/ Allocate error$/;"	e	enum:_tm_errno
 TM_ERRNO_DEV_NUM	include/tmError.h	/^    TM_ERRNO_DEV_NUM    = -4,       \/\/ Bad device number$/;"	e	enum:_tm_errno
 TM_ERRNO_DEV_PARAM	include/tmError.h	/^    TM_ERRNO_DEV_PARAM  = -2,       \/\/ Parameter of device error$/;"	e	enum:_tm_errno
@@ -231,6 +220,7 @@ TM_STATUS_IPC_INIT	include/tm.h	/^    TM_STATUS_IPC_INIT,$/;"	e	enum:_tm_status
 TM_STATUS_NONE	include/tm.h	/^    TM_STATUS_NONE,$/;"	e	enum:_tm_status
 TM_STATUS_REINIT	include/tm.h	/^    TM_STATUS_REINIT,$/;"	e	enum:_tm_status
 TM_STATUS_RUNNING	include/tm.h	/^    TM_STATUS_RUNNING,$/;"	e	enum:_tm_status
+TM_TEST_VERSION	test/tm_test.h	4;"	d
 TM_VERSION	include/tm.h	10;"	d
 TRI_AP	test/tm_test.h	/^    TRI_AP,$/;"	e	enum:test_mode
 TSAPI	test/tslib.h	36;"	d
@@ -243,12 +233,14 @@ TSIMPORT	test/tslib.h	25;"	d
 TSLOCAL	test/tslib.h	23;"	d
 TSLOCAL	test/tslib.h	28;"	d
 TSLOCAL	test/tslib.h	31;"	d
+TS_BUFFER_MAX	test/testutils.c	118;"	d	file:
 VERSION	test/config.h	169;"	d
 VGA6x11_IDX	test/font.h	27;"	d
 VGA8x16_IDX	test/font.h	25;"	d
 VGA8x8_IDX	test/font.h	24;"	d
 XORMODE	test/fbutils.h	22;"	d
 _FBUTILS_H	test/fbutils.h	14;"	d
+_TESTUTILS_H	test/testutils.h	2;"	d
 _TMIPC_H	include/tmIpc.h	2;"	d
 _TM_TEST_H	test/tm_test.h	2;"	d
 _TSLIB_H_	test/tslib.h	2;"	d
@@ -296,6 +288,7 @@ abs_st_y	include/tmMapping.h	/^    int abs_st_y;$/;"	m	struct:_tm_fb_param
 act_ap	src/tmInput.c	/^    tm_ap_info_t**    act_ap;$/;"	m	struct:_tm_input_dev	file:
 act	test/tm_test.h	/^    int   act;$/;"	m	struct:_evt_data
 a	qsi_cal.c	/^	int a[7];$/;"	m	struct:__anon4	file:
+a	test/ts_calibrate.c	/^	int a[7];$/;"	m	struct:__anon6	file:
 ap_arg	test/tm_test.c	/^    int   ap_arg[MAX_AP_NUM];$/;"	m	struct:test_data	file:
 ap_head	src/tm.c	/^    list_head_t       	ap_head;$/;"	m	struct:_tm_info	file:
 ap_high	test/tm_test.c	/^    char ap_high;$/;"	m	struct:_cmd_append	file:
@@ -321,8 +314,10 @@ cal_param	include/tm.h	/^    tm_calibrate_t* cal_param;$/;"	m	struct:_tm_panel_i
 calibrate_head	include/tmMapping.h	/^    list_head_t             calibrate_head;$/;"	m	struct:_tm_config
 calibrate_head	src/tmMapping.c	/^    list_head_t	    calibrate_head;$/;"	m	struct:_tm_handler	file:
 calibrate_num	include/tmMapping.h	/^    uint8_t                 calibrate_num;$/;"	m	struct:_tm_config
+calibrate	test/tm_test.c	/^    int   calibrate;$/;"	m	struct:test_data	file:
 calibrate	test/tm_test.h	/^    char  calibrate;$/;"	m	struct:_evt_data
 calibration	qsi_cal.c	/^} calibration;$/;"	t	typeref:struct:__anon4	file:
+calibration	test/ts_calibrate.c	/^} calibration;$/;"	t	typeref:struct:__anon6	file:
 clear	test/tm_test.c	/^        cmd_clear_t     clear;$/;"	m	union:_tm_cmd::__anon5	file:
 close_framebuffer	test/fbutils.c	/^void close_framebuffer()$/;"	f
 cmd_append_t	test/tm_test.c	/^} cmd_append_t;$/;"	t	typeref:struct:_cmd_append	file:
@@ -337,12 +332,12 @@ cur	src/tmInput.c	/^    tm_input_coord_t    cur;$/;"	m	struct:_tm_input_queue	fi
 data	test/font.h	/^    char *data;$/;"	m	struct:fbcon_font_desc
 data	test/tm_test.c	/^        unsigned char   data[16];$/;"	m	union:_tm_cmd::__anon5	file:
 dbg_level	include/qUtils.h	22;"	d
-dbg_log	test/tm_test.h	69;"	d
+dbg_log	test/tm_test.h	74;"	d
 de_conf	test/tm_test.c	/^struct pos_conf de_conf[] = {$/;"	v	typeref:struct:pos_conf
 debug	src/tmIpc.c	/^        char debug;$/;"	m	struct:_tm_ipc_data	file:
-default_evt	test/tm_test.h	4;"	d
-default_fb	test/tm_test.h	5;"	d
-default_pan	test/tm_test.h	6;"	d
+default_evt	test/tm_test.h	6;"	d
+default_fb	test/tm_test.h	7;"	d
+default_pan	test/tm_test.h	8;"	d
 defaultconsoledevice	test/fbutils.c	/^static char *defaultconsoledevice = "\/dev\/tty";$/;"	v	file:
 dejitter_boundary	include/tmMapping.h	28;"	d
 dev_head	src/tmInput.c	/^    list_head_t         dev_head;$/;"	m	struct:_tm_input	file:
@@ -364,6 +359,7 @@ evt	test/tm_test.c	/^    int evt;$/;"	m	struct:test_conf	file:
 fb_data_t	test/tm_test.h	/^typedef struct _fb_data fb_data_t;$/;"	t	typeref:struct:_fb_data
 fb_fd	test/fbutils.c	/^static int con_fd, fb_fd = 0, last_vt = -1;$/;"	v	file:
 fb_id	test/tm_test.h	/^    int   fb_id;$/;"	m	struct:_fb_data
+fb_path	include/tmMapping.h	/^    const char* fb_path;$/;"	m	struct:_tm_native_size_param
 fbcon_font_desc	test/font.h	/^struct fbcon_font_desc {$/;"	s
 fb	test/tm_test.c	/^    fb_data_t  fb[PNL_NUM];$/;"	m	struct:test_data	file:
 fb	test/tm_test.c	/^    int fb;$/;"	m	struct:test_conf	file:
@@ -385,6 +381,9 @@ general	test/tm_test.c	/^        cmd_general_t   general;$/;"	m	union:_tm_cmd::_
 get_default_ap	test/tm_test.c	/^int get_default_ap(int pnl)$/;"	f
 get_default_evt	test/tm_test.c	/^int get_default_evt(int pnl)$/;"	f
 get_fb	test/tm_test.c	/^int get_fb(int pnl)$/;"	f
+get_org_evt	test/tm_test.c	/^int get_org_evt(int pnl)$/;"	f
+get_sample	test/ts_calibrate.c	/^static void get_sample (struct tsdev *ts, calibration *cal,$/;"	f	file:
+getxy	test/testutils.c	/^void getxy(struct tsdev *ts, int *x, int *y)$/;"	f
 hdr	test/tm_test.c	/^    char hdr;$/;"	m	struct:_cmd_append	file:
 hdr	test/tm_test.c	/^    char hdr;$/;"	m	struct:_cmd_clear	file:
 hdr	test/tm_test.c	/^    char hdr;$/;"	m	struct:_cmd_general	file:
@@ -467,15 +466,18 @@ offset	include/tmMapping.h	/^        int offset;$/;"	m	struct:_tm_calibrate::__a
 open_framebuffer	test/fbutils.c	/^int open_framebuffer(fb_data_t* fb)$/;"	f
 open_ipc	test/tm_test.c	/^int open_ipc()$/;"	f
 open	src/tmInput.c	/^    volatile q_bool     open;$/;"	m	struct:_tm_input	file:
+org_evt	test/tm_test.c	/^    int org_evt;$/;"	m	struct:test_conf	file:
 p16	test/fbutils.c	/^	unsigned short *p16;$/;"	m	union:multiptr	file:
 p32	test/fbutils.c	/^	unsigned long *p32;$/;"	m	union:multiptr	file:
 p8	test/fbutils.c	/^	unsigned char *p8;$/;"	m	union:multiptr	file:
+palette	test/ts_calibrate.c	/^static int palette [] =$/;"	v	file:
 palette	test/ts_test.c	/^static int palette [] =$/;"	v	file:
 panel	src/tmInput.c	/^    tm_panel_info_t*  panel;$/;"	m	struct:_tm_input_dev	file:
 panel	test/tm_test.c	/^    char panel;$/;"	m	struct:_cmd_append	file:
 panel	test/tm_test.c	/^    char panel;$/;"	m	struct:_cmd_clear	file:
 pan	test/tm_test.h	/^    char  pan[PAN_LEN];$/;"	m	struct:_fb_data
 perform_calibration	qsi_cal.c	/^int perform_calibration(calibration *cal) {$/;"	f
+perform_calibration	test/ts_calibrate.c	/^int perform_calibration(calibration *cal) {$/;"	f
 pixel	test/fbutils.c	/^void pixel (int x, int y, unsigned colidx)$/;"	f
 p	src/tmInput.c	/^    int p;$/;"	m	struct:_tm_input_coord	file:
 pnl_arg	test/tm_test.c	/^    int   pnl_arg;$/;"	m	struct:test_data	file:
@@ -614,7 +616,10 @@ set_pnl_append_cmd	test/tm_test.c	/^void set_pnl_append_cmd(cmd_append_t* a, int
 set_ttm	test/tm_test.c	/^void set_ttm()$/;"	f
 setcolor	test/fbutils.c	/^void setcolor(unsigned colidx, unsigned value)$/;"	f
 sig	test/tm_test.c	/^static void sig(int sig)$/;"	f	file:
+sig	test/ts_calibrate.c	/^static void sig(int sig)$/;"	f	file:
 slot	src/tmInput.c	/^    int                 slot;$/;"	m	struct:_tm_input_queue	file:
+sort_by_x	test/testutils.c	/^static int sort_by_x(const void* a, const void *b)$/;"	f	file:
+sort_by_y	test/testutils.c	/^static int sort_by_y(const void* a, const void *b)$/;"	f	file:
 split	test/tm_test.c	/^    int   split;$/;"	m	struct:test_data	file:
 st_x	include/tmMapping.h	/^    int st_x;$/;"	m	struct:_tm_fb_param
 st_y	include/tmMapping.h	/^    int st_y;$/;"	m	struct:_tm_fb_param
@@ -643,6 +648,7 @@ tm_ap_info_t	include/tm.h	/^typedef struct _tm_ap_info      tm_ap_info_t;$/;"	t	
 tm_ap_t	include/tm.h	/^typedef enum _tm_ap         tm_ap_t;$/;"	t	typeref:enum:_tm_ap
 tm_bind_status	src/tm.c	/^void tm_bind_status(tm_status_t* status)$/;"	f
 tm_calibrate_t	include/tmMapping.h	/^typedef struct _tm_calibrate            tm_calibrate_t;$/;"	t	typeref:struct:_tm_calibrate
+tm_calibrate	test/tm_test.c	/^void tm_calibrate()$/;"	f
 tm_clear_map	src/tm.c	/^void tm_clear_map(unsigned int len, unsigned char *msg)$/;"	f
 tm_close_ipc	src/tmIpc.c	/^void tm_close_ipc()$/;"	f
 tm_close_ipc	test/tm_test.c	/^void tm_close_ipc()$/;"	f
@@ -696,6 +702,7 @@ tm_mapping_ap_conf	src/tmMapping.c	/^tm_errno_t tm_mapping_ap_conf(list_head_t* 
 tm_mapping_calibrate_conf	src/tmMapping.c	/^tm_errno_t tm_mapping_calibrate_conf()$/;"	f
 tm_mapping_create_handler	src/tmMapping.c	/^tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head)$/;"	f
 tm_mapping_destroy_handler	src/tmMapping.c	/^void tm_mapping_destroy_handler(list_head_t* ap_head, list_head_t* pnl_head)$/;"	f
+tm_mapping_fb_conf	src/tmMapping.c	/^tm_errno_t tm_mapping_fb_conf()$/;"	f
 tm_mapping_get_ap_info	src/tm.c	/^tm_ap_info_t* tm_mapping_get_ap_info(int id)$/;"	f
 tm_mapping_get_calibrate_param	src/tmMapping.c	/^tm_calibrate_t* tm_mapping_get_calibrate_param(int id)$/;"	f
 tm_mapping_get_default_ap	src/tm.c	/^tm_ap_info_t* tm_mapping_get_default_ap(int panel_id)$/;"	f
@@ -735,6 +742,8 @@ tm_shutdown	src/main.c	/^void tm_shutdown(int signum)$/;"	f
 tm_status_info	src/main.c	/^struct tm_status_info{$/;"	s	file:
 tm_status_t	include/tm.h	/^typedef enum _tm_status     tm_status_t;$/;"	t	typeref:enum:_tm_status
 tm_switch_main_status	src/main.c	/^void tm_switch_main_status(tm_status_t status)$/;"	f
+tm_test_usage	test/tm_test.c	/^void tm_test_usage()$/;"	f
+tm_test_version	test/tm_test.c	/^void tm_test_version()$/;"	f
 tm_trans_matrix_t	include/tmMapping.h	/^typedef struct _tm_trans_matrix         tm_trans_matrix_t;$/;"	t	typeref:struct:_tm_trans_matrix
 tm_transfer	src/tm.c	/^tm_ap_info_t* tm_transfer(int *x, int *y, tm_panel_info_t* panel)$/;"	f
 tm_usage	src/main.c	/^void tm_usage(char* arg)$/;"	f
@@ -745,6 +754,8 @@ touch_type	include/tm.h	/^    tm_input_type_t         touch_type;$/;"	m	struct:_
 trans_matrix	include/tmMapping.h	/^    tm_trans_matrix_t   trans_matrix;$/;"	m	struct:_tm_calibrate
 tri_conf	test/tm_test.c	/^struct pos_conf tri_conf[] = {$/;"	v	typeref:struct:pos_conf
 ts_button	test/ts_test.c	/^struct ts_button {$/;"	s	file:
+ts_cal	test/ts_calibrate.c	/^int ts_cal(fb_data_t* fb, char* evt_path)$/;"	f
+ts_flush	test/testutils.c	/^void ts_flush (struct tsdev *ts)$/;"	f
 ts_sample	test/tslib.h	/^struct ts_sample {$/;"	s
 ts_test	test/ts_test.c	/^int ts_test(fb_data_t* fb, evt_data_t* evt)$/;"	f
 ttm	test/tm_test.c	/^static struct test_data ttm;$/;"	v	typeref:struct:test_data	file:
@@ -755,19 +766,24 @@ value	include/qUtils.h	/^    volatile int value;$/;"	m	struct:q_atomic
 value	include/qUtils.h	/^    volatile unsigned long value;$/;"	m	struct:q_atomic_ptr
 var	test/fbutils.c	/^static struct fb_var_screeninfo var;$/;"	v	typeref:struct:fb_var_screeninfo	file:
 vertical	include/tmMapping.h	/^    char vertical;$/;"	m	struct:_tm_fb_param
+wait_ver	test/tm_test.c	/^    int   wait_ver;$/;"	m	struct:test_data	file:
 width	test/font.h	/^    int width, height;$/;"	m	struct:fbcon_font_desc
 width	test/tm_test.c	/^    int width;$/;"	m	struct:pos_conf	file:
 w	include/tmMapping.h	/^    int w;$/;"	m	struct:_tm_fb_param
 w	test/ts_test.c	/^	int x, y, w, h;$/;"	m	struct:ts_button	file:
 xfb	qsi_cal.c	/^	int x[5], xfb[5];$/;"	m	struct:__anon4	file:
+xfb	test/ts_calibrate.c	/^	int x[5], xfb[5];$/;"	m	struct:__anon6	file:
 x	qsi_cal.c	/^	int x[5], xfb[5];$/;"	m	struct:__anon4	file:
 x	src/tmInput.c	/^    int x;$/;"	m	struct:_tm_input_coord	file:
+x	test/ts_calibrate.c	/^	int x[5], xfb[5];$/;"	m	struct:__anon6	file:
 x	test/ts_test.c	/^	int x, y, w, h;$/;"	m	struct:ts_button	file:
 x	test/tslib.h	/^	int		x;$/;"	m	struct:ts_sample
 xres	test/fbutils.c	/^__u32 xres, yres;$/;"	v
 yfb	qsi_cal.c	/^	int y[5], yfb[5];$/;"	m	struct:__anon4	file:
+yfb	test/ts_calibrate.c	/^	int y[5], yfb[5];$/;"	m	struct:__anon6	file:
 y	qsi_cal.c	/^	int y[5], yfb[5];$/;"	m	struct:__anon4	file:
 y	src/tmInput.c	/^    int y;$/;"	m	struct:_tm_input_coord	file:
+y	test/ts_calibrate.c	/^	int y[5], yfb[5];$/;"	m	struct:__anon6	file:
 y	test/ts_test.c	/^	int x, y, w, h;$/;"	m	struct:ts_button	file:
 y	test/tslib.h	/^	int		y;$/;"	m	struct:ts_sample
 yres	test/fbutils.c	/^__u32 xres, yres;$/;"	v
