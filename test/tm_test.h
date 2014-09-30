@@ -3,9 +3,15 @@
 
 #define TM_TEST_VERSION "1.0"
 
+#define TEST_DEBUG  (1)
+
 #define default_evt "/dev/input/event0"
 #define default_fb  "/dev/fb0"
 #define default_pan "/sys/class/graphics/fb0/pan"
+
+#define TEST_CFG_FILE    "/etc/qsi_tm.conf"
+#define TEST_IPC_NAME    "QSIPL2"
+#define TEST_IPC_TARGET  "QSIPL3"
 
 #define EVT_LEN     (1+sizeof(default_evt))
 #define FB_LEN      (1+sizeof(default_fb))
@@ -30,6 +36,26 @@
 #define PNL1_ORG_EVT     (21)
 #define PNL2_ORG_EVT     (22)
 
+#ifdef __GNUC__
+#define Q_MAX(a,b)                              \
+    __extension__ ({                            \
+            typeof(a) _a = (a);                 \
+            typeof(b) _b = (b);                 \
+            _a > _b ? _a : _b;                  \
+        })
+#define Q_MIN(a,b)                              \
+    __extension__ ({                            \
+            typeof(a) _a = (a);                 \
+            typeof(b) _b = (b);                 \
+            _a < _b ? _a : _b;                  \
+        })
+#else
+#define Q_MAX(a, b) 			((a) > (b) ? (a) : (b))
+#define Q_MIN(a, b) 			((a) < (b) ? (a) : (b))
+#endif
+
+#define Q_ELEMENTS(x) (sizeof(x)/sizeof((x)[0]))
+
 enum test_mode
 {
     MONO_AP = 0,
@@ -44,6 +70,17 @@ enum test_mode
     DECA_AP,
     
     MAX_AP_NUM
+};
+
+enum pnl_num
+{
+    MONO_PNL = 0,
+    DE_PNL,
+    TRI_PNL,
+    TETRA_PNL,
+    PENTA_PNL,
+
+    MAX_PNL_NUM
 };
 
 #define MAX_STR_LEN (32)
@@ -81,7 +118,9 @@ do {                                                                     \
 
 int ts_test(fb_data_t* fb, evt_data_t* evt);
 int ts_cal(fb_data_t* fb, char* evt_path);
+int replace_conf(fb_data_t* fb, evt_data_t* evt);
+int refresh_tm_test(fb_data_t* fb);
 void set_button_num(int num);
 int open_framebuffer(fb_data_t* fb);
-
+void update_calibrate(void);
 #endif

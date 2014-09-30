@@ -1,4 +1,5 @@
 /*
+ *  
  *  tslib/tests/ts_calibrate.c
  *
  *  Copyright (C) 2001 Russell King.
@@ -32,6 +33,17 @@
 #include "fbutils.h"
 #include "testutils.h"
 #include "tm_test.h"
+
+
+#define TMP_CFG_FILE    "/tmp/calpoint"
+#define TEST_CAL        "cal_conf"
+#define TEST_CAL_SIZE   (8)
+#define CAL_ID_POS      (TEST_CAL_SIZE+1)
+#define CAL_W_POS       (CAL_ID_POS+2) 
+#define BUF_LEN         (255)
+
+static char calpoint[MAX_PNL_NUM][128];
+static int calnum;
 
 static int palette [] =
 {
@@ -209,18 +221,92 @@ int ts_cal(fb_data_t* fb, char* evt_path)
 
     if (perform_calibration (&cal)) {
         fprintf (stderr,"Calibration constants: ");
-        fprintf (stderr,"%d %d %d %d %d %d %d\n",
-                 cal.a[1], cal.a[2], cal.a[0],
-                 cal.a[4], cal.a[5], cal.a[3], cal.a[6]);
+        //fprintf (stderr,"%d %d %d %d %d %d %d\n",
+        //         cal.a[1], cal.a[2], cal.a[0],
+        //         cal.a[4], cal.a[5], cal.a[3], cal.a[6]);
         i = 0;
+        sprintf (calpoint[calnum++], "%d %d %d %d %d %d %d ",
+                                    cal.a[1], cal.a[2], cal.a[0],
+                                    cal.a[4], cal.a[5], cal.a[3], cal.a[6]);
+
     } else {
         printf("Calibration failed.\n");
         i = -1;
     }
 
     fillrect (0, 0, xres - 1, yres - 1, 0);
-    put_string_center (xres/2, yres/4,   "   finish calibration   ", 1);
-    put_string_center (xres/2, yres/4+20, "                              ", 2);
-    
+    put_string_center (xres/2, yres/4,   "   Finish calibration   ", 1);
+    put_string_center (xres/2, yres/4+20, "   Please calibrate next panel   ", 2);
+   
+    ts_close(ts);
+
     return i;
 }
+
+void update_calibrate()
+{
+    int i;
+    FILE *fw,*fr;
+    char buf[BUF_LEN]={0};
+    char sh[BUF_LEN]={0};
+
+    if(!(fr=fopen(TEST_CFG_FILE,"r")))
+    {
+        printf("open %s error\n",TEST_CFG_FILE);
+        return;
+    }
+
+    if(!(fw=fopen(TMP_CFG_FILE,"w")))
+    {
+        printf("open %s error\n",TMP_CFG_FILE);
+        return;
+    }
+    
+    for (i = 0; i < calnum; i++) {
+        printf("update : %s \n", calpoint[i]);
+    }
+
+    while(!feof(fr))
+    {
+        for(i=0; i<BUF_LEN-1; i++)
+        {
+            fscanf(fr, "%c", &buf[i]);
+            if(buf[i]==0xa)
+            {
+                buf[i+1]=0x0;
+                break;
+            }
+        }
+
+        if(memcmp(buf, TEST_CAL, TEST_CAL_SIZE) == 0)
+        {
+            int id = buf[CAL_ID_POS] - '0';
+            if(id<calnum)
+            {
+                int size = strlen(calpoint[id]);
+                memcpy(&buf[CAL_W_POS], calpoint[id], size);
+                buf[CAL_W_POS + size] = 0xa;
+                buf[CAL_W_POS + size + 1] = 0;
+            }
+        }
+
+       //printf("read : %s",buf);
+
+        fprintf(fw, "%s", buf);
+        sync();    
+        memset(buf, 0, BUF_LEN);     
+    }
+
+    fclose(fr);
+    fclose(fw);
+    
+    sprintf(sh, "mv %s %s.bak", TEST_CFG_FILE, TEST_CFG_FILE);
+    system(sh);
+
+    memset(sh, 0, BUF_LEN);
+    sprintf(sh, "cp %s %s", TMP_CFG_FILE, TEST_CFG_FILE);
+    system(sh);
+    sync();
+}
+
+

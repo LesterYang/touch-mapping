@@ -8,6 +8,7 @@
  */
  
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -27,7 +28,7 @@ struct test_conf{
     int org_evt;
 };
 
-struct pos_conf{
+struct pos_mode{
     int pos_x;
     int pos_y;
     int width;
@@ -35,48 +36,75 @@ struct pos_conf{
 };
 
 struct test_data{
+    int   pnl_arg;
+    int   pnl_num_arg;
+    int   ap_arg[MAX_AP_NUM];
+    int   fb_arg[MAX_PNL_NUM];
+    int   evt_arg[MAX_PNL_NUM];
+    int   org_evt_arg[MAX_PNL_NUM];
+
     fb_data_t  fb[PNL_NUM];
     evt_data_t evt[PNL_NUM];
-    int   pnl_arg;
-    int   ap_arg[MAX_AP_NUM];
     int   ap_num;
+    int   fb_num;
+    int   evt_num;
+    int   org_evt_num;
     int   mode;
+
     int   split;
     int   wait_ver;
     int   calibrate;
+
+    char  set_pnl_num;
+    char  set_ap;
+    char  set_fb;
+    char  set_evt;
+    char  set_org_evt;
 };
 
 static struct test_data ttm;
+static char ap_buf[128];
+static char fb_buf[128];
+static char evt_buf[128];
+static char org_evt_buf[128];
 
-struct test_conf tconf[] = {
+struct test_conf test_cfg[] = {
     {0, PNL0_FB_NUM, PNL0_DEFAULT_AP, PNL0_DEFAULT_EVT, PNL0_ORG_EVT},
     {1, PNL1_FB_NUM, PNL1_DEFAULT_AP, PNL1_DEFAULT_EVT, PNL1_ORG_EVT},
     {2, PNL2_FB_NUM, PNL2_DEFAULT_AP, PNL2_DEFAULT_EVT, PNL2_ORG_EVT}
 };
 
+#define MAX_TEST_CFG   (Q_ELEMENTS(test_cfg))
+#define OPT_ORG_EVT (1)
+#define use_arg(flag, max, arg, idx) ( flag && idx < max && arg[idx] >= 0 )
+
 struct option long_opts[] = {
     {"master",              1, 0,   'p'},
-    {"split",               0, 0,   's'},
+    {"pnlnum",              1, 0,   'n'},
+    {"event",               1, 0,   'e'},
+    {"fb",                  1, 0,   'f'},
     {"ap",                  1, 0,   'a'},
+    {"input",               1, 0,   OPT_ORG_EVT},
+    {"split",               0, 0,   's'},
     {"calibrate",           0, 0,   'c'},
     {"help",                0, 0,   'h'},
     {"version",             0, 0,   'v'},
     {0,                     0, 0,   0}
 };
 
-struct pos_conf mono_conf[] = {
+struct pos_mode mono_mode[] = {
     {0,   0, 100, 100}
 };
-struct pos_conf de_conf[] = {
+struct pos_mode de_mode[] = {
     {0,   0,  50, 100},
     {50,  0,  50, 100}
 };
-struct pos_conf tri_conf[] = {
+struct pos_mode tri_mode[] = {
     {0,   0,  33, 100},
     {33,  0,  34, 100},
     {67,  0,  33, 100}
 };
-struct pos_conf tetra_conf[] = {
+struct pos_mode tetra_mode[] = {
     {0,   0,  50, 50},
     {50,  0,  50, 50},
     {0,  50,  50, 50},
@@ -88,6 +116,7 @@ struct ipc_data{
         QSI_RECV_EVENT recv_func;
         QSI_PROTOCOL_ST status;
         char *name;
+        char *target;
 }g_ipc;
 
 typedef struct _cmd_general {
@@ -130,6 +159,10 @@ void tm_test_usage()
                     "OPTION\n"
                     "   -p  --master        panel which is set\n"
                     "   -a  --ap            append application programs\n"
+                    "   -e  --event         append touch event device\n"
+                    "       --input         set touch event device for calibration\n"
+                    "   -f  --fb            append frame buffer device\n"
+                    "   -n  --pnlnum        set panel number\n"
                     "   -s  --split         split mode\n"
                     "   -c  --calibrate     calibrateon\n"
                     "   -h  --help          show usage\n"
@@ -172,7 +205,8 @@ int open_ipc()
 
     g_ipc.status = PROTOCOL_IDLE;
     g_ipc.recv_func = recv_event;
-    g_ipc.name = "QSIPL2";
+    g_ipc.name = TEST_IPC_NAME;
+    g_ipc.target = TEST_IPC_TARGET;
 
     for(retry=0;;retry++)
     {
@@ -206,7 +240,7 @@ void tm_close_ipc()
 
 void send_ipc(tm_cmd_t* cmd)
 {       
-#if 1
+#if 0
   int i;
   printf("send ipc ");
   for (i = 0; i < cmd->len; i++) {
@@ -215,7 +249,7 @@ void send_ipc(tm_cmd_t* cmd)
   printf("\n");
 #endif
 
-   g_ipc.status=qsi_send_buffer(g_ipc.server, "QSIPL3", cmd->data, cmd->len, 0); 
+   g_ipc.status=qsi_send_buffer(g_ipc.server, g_ipc.target, cmd->data, cmd->len, 0); 
 
    if(g_ipc.status!=PROTOCOL_ACK_OK)
        printf("send ipc error\n");
@@ -223,19 +257,31 @@ void send_ipc(tm_cmd_t* cmd)
 
 int get_fb(int pnl)
 {
-    return tconf[pnl].fb;
+    if(use_arg(ttm.set_fb, ttm.fb_num, ttm.fb_arg, pnl))
+        return ttm.fb_arg[pnl];
+    else
+        return (pnl<MAX_TEST_CFG) ? test_cfg[pnl].fb : -1;
 }
-int get_default_ap(int pnl)
+int get_ap(int pnl)
 {
-    return tconf[pnl].ap;
+    if(use_arg(ttm.set_ap, ttm.ap_num, ttm.ap_arg, pnl))
+        return ttm.ap_arg[pnl];
+    else
+        return (pnl<MAX_TEST_CFG) ? test_cfg[pnl].ap : -1;
 }
-int get_default_evt(int pnl)
+int get_evt(int pnl)
 {
-    return tconf[pnl].evt;
+    if(use_arg(ttm.set_evt, ttm.evt_num, ttm.evt_arg, pnl))
+        return ttm.evt_arg[pnl];
+    else
+        return (pnl<MAX_TEST_CFG) ? test_cfg[pnl].evt : -1;
 }
 int get_org_evt(int pnl)
 {
-    return tconf[pnl].org_evt;
+    if(use_arg(ttm.set_org_evt, ttm.org_evt_num, ttm.org_evt_arg, pnl))
+        return ttm.org_evt_arg[pnl];
+    else
+        return (pnl<MAX_TEST_CFG) ? test_cfg[pnl].org_evt : -1;
 }
 
 
@@ -261,9 +307,12 @@ int select_pnl(int ap)
 
 void set_comment()
 {
-    int i,j;
+    int i,j,max_pnl=PNL_NUM;
 
-    for(i=0; i<PNL_NUM; i++)
+    if(ttm.set_pnl_num)
+        max_pnl = ttm.pnl_num_arg;
+
+    for(i=0; i<max_pnl; i++)
     {   
         if(i == ttm.pnl_arg)
         {
@@ -315,14 +364,18 @@ void init_evt(evt_data_t *evt, int pnl)
     memcpy(evt->dev, default_evt, sizeof(default_evt));
 
     evt->act = 0;
-    evt->num = get_default_ap(pnl);
+    evt->num = get_ap(pnl);
     evt->dev[EVT_NUM_POS] = '0' + evt->num;
 }
 
 void set_ttm()
 {
-    int i;
-    for(i=0; i<PNL_NUM; i++)
+    int i, max_pnl=PNL_NUM;
+
+    if(ttm.set_pnl_num)
+        max_pnl = ttm.pnl_num_arg;
+
+    for(i=0; i<max_pnl; i++)
     {
         init_evt(&ttm.evt[i], i);
         init_fb(&ttm.fb[i], i);
@@ -350,20 +403,20 @@ void set_ttm()
 
 void set_pnl_append_cmd(cmd_append_t* a, int idx)
 {
-    struct pos_conf (*pconf)[] = NULL;
+    struct pos_mode (*pconf)[] = NULL;
 
     if(idx > ttm.mode)
         return;
         
     switch(ttm.mode)
     {
-        case MONO_AP:   pconf = &mono_conf;     break;
-        case DE_AP:     pconf = &de_conf;       break;
-        case TRI_AP:    pconf = &tri_conf;      break;
-        case TETRA_AP:  pconf = &tetra_conf;    break;
+        case MONO_AP:   pconf = &mono_mode;     break;
+        case DE_AP:     pconf = &de_mode;       break;
+        case TRI_AP:    pconf = &tri_mode;      break;
+        case TETRA_AP:  pconf = &tetra_mode;    break;
         case PENTA_AP:
         case HEXA_AP:
-        case HEPTA_AP:;
+        case HEPTA_AP:
         case OCTA_AP:
         case NONA_AP:
         case DECA_AP:
@@ -390,17 +443,17 @@ void set_ap_append_cmd(cmd_append_t* a, int idx)
         return;
     }
     
-    struct pos_conf (*pconf)[] = NULL;
+    struct pos_mode (*mode)[] = NULL;
 
     if(idx > ttm.mode)
         return;
         
     switch(ttm.mode)
     {
-        case MONO_AP:   pconf = &mono_conf;     break;
-        case DE_AP:     pconf = &de_conf;       break;
-        case TRI_AP:    pconf = &tri_conf;      break;
-        case TETRA_AP:  pconf = &tetra_conf;    break;
+        case MONO_AP:   mode = &mono_mode;     break;
+        case DE_AP:     mode = &de_mode;       break;
+        case TRI_AP:    mode = &tri_mode;      break;
+        case TETRA_AP:  mode = &tetra_mode;    break;
         case PENTA_AP:
         case HEXA_AP:
         case HEPTA_AP:;
@@ -410,20 +463,23 @@ void set_ap_append_cmd(cmd_append_t* a, int idx)
         default:        break;
     }
     
-    if(!pconf)
+    if(!mode)
         return;
 
-    a->ap_start_pos_x = (*pconf)[idx].pos_x;
-    a->ap_start_pos_y = (*pconf)[idx].pos_y;
-    a->ap_width       = (*pconf)[idx].width;
-    a->ap_high        = (*pconf)[idx].high;   
+    a->ap_start_pos_x = (*mode)[idx].pos_x;
+    a->ap_start_pos_y = (*mode)[idx].pos_y;
+    a->ap_width       = (*mode)[idx].width;
+    a->ap_high        = (*mode)[idx].high;   
 }
 
 void tm_calibrate()
 {
-    int fd, i;
+    int fd, i, max_pnl=PNL_NUM;
     fb_data_t fb;
     evt_data_t evt;
+    
+    if(ttm.set_pnl_num)
+        max_pnl = ttm.pnl_num_arg;
 
     memset(&fb, 0, sizeof(fb_data_t));
     memset(&evt, 0, sizeof(evt_data_t));
@@ -432,7 +488,10 @@ void tm_calibrate()
     memcpy(fb.pan, default_pan, sizeof(default_pan));
     memcpy(evt.dev, default_evt, sizeof(default_evt));
 
-    for (i = 0; i < PNL_NUM; i++) 
+    if(system("mount -o remount -w /"))
+        fprintf(stderr, "file system may be readonly!!\n");
+
+    for (i = 0; i < max_pnl; i++) 
     {
         fb.fb_id = get_fb(i);
         fb.dev[FB_NUM_POS]= '0' + fb.fb_id;
@@ -464,6 +523,64 @@ void tm_calibrate()
         }
         ts_cal(&fb, evt.dev);
     }
+
+    update_calibrate();
+    refresh_tm_test(&fb);
+
+    system("mount -o remount -r /");
+}
+
+int set_args(char* buf, int* args, int max)
+{
+    int i=0;
+    char *param;
+    
+    param = strtok(buf, ",");
+    args[i++] = atoi(param);
+
+    while( (param = strtok(NULL, ",")) && i < max)
+    {
+        args[i++] = atoi(param);
+    }
+
+    return i;
+}
+
+void parse_options()
+{
+    if(ttm.set_ap)
+        ttm.ap_num = set_args(ap_buf, ttm.ap_arg, MAX_AP_NUM);
+
+    if(ttm.set_fb)
+        ttm.fb_num = set_args(fb_buf, ttm.fb_arg, MAX_PNL_NUM);
+
+    if(ttm.set_evt)
+        ttm.evt_num = set_args(evt_buf, ttm.evt_arg, MAX_PNL_NUM);
+    
+    if(ttm.set_org_evt)
+        ttm.org_evt_num = set_args(org_evt_buf, ttm.org_evt_arg, MAX_PNL_NUM);
+}
+
+void show_args_for_debug()
+{
+    int i, max_pnl;
+
+    if(ttm.set_pnl_num)
+        max_pnl = ttm.pnl_num_arg;
+    else
+        max_pnl = PNL_NUM; 
+
+    for(i=0;i<max_pnl;i++)
+    {
+        printf("%d -> ap  : %2d, ",i, get_ap(i));
+        printf("evt : %2d, ",get_evt(i));
+        printf("fb  : %2d, ",get_fb(i));
+        printf("org : %2d\n",get_org_evt(i));
+    }
+
+    printf("panel     : %d\n",ttm.pnl_arg);
+    printf("calibrate : %d\n",ttm.calibrate);
+    printf("split     : %d\n",ttm.split);
 }
 
 
@@ -471,8 +588,8 @@ int main(int argc, const char *argv[])
 { 
     tm_cmd_t cmd;
     char i;
-    int fd, opt_idx, c;
-    char *short_opts = "p:sa:chv";
+    int fd, opt_idx, c, max_pnl=PNL_NUM;
+    char *short_opts = "p:sa:n:e:f:chv";
     pid_t pid;
 
     memset((char*)&cmd, 0, sizeof(cmd));
@@ -482,8 +599,24 @@ int main(int argc, const char *argv[])
         switch(c)
         {
             case 'a':
-                ttm.ap_arg[ttm.ap_num] = optarg[0] - '0';
-                ttm.ap_num++;
+                ttm.set_ap = 1;
+                memcpy(ap_buf, optarg, strlen(optarg));
+                break;
+            case 'n':
+                ttm.set_pnl_num = 1;
+                ttm.pnl_num_arg = optarg[0] - '0';
+                break;
+            case 'e':
+                ttm.set_evt = 1;
+                memcpy(evt_buf, optarg, strlen(optarg));
+                break;
+            case 'f':
+                ttm.set_fb = 1;
+                memcpy(fb_buf, optarg, strlen(optarg));
+                break;
+            case OPT_ORG_EVT:
+                ttm.set_org_evt = 1;
+                memcpy(org_evt_buf, optarg, strlen(optarg));
                 break;
             case 'c':
                 ttm.calibrate = 1;
@@ -505,21 +638,30 @@ int main(int argc, const char *argv[])
         }
     }
 
+    parse_options();
+
+#if TEST_DEBUG
+    show_args_for_debug();
+#endif
+
     if(ttm.calibrate)
     {
         tm_calibrate();
         return 0;
     }
 
-    if(ttm.pnl_arg < 0 || ttm.pnl_arg > PNL_NUM)
+    if(ttm.set_pnl_num)
+        max_pnl = ttm.pnl_num_arg;
+    
+    if(ttm.pnl_arg < 0 || ttm.pnl_arg > max_pnl)
     {
         printf("set panel error\n");
         tm_test_usage();
     }    
 
-    if(!ttm.ap_num)
+    if(!ttm.set_ap)
     {
-        printf("no ap id\n");
+        printf("no set ap\n");
         return 0;
     }
 
@@ -534,7 +676,7 @@ int main(int argc, const char *argv[])
     set_comment();
 
     // set fb position
-    for (i = 0; i < PNL_NUM; i++) 
+    for (i = 0; i < max_pnl; i++) 
     {
         printf("panel %d pan : %s\n",i,ttm.fb[(int)i].pan);
         printf("panel %d fb  : %s\n",i,ttm.fb[(int)i].dev);

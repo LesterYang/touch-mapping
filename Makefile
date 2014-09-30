@@ -12,7 +12,7 @@ CROSS      = arm-linux-
 HOST       = $(CC_PATH)$(CROSS)
 CC         = $(HOST)gcc
 DEFINES    = -DQ_ASSERT -D_GNU_SOURCE
-CFLAGS     = -g3 -Wall -Werror -std=gnu99 -march=armv7-a -mfpu=neon $(DEFINES)
+CFLAGS     = -O2 -Wall -Werror -std=gnu99 -march=armv7-a -mfpu=neon $(DEFINES)
 INCPATH    = -I$(PREFIX)/usr/include -I$(PREFIX)/usr/local/include -I. -I./include
 LINK       = $(HOST)gcc
 LIBPATH    = -L$(PREFIX)/usr/lib -L$(PREFIX)/usr/local/lib -L$(PREFIX)/lib

@@ -70,28 +70,35 @@ static void button_draw (struct ts_button *button)
 
 static int button_handle (struct ts_button *button, struct ts_sample *samp)
 {
-	int inside = (samp->x >= button->x) && (samp->y >= button->y) &&
+    int inside = (samp->x >= button->x) && (samp->y >= button->y) &&
 		(samp->x < button->x + button->w) &&
 		(samp->y < button->y + button->h);
+    
+    if (samp->pressure > 0) 
+    {
+        if (inside)
+        {
+	    if (!(button->flags & BUTTON_ACTIVE))
+	    {
+                button->flags |= BUTTON_ACTIVE;
+                button_draw (button);
+            }
+        }
+        else if (button->flags & BUTTON_ACTIVE)
+        {
+            button->flags &= ~BUTTON_ACTIVE;
+            button_draw (button);
+        }
+    }
+    else if (button->flags & BUTTON_ACTIVE)
+    {
+        button->flags &= ~BUTTON_ACTIVE;
+        button_draw (button);
+        dbg_log(" ");
+        return 1;
+    }
 
-	if (samp->pressure > 0) {
-		if (inside) {
-			if (!(button->flags & BUTTON_ACTIVE)) {
-				button->flags |= BUTTON_ACTIVE;
-				button_draw (button);
-			}
-		} else if (button->flags & BUTTON_ACTIVE) {
-			button->flags &= ~BUTTON_ACTIVE;
-			button_draw (button);
-		}
-	} else if (button->flags & BUTTON_ACTIVE) {
-		button->flags &= ~BUTTON_ACTIVE;
-		button_draw (button);
-            dbg_log(" ");
-                return 1;
-	}
-
-        return 0;
+    return 0;
 }
 
 static void refresh_screen ()
@@ -288,6 +295,124 @@ int ts_test(fb_data_t* fb, evt_data_t* evt)
             mode &= ~0x80000000;
 
     }
+    close_framebuffer();
+    return 0;
+}
+
+static void refresh_conf_screen (char* string, char* substr)
+{
+    int i;
+    
+    fillrect (0, 0, xres - 1, yres - 1, 0);
+    put_string_center (xres/2, yres/4, string, 1);
+    put_string_center (xres/2, yres/4+20, substr, 2);
+
+    for (i = 0; i < button_num; i++)
+        button_draw (&buttons [i]);
+}
+void set_conf_button()
+{
+    int w = xres / 8, h = 50;
+
+    /* Initialize buttons */
+    memset (&buttons, 0, sizeof (buttons));
+
+    /* set size and text */
+    buttons [0].w = buttons [1].w = w;
+    buttons [0].h = buttons [1].h = h;
+
+    buttons [0].text = "Yes";
+    buttons [1].text = "No";
+
+    /* set buttons position */
+    buttons [0].x = xres / 4 - w / 2 - 20;
+    buttons [1].x = (3 * xres) / 4 - w / 2 + 20;
+    buttons [0].y = buttons [1].y = 40;
+}
+
+int replace_conf(fb_data_t* fb, evt_data_t* evt)
+{
+    struct tsdev *ts;
+    unsigned int i;
+
+    ts = ts_open (evt->dev, 0);
+
+    if (!ts) {
+        perror (evt->dev);
+        exit(1);
+    }
+
+    if (ts_config(ts)) {
+        perror("ts_config");
+        exit(1);
+    }
+
+    if (open_framebuffer(fb)) {
+        close_framebuffer();
+        exit(1);
+    }
+
+    button_num = 2;
+
+    for (i = 0; i < NR_COLORS; i++)
+        setcolor (i, palette [i]);
+
+    set_conf_button();      
+    refresh_conf_screen("CHECK", "Use new calibrated configuration?");
+
+    while (1) {
+        struct ts_sample samp;
+        int ret;
+
+        ret = ts_read(ts, &samp, 1);
+
+        if (ret < 0) 
+        {
+            perror("ts_read");
+            close_framebuffer();
+            exit(1);
+        }
+
+        if (ret != 1)
+            continue;
+
+        for (i = 0; i < button_num; i++)
+        {
+            if (button_handle (&buttons [i], &samp))
+            {
+                switch (i)
+                {
+                    case 0:
+                        refresh_conf_screen ("CHECK", "Press Yes");
+                        break;
+                    case 1:
+                        refresh_conf_screen ("CHECK", "Press No");
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    }
+    ts_close(ts);
+    close_framebuffer();
+    return 0;
+}
+
+int refresh_tm_test(fb_data_t* fb)
+{
+    unsigned int i;
+
+    if (open_framebuffer(fb)) {
+        close_framebuffer();
+        exit(1);
+    }
+
+    for (i = 0; i < NR_COLORS; i++)
+        setcolor (i, palette [i]);
+
+    refresh_conf_screen("All of Panel Is Calibrated", "Restart tm-daemon Or Reboot");
+
     close_framebuffer();
     return 0;
 }
