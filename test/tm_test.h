@@ -118,7 +118,7 @@ do {                                                                     \
 
 int ts_test(fb_data_t* fb, evt_data_t* evt);
 int ts_cal(fb_data_t* fb, char* evt_path);
-int replace_conf(fb_data_t* fb, evt_data_t* evt);
+int replace_config(fb_data_t* fb, evt_data_t* evt);
 int refresh_tm_test(fb_data_t* fb);
 void set_button_num(int num);
 int open_framebuffer(fb_data_t* fb);

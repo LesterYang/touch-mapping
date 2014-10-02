@@ -35,14 +35,17 @@ tm_ipc_data_t g_client;
 
 #endif
 
-int tm_open_ipc()
+void tm_ipc_recv(const char *from, unsigned int len, unsigned char *msg);
+
+
+int tm_ipc_open()
 {
 #if IPC_ENABLE
 
     int retry;
 
     g_client.status = PROTOCOL_IDLE;
-    g_client.recv_func = tm_recv_event;
+    g_client.recv_func = tm_ipc_recv;
     g_client.name = IPC_NAME;
 
     for(retry=0;;retry++)
@@ -67,7 +70,7 @@ int tm_open_ipc()
     return 0;
 }
 
-void tm_close_ipc()
+void tm_ipc_close()
 {
 #if IPC_ENABLE
     if(g_client.server)
@@ -79,7 +82,7 @@ void tm_close_ipc()
 #endif
 }
 
-void tm_recv_event(const char *from, unsigned int len, unsigned char *msg)
+void tm_ipc_recv(const char *from, unsigned int len, unsigned char *msg)
 {
     q_dbg(Q_INFO,"recv len %d, from %s", len, from);
 
@@ -100,7 +103,7 @@ void tm_recv_event(const char *from, unsigned int len, unsigned char *msg)
     }
 }
 
-void tm_send_ipc(char *to, unsigned char *msg, int len)
+void tm_ipc_send(char *to, unsigned char *msg, int len)
 {
     g_client.status = qsi_send_buffer(g_client.server, to, msg, len, IPC_NOACK);  
     

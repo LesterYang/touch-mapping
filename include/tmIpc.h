@@ -11,9 +11,8 @@
 #define IPC_CLR_MAP_LEN  (1)
 #define IPC_GET_VER_LEN  (0)
 
-int  tm_open_ipc(void);
-void tm_close_ipc();
-void tm_recv_event(const char *from,unsigned int len,unsigned char *msg);
-void tm_send_ipc(char *to, unsigned char *msg, int len);
+int  tm_ipc_open(void);
+void tm_ipc_close();
+void tm_ipc_send(char *to, unsigned char *msg, int len);
 
 #endif/* _TMIPC_H */

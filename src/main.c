@@ -18,12 +18,25 @@
 
 #define TM_MAIN_DELAY (5)
 
-struct tm_status_info{
+typedef enum _tm_status     tm_status_t;
+
+enum _tm_status{
+    TM_STATUS_NONE,
+    TM_STATUS_INIT,
+    TM_STATUS_IPC_INIT,
+    TM_STATUS_RUNNING,
+    TM_STATUS_DEINIT,
+    TM_STATUS_REINIT,
+    TM_STATUS_ERROR,
+    TM_STATUS_EXIT
+};
+
+struct status_info{
     tm_status_t status;
     const char* str;
 };
 
-struct tm_status_info status_info[] = {
+struct status_info status_info[] = {
     {TM_STATUS_NONE,        "None"},
     {TM_STATUS_INIT,        "Init"},
     {TM_STATUS_IPC_INIT,    "IPCInit"},
@@ -45,7 +58,7 @@ struct option long_opts[] = {
 tm_status_t g_status = TM_STATUS_NONE;
 q_bool g_daemonise = q_false;
 
-void tm_usage(char* arg)
+void usage(char* arg)
 {
     fprintf(stderr, "Usage : %s [OPTIONS]\n"
                     "OPTIONS\n"
@@ -56,27 +69,27 @@ void tm_usage(char* arg)
     exit(0);
 }
 
-void tm_version()
+void version()
 {
     q_dbg(Q_INFO,"version %s", TM_VERSION);
     exit(0);
 }
 
-void tm_shutdown(int signum)
+void shutdown(int signum)
 {
     q_dbg(Q_INFO,"shutdown!!");
     tm_deinit();
-    tm_close_ipc();
+    tm_ipc_close();
     exit(signum);
 }
 
-void tm_switch_main_status(tm_status_t status)
+void switch_main_status(tm_status_t status)
 {
      q_dbg(Q_INFO,"status, %10s -> %s", q_strnull(status_info[g_status].str), q_strnull(status_info[status].str));
      g_status = status;
 }
 
-void tm_daemonise()
+void daemonise()
 {
     pid_t pid = fork();
     if (pid == -1) {
@@ -137,10 +150,10 @@ int main(int argc, char* argv[])
                 g_daemonise = q_true;
                 break;
             case 'h':
-                tm_usage(argv[0]);
+                usage(argv[0]);
                 break;
             case 'v':
-                tm_version();
+                version();
                 break;
             default:
                 break;
@@ -148,7 +161,7 @@ int main(int argc, char* argv[])
     }
 
     if (g_daemonise)
-        tm_daemonise();
+        daemonise();
 
     while(g_status != TM_STATUS_EXIT)
     {
@@ -156,23 +169,22 @@ int main(int argc, char* argv[])
         {
             case TM_STATUS_NONE:
                 q_dbg(Q_INFO,"version %s", TM_VERSION);
-                tm_switch_main_status(TM_STATUS_INIT);
+                switch_main_status(TM_STATUS_INIT);
                 break;
 
             case TM_STATUS_INIT:
                 if(tm_init() == TM_ERRNO_SUCCESS)
                 {
-                    signal(SIGINT, tm_shutdown);
-                    tm_bind_status(&g_status);
-                    tm_switch_main_status(TM_STATUS_IPC_INIT);
+                    signal(SIGINT, shutdown);
+                    switch_main_status(TM_STATUS_IPC_INIT);
                 }
                 else
                    sleep(TM_MAIN_DELAY);
                 break;
 
             case TM_STATUS_IPC_INIT:
-            	if(!tm_open_ipc())
-            	    tm_switch_main_status(TM_STATUS_RUNNING);
+            	if(!tm_ipc_open())
+            	    switch_main_status(TM_STATUS_RUNNING);
             	else
             	    sleep(TM_MAIN_DELAY);
                 break;
@@ -183,24 +195,24 @@ int main(int argc, char* argv[])
 
             case TM_STATUS_DEINIT:
                 tm_deinit();
-                tm_close_ipc();
-                tm_switch_main_status(TM_STATUS_EXIT);
+                tm_ipc_close();
+                switch_main_status(TM_STATUS_EXIT);
                 break;
 
             case TM_STATUS_REINIT:
 
-		tm_switch_main_status(TM_STATUS_INIT);
+		switch_main_status(TM_STATUS_INIT);
 		break;
 
             case TM_STATUS_ERROR:
-                tm_switch_main_status(TM_STATUS_DEINIT);
+                switch_main_status(TM_STATUS_DEINIT);
                 break;
 
             case TM_STATUS_EXIT:
                 break;
 
             default:
-                tm_switch_main_status(TM_STATUS_ERROR);
+                switch_main_status(TM_STATUS_ERROR);
                 break;
         }
     }

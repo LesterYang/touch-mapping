@@ -330,7 +330,7 @@ void set_conf_button()
     buttons [0].y = buttons [1].y = 40;
 }
 
-int replace_conf(fb_data_t* fb, evt_data_t* evt)
+int replace_config(fb_data_t* fb, evt_data_t* evt)
 {
     struct tsdev *ts;
     unsigned int i;

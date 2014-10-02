@@ -11,10 +11,7 @@
 #define AP_CFG             "ap_info"
 #define PNL_CFG            "pnl_info"
 #define CAL_CFG            "cal_conf"
-//#define SIZE_CFG           "native_size"
 #define FB_CFG             "fb_info"
-//#define AT_CFG             "single_touch"
-//#define MT_CFG             "multi_touch"
 
 #define BUF_SIZE            (256)
 #define MULTIPLE            (4096)
@@ -25,33 +22,17 @@
 
 #define JITTER_BOUNDARY     (3)
 
-#define dejitter_boundary(pos, max, delta) (pos < 0 && pos > -(delta)) ? 0 : (pos > max && pos < max + delta) ? max : pos
+#define dejitter_boundary(pos, max, delta)  (pos < 0 && pos > -(delta)) ? 0 :               \
+                                            (pos > max && pos < max + delta) ? max : pos
 
 #define FB_LEN_X(fb) (fb.abs_st_x - fb.abs_end_x)
 #define FB_LEN_Y(fb) (fb.abs_st_y - fb.abs_end_y)
-
-typedef enum _tm_event_type             tm_event_type_t;
-typedef enum _tm_op_event               tm_op_event_t;
 
 typedef struct _tm_native_size_param    tm_native_size_param_t;
 typedef struct _tm_fb_param             tm_fb_param_t;
 typedef struct _tm_trans_matrix         tm_trans_matrix_t;
 typedef struct _tm_calibrate            tm_calibrate_t;
 typedef struct _tm_config               tm_config_t;
-
-enum _tm_event_type{
-    TM_EVENT_TYPE_SOURCE,
-    TM_EVENT_TYPE_TARGET
-};
-
-enum _tm_op_event{
-    TM_OP_EVENT_NONE,
-    TM_OP_EVENT_START,
-    TM_OP_EVENT_TRANS_X,
-    TM_OP_EVENT_TRANS_Y,
-    TM_OP_EVENT_MT_END,
-    TM_OP_EVENT_END
-};
 
 struct _tm_native_size_param
 {
@@ -110,22 +91,13 @@ struct _tm_config
     list_head_t             calibrate_head;
 };
 
-void        tm_mapping_print_ap_info(list_head_t* ap_head);
-void        tm_mapping_print_panel_info(list_head_t* pnl_head);
-void        tm_mapping_print_conf(list_head_t* ap_head, list_head_t* pnl_head);
+tm_errno_t tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head);
+void       tm_mapping_destroy_handler(list_head_t* ap_head, list_head_t* pnl_head);
 
-tm_errno_t  tm_mapping_update_conf(list_head_t* ap_head, list_head_t* pnl_head);
-void        tm_mapping_remove_conf(list_head_t* ap_head, list_head_t* pnl_head);
-tm_errno_t  tm_mapping_calibrate_conf(void);
-tm_errno_t  tm_mapping_native_size_conf(void);
-tm_errno_t  tm_mapping_fb_conf(void);
-tm_errno_t  tm_mapping_pnl_conf(list_head_t* pnl_head);
-tm_errno_t  tm_mapping_ap_conf(list_head_t* ap_head);
-tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head);
-void        tm_mapping_destroy_handler(list_head_t* ap_head, list_head_t* pnl_head);
-
-tm_calibrate_t*          tm_mapping_get_calibrate_param(int id);
-tm_native_size_param_t*  tm_mapping_get_native_size_param(int id);
-void tm_mapping_test();
+void tm_mapping_print_config(list_head_t* ap_head, list_head_t* pnl_head);
+void tm_mapping_print_cal_info(void);
+void tm_mapping_print_size_info(void);
+void tm_mapping_print_ap_info(list_head_t* ap_head);
+void tm_mapping_print_panel_info(list_head_t* pnl_head);
 
 #endif /* TMMAPPING_H_ */
