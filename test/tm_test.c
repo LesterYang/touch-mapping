@@ -758,18 +758,19 @@ int main(int argc, const char *argv[])
 
     // set ap display
     
-    if(ttm.mode == MONO_AP)
+
+    for (i = 0; i < 3; i++) 
     {
-        cmd.stretch.hdr=0xa1;
-        cmd.stretch.panel=i;
-        cmd.stretch.ap=ttm.ap_arg[0];
-        cmd.len=3;
-        send_ipc(&cmd);
-    }
-    else
-    {
-        for (i = 0; i < 3; i++) 
+        if(ttm.mode == MONO_AP)
         {
+            cmd.stretch.hdr=0xa1;
+            cmd.stretch.panel=i;
+            cmd.stretch.ap=ttm.ap_arg[0];
+            cmd.len=3;
+            send_ipc(&cmd);
+        }
+        else
+        {	
             cmd.clear.hdr=0xa2;
             cmd.clear.panel=i;
             cmd.len=2;
