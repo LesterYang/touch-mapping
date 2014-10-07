@@ -153,7 +153,7 @@ void tm_clear_map(unsigned int len, unsigned char *msg)
     unsigned char pnl_id;
     tm_panel_info_t* panel;
 
-    if(len-1 == IPC_CLR_MAP_LEN)
+    if(len != IPC_CLR_MAP_LEN)
         return;
     
     pnl_id = msg[0];

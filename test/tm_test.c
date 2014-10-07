@@ -65,6 +65,8 @@ struct test_data{
 static struct test_data ttm;
 static char ap_buf[128];
 static char fb_buf[128];
+static char client_name[32];
+static char target_name[32];
 static char evt_buf[128];
 static char org_evt_buf[128];
 
@@ -87,6 +89,8 @@ struct option long_opts[] = {
     {"input",               1, 0,   OPT_ORG_EVT},
     {"split",               0, 0,   's'},
     {"calibrate",           0, 0,   'c'},
+    {"client",              0, 0,   'C'},
+    {"target",              0, 0,   'T'},
     {"help",                0, 0,   'h'},
     {"version",             0, 0,   'v'},
     {0,                     0, 0,   0}
@@ -143,12 +147,19 @@ typedef struct _cmd_clear {
     char panel;
 } cmd_clear_t;
 
+typedef struct _cmd_stretch {
+    char hdr;
+    char panel;
+    char ap;
+} cmd_stretch_t;
+
 typedef struct _tm_cmd {
     char len;
     union{
         unsigned char   data[16];
         cmd_general_t   general;
         cmd_append_t    append;
+        cmd_stretch_t   stretch;
         cmd_clear_t     clear;
     };
 } tm_cmd_t;
@@ -165,6 +176,8 @@ void tm_test_usage()
                     "   -n  --pnlnum        set panel number\n"
                     "   -s  --split         split mode\n"
                     "   -c  --calibrate     calibrateon\n"
+                    "   -C  --client        IPC client\n"
+                    "   -T  --target        IPC tm-daemon name\n"
                     "   -h  --help          show usage\n"
                     "   -v  --version       show version\n");
     _exit(0);
@@ -205,8 +218,16 @@ int open_ipc()
 
     g_ipc.status = PROTOCOL_IDLE;
     g_ipc.recv_func = recv_event;
-    g_ipc.name = TEST_IPC_NAME;
-    g_ipc.target = TEST_IPC_TARGET;
+
+    if(client_name[0])
+        g_ipc.name = client_name;
+    else
+        g_ipc.name = TEST_IPC_NAME;
+
+    if (target_name[0]) 
+        g_ipc.target = target_name;
+    else
+        g_ipc.target = TEST_IPC_TARGET;
 
     for(retry=0;;retry++)
     {
@@ -305,9 +326,39 @@ int select_pnl(int ap)
         return 0;
 }
 
+void set_master_comment(int i)
+{
+    int j;
+    memcpy(ttm.fb[i].str[0], "master", 6);
+
+    for(j=1; j<STR_NUM; j++)
+    {
+        if(j < ttm.ap_num + 1)
+        {
+            int p;
+            sprintf(ttm.fb[i].str[j], "ap %d", ttm.ap_arg[j-1]);
+            if ((p = select_pnl(ttm.ap_arg[j-1])) != ttm.pnl_arg)
+            {
+                int pos = strlen(ttm.fb[i].str[j]);
+                sprintf(&ttm.fb[i].str[j][pos], "(see panel %d)", p);
+            }
+        }
+        else
+            memcpy(ttm.fb[i].str[j], " ", 1);
+    }
+}
+
+void set_slave_comment(int i)
+{
+    int j;
+    sprintf(ttm.fb[i].str[0], "watch panel %d", ttm.pnl_arg);
+    for(j=1; j<STR_NUM; j++)
+        memcpy(ttm.fb[i].str[j], " ", 1);
+}
+
 void set_comment()
 {
-    int i,j,max_pnl=PNL_NUM;
+    int i,max_pnl=PNL_NUM;
 
     if(ttm.set_pnl_num)
         max_pnl = ttm.pnl_num_arg;
@@ -316,29 +367,11 @@ void set_comment()
     {   
         if(i == ttm.pnl_arg)
         {
-            memcpy(ttm.fb[i].str[0], "master", 6);
-            
-            for(j=1; j<STR_NUM; j++)
-            {
-                if(j < ttm.ap_num + 1)
-                {
-                    int p;
-                    sprintf(ttm.fb[i].str[j], "ap %d", ttm.ap_arg[j-1]);
-                    if ((p = select_pnl(ttm.ap_arg[j-1])) != ttm.pnl_arg)
-                    {
-                        int pos = strlen(ttm.fb[i].str[j]);
-                        sprintf(&ttm.fb[i].str[j][pos], "(see panel %d)", p);
-                    }
-                }
-                else
-                    memcpy(ttm.fb[i].str[j], " ", 1);
-            }
+            set_master_comment(i);
         }
         else
         {
-            sprintf(ttm.fb[i].str[0], "watch panel %d", ttm.pnl_arg);
-            for(j=1; j<STR_NUM; j++)
-                    memcpy(ttm.fb[i].str[j], " ", 1);
+            set_slave_comment(i);
         }
     }
 }
@@ -589,7 +622,7 @@ int main(int argc, const char *argv[])
     tm_cmd_t cmd;
     char i;
     int fd, opt_idx, c, max_pnl=PNL_NUM;
-    char *short_opts = "p:sa:n:e:f:chv";
+    char *short_opts = "p:sa:n:e:f:chvC:T:";
     pid_t pid;
 
     memset((char*)&cmd, 0, sizeof(cmd));
@@ -598,6 +631,12 @@ int main(int argc, const char *argv[])
     {
         switch(c)
         {
+            case 'C':
+                memcpy(client_name, optarg, strlen(optarg));
+                break;
+            case 'T':
+                memcpy(target_name, optarg, strlen(optarg));
+                break;
             case 'a':
                 ttm.set_ap = 1;
                 memcpy(ap_buf, optarg, strlen(optarg));
@@ -706,7 +745,8 @@ int main(int argc, const char *argv[])
 #endif
     }
   
-    open_ipc();
+    if(open_ipc())
+        return 0;
 
 //    cmd.general.hdr=0xd0;
 //    cmd.len=1;
@@ -717,26 +757,38 @@ int main(int argc, const char *argv[])
 //        sleep(1);
 
     // set ap display
-    for (i = 0; i < 3; i++) 
+    
+    if(ttm.mode == MONO_AP)
     {
-        cmd.clear.hdr=0xa1;
-        cmd.clear.panel=i;
-        cmd.len=2;
-        
+        cmd.stretch.hdr=0xa1;
+        cmd.stretch.panel=i;
+        cmd.stretch.ap=ttm.ap_arg[0];
+        cmd.len=3;
         send_ipc(&cmd);
-  
-        for(int j=0; j<ttm.ap_num; j++)
+    }
+    else
+    {
+        for (i = 0; i < 3; i++) 
         {
-            cmd.append.hdr=0xa0;
-            cmd.append.panel=i;
-            cmd.append.ap=ttm.ap_arg[j];
-
-            set_pnl_append_cmd(&cmd.append, j);
-            set_ap_append_cmd(&cmd.append, j);
-            
-            cmd.len=11;
+            cmd.clear.hdr=0xa2;
+            cmd.clear.panel=i;
+            cmd.len=2;
             
             send_ipc(&cmd);
+      
+            for(int j=0; j<ttm.ap_num; j++)
+            {
+                cmd.append.hdr=0xa0;
+                cmd.append.panel=i;
+                cmd.append.ap=ttm.ap_arg[j];
+
+                set_pnl_append_cmd(&cmd.append, j);
+                set_ap_append_cmd(&cmd.append, j);
+               
+                cmd.len=11;
+
+                send_ipc(&cmd);
+            }
         }
     }
 

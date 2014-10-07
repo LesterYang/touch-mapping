@@ -168,3 +168,5 @@ tags
 *.PS
 *.SearchResults
 *.WK3
+
+/release/

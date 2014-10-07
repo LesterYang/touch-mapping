@@ -300,7 +300,7 @@ void update_calibrate()
     fclose(fr);
     fclose(fw);
     
-    sprintf(sh, "mv %s %s.bak", TEST_CFG_FILE, TEST_CFG_FILE);
+    sprintf(sh, "cp %s %s.bak", TEST_CFG_FILE, TEST_CFG_FILE);
     system(sh);
 
     memset(sh, 0, BUF_LEN);

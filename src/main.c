@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <getopt.h>
+#include <string.h>
 #include <sys/stat.h>
 #include "tm.h"
 #include "tmIpc.h"
@@ -51,17 +52,20 @@ struct status_info status_info[] = {
 struct option long_opts[] = {
     {"help",                0, 0,   'h'},
     {"version",             0, 0,   'v'},
+    {"client",              0, 0,   'c'},
     {"daemon",              0, 0,   'd'},
     {0,                     0, 0,   0}
 };
 
 tm_status_t g_status = TM_STATUS_NONE;
 q_bool g_daemonise = q_false;
+char g_name[IPC_MAX_NAME]={0};
 
 void usage(char* arg)
 {
     fprintf(stderr, "Usage : %s [OPTIONS]\n"
                     "OPTIONS\n"
+                    "   -c, --client    IPC client\n"
                     "   -d, --daemon    daemonise\n"
                     "   -h, --help      help\n"
                     "   -v, --version   show version\n"
@@ -138,23 +142,31 @@ void daemonise()
 
 int main(int argc, char* argv[])
 {
-    int opt_idx;
-    char *short_opts = "hdv";
+    int opt_idx, len;
+    char *short_opts = "hdvc:";
     int c;
 
     while ((c = getopt_long(argc, argv, short_opts, long_opts, &opt_idx)) != -1)
     {
         switch(c)
         {
+            case 'c':
+                if((len = strlen(optarg)) < IPC_MAX_NAME)
+                    memcpy(g_name, optarg, len);
+                break;
+
             case 'd':
                 g_daemonise = q_true;
                 break;
+
             case 'h':
                 usage(argv[0]);
                 break;
+
             case 'v':
                 version();
                 break;
+
             default:
                 break;
         }
@@ -183,7 +195,7 @@ int main(int argc, char* argv[])
                 break;
 
             case TM_STATUS_IPC_INIT:
-            	if(!tm_ipc_open())
+            	if(!tm_ipc_open(g_name))
             	    switch_main_status(TM_STATUS_RUNNING);
             	else
             	    sleep(TM_MAIN_DELAY);

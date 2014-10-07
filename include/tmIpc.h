@@ -3,15 +3,19 @@
 
 // IPC command
 #define IPC_CMD_SET_MAP  (0xa0)
-#define IPC_CMD_CLR_MAP  (0xa1)
+#define IPC_CMD_SET_ONE  (0xa1)
+#define IPC_CMD_CLR_MAP  (0xa2)
 
 #define IPC_CMD_GET_VER  (0xd0)
 
 #define IPC_SET_MAP_LEN  (10)
+#define IPC_SET_ONE_LEN  (2)
 #define IPC_CLR_MAP_LEN  (1)
 #define IPC_GET_VER_LEN  (0)
 
-int  tm_ipc_open(void);
+#define IPC_MAX_NAME     (8)
+
+int  tm_ipc_open(char* name);
 void tm_ipc_close();
 void tm_ipc_send(char *to, unsigned char *msg, int len);
 

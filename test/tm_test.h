@@ -9,7 +9,7 @@
 #define default_fb  "/dev/fb0"
 #define default_pan "/sys/class/graphics/fb0/pan"
 
-#define TEST_CFG_FILE    "/etc/qsi_tm.conf"
+#define TEST_CFG_FILE    "/home/qsi_tm/qsi_tm.conf"
 #define TEST_IPC_NAME    "QSIPL2"
 #define TEST_IPC_TARGET  "QSIPL3"
 

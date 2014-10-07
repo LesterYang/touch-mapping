@@ -7,7 +7,7 @@
 #include "qUtils.h"
 #include "tmError.h"
 
-#define QSI_TM_CFG         "/etc/qsi_tm.conf"
+#define QSI_TM_CFG         "/home/qsi_tm/qsi_tm.conf"
 #define AP_CFG             "ap_info"
 #define PNL_CFG            "pnl_info"
 #define CAL_CFG            "cal_conf"

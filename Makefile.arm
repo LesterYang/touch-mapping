@@ -7,6 +7,7 @@
 PREFIX     = /Space/ltib2/ltib/rootfs_l
 CC_PATH    = /opt/freescale/usr/local/gcc-4.6.2-glibc-2.13-linaro-multilib-2011.12/fsl-linaro-toolchain/bin/
 CROSS      = arm-linux-
+DEST_PATH  = release/
 
 # Compiler
 HOST       = $(CC_PATH)$(CROSS)
@@ -26,7 +27,7 @@ AR         = $(HOST)ar
 OBJECTS    =  $(shell ls ./src/*.c | sed 's/\.c/.o/g')
     		 
 # All Target
-all: tm-daemon tm-test
+all: tm-daemon tm-test move
 
 tm-daemon: $(OBJECTS)
 	@echo 'Building target: $@'
@@ -37,6 +38,11 @@ $(OBJECTS): %.o: %.c
 	
 tm-test:
 	cd test; make
+	
+move:
+	cp tm-daemon $(DEST_PATH) && rm tm-daemon
+	cp test/tm-test $(DEST_PATH) && rm test/tm-test
+	sync
 	
 clean:
 	rm -f $(OBJECTS)
