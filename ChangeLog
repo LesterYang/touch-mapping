@@ -1,0 +1,4 @@
+[vesrion 1.1 : 20141009]
+                            1. fix segmentation fault if poit doesn't match any ap
+[vesrion 1.0 : 20141008]    
+                            1. first release  

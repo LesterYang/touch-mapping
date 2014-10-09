@@ -116,14 +116,15 @@ tm_display_t* tm_match_display(int x, int y, tm_panel_info_t* panel)
 
     list_for_each_entry(&panel->display_head, dis, node)
     {
-
         if(tm_point_is_in_range(&dis->to, x, y))
             break;
-        else
-            q_dbg(Q_INFO,"(%d,%d) no match (%d - %d,%d - %d)", 
-                    x,y,dis->to.abs_st_x, dis->to.abs_end_x, dis->to.abs_st_y, dis->to.abs_end_y);
-
     }
+
+    if(dis == NULL)
+    {
+        q_dbg(Q_INFO,"(%d,%d) no match ap", x, y);
+    }
+
     return dis;
 }
 

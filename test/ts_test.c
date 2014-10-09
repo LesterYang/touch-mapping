@@ -252,8 +252,6 @@ int ts_test(fb_data_t* fb, evt_data_t* evt)
         if ((mode & 15) != 1)
             put_cross(x, y, 2 | XORMODE);
 
-        printf("read %s\n",evt->dev);
-
         ret = ts_read(ts, &samp, 1);
 
         /* Hide it */
@@ -282,8 +280,7 @@ int ts_test(fb_data_t* fb, evt_data_t* evt)
                         break;
                 }
 
-        printf("%ld.%06ld: %6d %6d %6d\n", samp.tv.tv_sec, samp.tv.tv_usec,
-                samp.x, samp.y, samp.pressure);
+        printf("tm-test : read %18s -> %5d %5d\n", evt->dev, samp.x, samp.y);
 
         if (samp.pressure > 0) {
             if (mode == 0x80000001)

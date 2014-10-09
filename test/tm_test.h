@@ -1,7 +1,9 @@
 #ifndef _TM_TEST_H
 #define _TM_TEST_H
 
-#define TM_TEST_VERSION "1.0"
+#ifndef TM_TEST_VERSION
+#define TM_TEST_VERSION "?"
+#endif
 
 #define TEST_DEBUG  (1)
 

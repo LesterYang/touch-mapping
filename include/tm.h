@@ -7,7 +7,10 @@
 #include "tmMapping.h"
 #include "tmInput.h"
 
-#define TM_VERSION "1.0"
+#ifndef TM_VERSION
+#define TM_VERSION "?"
+#endif
+
 
 #define __tm_list_add(head, new)                    \
 ({                                                  \

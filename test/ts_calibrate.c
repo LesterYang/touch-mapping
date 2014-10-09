@@ -281,7 +281,8 @@ void update_calibrate()
         if(memcmp(buf, TEST_CAL, TEST_CAL_SIZE) == 0)
         {
             int id = buf[CAL_ID_POS] - '0';
-            if(id<calnum)
+
+            if((calpoint[id][0] || calpoint[id][1]) && id<calnum)
             {
                 int size = strlen(calpoint[id]);
                 memcpy(&buf[CAL_W_POS], calpoint[id], size);

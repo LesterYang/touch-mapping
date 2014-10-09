@@ -1,7 +1,9 @@
 #############################
-# Makefile
+# Makefile tm-test
 # Author: Lester
 #############################
+
+VERSION    = 1.1
 
 # cross-compile : set PREFIX and PATH
 PREFIX     = /Space/ltib2/ltib/rootfs_l
@@ -11,7 +13,7 @@ CROSS      = arm-linux-
 # Compiler
 HOST       = $(CC_PATH)$(CROSS)
 CC         = $(HOST)gcc
-DEFINES    = -DQ_ASSERT -D_GNU_SOURCE
+DEFINES    = -DQ_ASSERT -D_GNU_SOURCE -DTM_TEST_VERSION='"$(VERSION)"'
 CFLAGS     = -O2 -Wall -std=gnu99 -march=armv7-a -mfpu=neon $(DEFINES)
 INCPATH    = -I$(PREFIX)/usr/include -I$(PREFIX)/usr/local/include -I. -I../include
 LINK       = $(HOST)gcc
