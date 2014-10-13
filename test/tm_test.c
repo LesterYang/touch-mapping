@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <getopt.h>
 #include "tm_test.h"
 #include "fbutils.h"
@@ -28,6 +29,16 @@ struct test_conf{
     int org_evt;
 };
 
+struct panel_bind {
+    int ap_num;
+    int group[MAX_AP_NUM];
+};
+
+struct binding{
+    int pnl_num;
+    struct panel_bind pnl[MAX_PNL_NUM];
+};
+
 struct pos_mode{
     int pos_x;
     int pos_y;
@@ -35,36 +46,41 @@ struct pos_mode{
     int high;
 };
 
+struct args{
+    int data[MAX_AP_NUM + MAX_PNL_NUM];
+    int num;
+    int set;
+};
+
+struct argument{
+    struct args ap;
+    struct args fb;
+    struct args evt;
+    struct args org_evt;
+    struct args bind;
+};
+
 struct test_data{
-    int   pnl_arg;
-    int   pnl_num_arg;
-    int   ap_arg[MAX_AP_NUM];
-    int   fb_arg[MAX_PNL_NUM];
-    int   evt_arg[MAX_PNL_NUM];
-    int   org_evt_arg[MAX_PNL_NUM];
+
+    struct argument arg;
+    struct binding bind_data;
+    int pnl_arg;
+    int pnl_num;
+    int set_pnl_num;
 
     fb_data_t  fb[PNL_NUM];
     evt_data_t evt[PNL_NUM];
-    int   ap_num;
-    int   fb_num;
-    int   evt_num;
-    int   org_evt_num;
-    int   mode;
 
+    int   mode;
     int   split;
     int   wait_ver;
     int   calibrate;
-
-    char  set_pnl_num;
-    char  set_ap;
-    char  set_fb;
-    char  set_evt;
-    char  set_org_evt;
 };
 
 static struct test_data ttm;
 static char ap_buf[128];
 static char fb_buf[128];
+static char bind_buf[128];
 static char client_name[32];
 static char target_name[32];
 static char evt_buf[128];
@@ -77,8 +93,9 @@ struct test_conf test_cfg[] = {
 };
 
 #define MAX_TEST_CFG   (Q_ELEMENTS(test_cfg))
+
 #define OPT_ORG_EVT (1)
-#define use_arg(flag, max, arg, idx) ( flag && idx < max && arg[idx] >= 0 )
+#define use_arg(flag, max, arg, idx) ( flag && idx < max && idx >= 0 && arg[idx] >= 0 )
 
 struct option long_opts[] = {
     {"master",              1, 0,   'p'},
@@ -87,6 +104,7 @@ struct option long_opts[] = {
     {"fb",                  1, 0,   'f'},
     {"ap",                  1, 0,   'a'},
     {"input",               1, 0,   OPT_ORG_EVT},
+    {"bind",                1, 0,   'b'},
     {"split",               0, 0,   's'},
     {"calibrate",           0, 0,   'c'},
     {"client",              0, 0,   'C'},
@@ -174,6 +192,8 @@ void tm_test_usage()
                     "       --input         set touch event device for calibration\n"
                     "   -f  --fb            append frame buffer device\n"
                     "   -n  --pnlnum        set panel number\n"
+                    "   -b  --bind          bind apploications to panel\n"
+                    "                       separate by panels ':' \n"
                     "   -s  --split         split mode\n"
                     "   -c  --calibrate     calibrateon\n"
                     "   -C  --client        IPC client\n"
@@ -278,52 +298,95 @@ void send_ipc(tm_cmd_t* cmd)
 
 int get_fb(int pnl)
 {
-    if(use_arg(ttm.set_fb, ttm.fb_num, ttm.fb_arg, pnl))
-        return ttm.fb_arg[pnl];
+    if(use_arg(ttm.arg.fb.set, ttm.arg.fb.num, ttm.arg.fb.data, pnl))
+        return ttm.arg.fb.data[pnl];
     else
-        return (pnl<MAX_TEST_CFG) ? test_cfg[pnl].fb : -1;
+        return (pnl<MAX_TEST_CFG && pnl >= 0) ? test_cfg[pnl].fb : -1;
 }
+
 int get_ap(int pnl)
 {
-    if(use_arg(ttm.set_ap, ttm.ap_num, ttm.ap_arg, pnl))
-        return ttm.ap_arg[pnl];
+    if(use_arg(ttm.arg.ap.set, ttm.arg.ap.num, ttm.arg.ap.data, pnl))
+        return ttm.arg.ap.data[pnl];
     else
-        return (pnl<MAX_TEST_CFG) ? test_cfg[pnl].ap : -1;
+        return (pnl<MAX_TEST_CFG && pnl >= 0) ? test_cfg[pnl].ap : -1;
 }
+
 int get_evt(int pnl)
 {
-    if(use_arg(ttm.set_evt, ttm.evt_num, ttm.evt_arg, pnl))
-        return ttm.evt_arg[pnl];
+    if(use_arg(ttm.arg.evt.set, ttm.arg.evt.num, ttm.arg.evt.data, pnl))
+        return ttm.arg.evt.data[pnl];
     else
-        return (pnl<MAX_TEST_CFG) ? test_cfg[pnl].evt : -1;
+        return (pnl<MAX_TEST_CFG && pnl >= 0) ? test_cfg[pnl].evt : -1;
 }
+
 int get_org_evt(int pnl)
 {
-    if(use_arg(ttm.set_org_evt, ttm.org_evt_num, ttm.org_evt_arg, pnl))
-        return ttm.org_evt_arg[pnl];
+    if(use_arg(ttm.arg.org_evt.set, ttm.arg.org_evt.num, ttm.arg.org_evt.data, pnl))
+        return ttm.arg.org_evt.data[pnl];
     else
-        return (pnl<MAX_TEST_CFG) ? test_cfg[pnl].org_evt : -1;
+        return (pnl<MAX_TEST_CFG && pnl >= 0) ? test_cfg[pnl].org_evt : -1;
+}
+
+int select_bind_pnl(int ap)
+{
+    int i,j;
+    for (i = 0; i < ttm.bind_data.pnl_num; i++) 
+    {
+        for (j = 0; j < ttm.bind_data.pnl[i].ap_num; j++) 
+        {
+            if (ap == ttm.bind_data.pnl[i].group[j]) 
+            {
+                return i;
+            }
+        }
+    }
+    return -1;
 }
 
 
 int select_fb(int ap)
 {
-    if (ap == 6)
-        return PNL2_FB_NUM;
-    else if(ap == 4)
-        return PNL1_FB_NUM;
-    else
-        return PNL0_FB_NUM;
+    int fb = -1;
+
+    if(ttm.arg.bind.set)
+    {
+        fb = get_fb(select_bind_pnl(ap));
+    }
+    
+    if(fb < 0)
+    {
+        if (ap == 6)
+            fb = PNL2_FB_NUM;
+        else if(ap == 4)
+            fb = PNL1_FB_NUM;
+        else
+            fb = PNL0_FB_NUM;
+    }
+
+    return fb;
 }
 
 int select_pnl(int ap)
 {
-    if (ap == 6)
-        return 2;
-    else if(ap == 4)
-        return 1;
-    else
-        return 0;
+    int pnl = -1;
+    
+    if(ttm.arg.bind.set)
+    {
+        pnl = select_bind_pnl(ap);    
+    }
+
+    if(pnl < 0)
+    {
+        if (ap == 6)
+            pnl = 2;
+        else if(ap == 4)
+            pnl = 1;
+        else
+            pnl = 0;
+    }
+
+    return pnl;
 }
 
 void set_master_comment(int i)
@@ -333,11 +396,11 @@ void set_master_comment(int i)
 
     for(j=1; j<STR_NUM; j++)
     {
-        if(j < ttm.ap_num + 1)
+        if(j < ttm.arg.ap.num + 1)
         {
             int p;
-            sprintf(ttm.fb[i].str[j], "ap %d", ttm.ap_arg[j-1]);
-            if ((p = select_pnl(ttm.ap_arg[j-1])) != ttm.pnl_arg)
+            sprintf(ttm.fb[i].str[j], "ap %d", ttm.arg.ap.data[j-1]);
+            if ((p = select_pnl(ttm.arg.ap.data[j-1])) != ttm.pnl_arg)
             {
                 int pos = strlen(ttm.fb[i].str[j]);
                 sprintf(&ttm.fb[i].str[j][pos], "(see panel %d)", p);
@@ -361,7 +424,7 @@ void set_comment()
     int i,max_pnl=PNL_NUM;
 
     if(ttm.set_pnl_num)
-        max_pnl = ttm.pnl_num_arg;
+        max_pnl = ttm.pnl_num;
 
     for(i=0; i<max_pnl; i++)
     {   
@@ -406,7 +469,7 @@ void set_ttm()
     int i, max_pnl=PNL_NUM;
 
     if(ttm.set_pnl_num)
-        max_pnl = ttm.pnl_num_arg;
+        max_pnl = ttm.pnl_num;
 
     for(i=0; i<max_pnl; i++)
     {
@@ -414,16 +477,16 @@ void set_ttm()
         init_fb(&ttm.fb[i], i);
     }
 
-    for(i=0; i<ttm.ap_num; i++)
+    for(i=0; i<ttm.arg.ap.num; i++)
     {
-        int pnl = select_pnl(ttm.ap_arg[i]);
+        int pnl = select_pnl(ttm.arg.ap.data[i]);
         ttm.evt[pnl].act = 1;
 
         // if panel supports multi-ap, replace default ap for ts_test
         switch(pnl)
         {   
             case 0:
-                ttm.evt[0].num = ttm.ap_arg[i];
+                ttm.evt[0].num = ttm.arg.ap.data[i];
                 ttm.evt[0].dev[EVT_NUM_POS] = '0' + ttm.evt[0].num;
                 break;
             case 1:
@@ -512,7 +575,7 @@ void tm_calibrate()
     evt_data_t evt;
     
     if(ttm.set_pnl_num)
-        max_pnl = ttm.pnl_num_arg;
+        max_pnl = ttm.pnl_num;
 
     memset(&fb, 0, sizeof(fb_data_t));
     memset(&evt, 0, sizeof(evt_data_t));
@@ -569,29 +632,86 @@ int set_args(char* buf, int* args, int max)
     char *param;
     
     param = strtok(buf, ",");
-    args[i++] = atoi(param);
+
+    if(isdigit(param[0]))
+        args[i++] = atoi(param);
+    else
+        args[i++] = param[0];
 
     while( (param = strtok(NULL, ",")) && i < max)
     {
-        args[i++] = atoi(param);
+        if(isdigit(param[0]))
+            args[i++] = atoi(param);
+        else
+            args[i++] = param[0];
     }
 
     return i;
 }
 
+void set_binds()
+{
+    int i=0, p_idx=0, a_idx=0;
+    char param;
+    int set_0 = 0;
+
+    while(p_idx < MAX_PNL_NUM)
+    {
+        param = ttm.arg.bind.data[i++];
+
+        if(param == 0)
+        {
+            if(set_0)
+                break;
+            else
+                set_0 = 1;
+        }
+
+        if(param == ':')
+        {
+            ttm.bind_data.pnl[p_idx++].ap_num = a_idx;
+            a_idx = 0;
+            continue;
+        }
+
+        if(a_idx < MAX_AP_NUM)
+            ttm.bind_data.pnl[p_idx].group[a_idx++]=param;
+    }
+
+    if(p_idx < MAX_PNL_NUM)
+    {
+        ttm.bind_data.pnl[p_idx++].ap_num = a_idx;
+        ttm.bind_data.pnl_num = p_idx;
+    }
+    else
+        ttm.bind_data.pnl_num = MAX_PNL_NUM;
+    
+    if(ttm.set_pnl_num == 0)
+    {
+        ttm.set_pnl_num = 1;
+        ttm.pnl_num = ttm.bind_data.pnl_num;
+    }
+}
+
 void parse_options()
 {
-    if(ttm.set_ap)
-        ttm.ap_num = set_args(ap_buf, ttm.ap_arg, MAX_AP_NUM);
+    if(ttm.arg.ap.set)
+        ttm.arg.ap.num = set_args(ap_buf, ttm.arg.ap.data, MAX_AP_NUM);
 
-    if(ttm.set_fb)
-        ttm.fb_num = set_args(fb_buf, ttm.fb_arg, MAX_PNL_NUM);
+    if(ttm.arg.fb.set)
+        ttm.arg.fb.num = set_args(fb_buf, ttm.arg.fb.data, MAX_PNL_NUM);
 
-    if(ttm.set_evt)
-        ttm.evt_num = set_args(evt_buf, ttm.evt_arg, MAX_PNL_NUM);
+    if(ttm.arg.evt.set)
+        ttm.arg.evt.num = set_args(evt_buf, ttm.arg.evt.data, MAX_PNL_NUM);
     
-    if(ttm.set_org_evt)
-        ttm.org_evt_num = set_args(org_evt_buf, ttm.org_evt_arg, MAX_PNL_NUM);
+    if(ttm.arg.org_evt.set)
+        ttm.arg.org_evt.num = set_args(org_evt_buf, ttm.arg.org_evt.data, MAX_PNL_NUM);
+
+    if(ttm.arg.bind.set)
+    {
+        ttm.arg.bind.num = set_args(bind_buf, ttm.arg.bind.data, MAX_PNL_NUM + MAX_AP_NUM);
+        set_binds();
+    }
 }
 
 void show_args_for_debug()
@@ -599,7 +719,7 @@ void show_args_for_debug()
     int i, max_pnl;
 
     if(ttm.set_pnl_num)
-        max_pnl = ttm.pnl_num_arg;
+        max_pnl = ttm.pnl_num;
     else
         max_pnl = PNL_NUM; 
 
@@ -614,6 +734,20 @@ void show_args_for_debug()
     printf("panel     : %d\n",ttm.pnl_arg);
     printf("calibrate : %d\n",ttm.calibrate);
     printf("split     : %d\n",ttm.split);
+
+    if(ttm.arg.bind.set)
+    {
+        int j;
+        for (i = 0; i < ttm.bind_data.pnl_num; i++) 
+        {
+            printf("bind panel %d : ", i);
+            for (j = 0; j < ttm.bind_data.pnl[i].ap_num; j++) 
+            {
+                printf("%d ",ttm.bind_data.pnl[i].group[j]);
+            }
+            printf("\n");
+        }
+    }
 }
 
 
@@ -622,7 +756,7 @@ int main(int argc, const char *argv[])
     tm_cmd_t cmd;
     char i;
     int fd, opt_idx, c, max_pnl=PNL_NUM;
-    char *short_opts = "p:sa:n:e:f:chvC:T:";
+    char *short_opts = "p:sa:n:e:f:chvC:T:b:";
     pid_t pid;
 
     memset((char*)&cmd, 0, sizeof(cmd));
@@ -637,24 +771,28 @@ int main(int argc, const char *argv[])
             case 'T':
                 memcpy(target_name, optarg, strlen(optarg));
                 break;
+            case 'b':
+                ttm.arg.bind.set=1;
+                memcpy(bind_buf, optarg, strlen(optarg));
+                break;
             case 'a':
-                ttm.set_ap = 1;
+                ttm.arg.ap.set = 1;
                 memcpy(ap_buf, optarg, strlen(optarg));
                 break;
             case 'n':
                 ttm.set_pnl_num = 1;
-                ttm.pnl_num_arg = optarg[0] - '0';
+                ttm.pnl_num = optarg[0] - '0';
                 break;
             case 'e':
-                ttm.set_evt = 1;
+                ttm.arg.evt.set = 1;
                 memcpy(evt_buf, optarg, strlen(optarg));
                 break;
             case 'f':
-                ttm.set_fb = 1;
+                ttm.arg.fb.set = 1;
                 memcpy(fb_buf, optarg, strlen(optarg));
                 break;
             case OPT_ORG_EVT:
-                ttm.set_org_evt = 1;
+                ttm.arg.org_evt.set = 1;
                 memcpy(org_evt_buf, optarg, strlen(optarg));
                 break;
             case 'c':
@@ -690,7 +828,7 @@ int main(int argc, const char *argv[])
     }
 
     if(ttm.set_pnl_num)
-        max_pnl = ttm.pnl_num_arg;
+        max_pnl = ttm.pnl_num;
     
     if(ttm.pnl_arg < 0 || ttm.pnl_arg > max_pnl)
     {
@@ -698,7 +836,7 @@ int main(int argc, const char *argv[])
         tm_test_usage();
     }    
 
-    if(!ttm.set_ap)
+    if(!ttm.arg.ap.set)
     {
         printf("no set ap\n");
         return 0;
@@ -708,10 +846,10 @@ int main(int argc, const char *argv[])
     signal(SIGINT, sig);
     signal(SIGTERM, sig);
 
-    ttm.mode =  ttm.ap_num - 1;
+    ttm.mode =  ttm.arg.ap.num - 1;
 
     set_ttm();
-    set_button_num(ttm.ap_num + 3);
+    set_button_num(ttm.arg.ap.num + 3);
     set_comment();
 
     // set fb position
@@ -765,7 +903,7 @@ int main(int argc, const char *argv[])
         {
             cmd.stretch.hdr=0xa1;
             cmd.stretch.panel=i;
-            cmd.stretch.ap=ttm.ap_arg[0];
+            cmd.stretch.ap=ttm.arg.ap.data[0];
             cmd.len=3;
             send_ipc(&cmd);
         }
@@ -777,11 +915,11 @@ int main(int argc, const char *argv[])
             
             send_ipc(&cmd);
       
-            for(int j=0; j<ttm.ap_num; j++)
+            for(int j=0; j<ttm.arg.ap.num; j++)
             {
                 cmd.append.hdr=0xa0;
                 cmd.append.panel=i;
-                cmd.append.ap=ttm.ap_arg[j];
+                cmd.append.ap=ttm.arg.ap.data[j];
 
                 set_pnl_append_cmd(&cmd.append, j);
                 set_ap_append_cmd(&cmd.append, j);

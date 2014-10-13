@@ -109,8 +109,7 @@ static void refresh_screen ()
     char str[32]={0};
 
     memcpy(str, substr, sizeof(substr));
-    //memcpy(&str[sizeof(substr)], TM_VERSION, sizeof(TM_VERSION));
-    memcpy(&str[20], TM_VERSION, sizeof(TM_VERSION));
+    memcpy(&str[20], TM_TEST_VERSION, sizeof(TM_TEST_VERSION));
 
 	fillrect (0, 0, xres - 1, yres - 1, 0);
 	put_string_center (xres/2, yres/4,   "test program", 1);
@@ -210,7 +209,7 @@ void set_button(fb_data_t* fb)
 
 int ts_test(fb_data_t* fb, evt_data_t* evt)
 {
-    struct tsdev *ts;
+    struct tsdev *ts = NULL;
     int x, y;
     unsigned int i;
     unsigned int mode = 0;

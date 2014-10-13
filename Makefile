@@ -3,7 +3,7 @@
 # Author: Lester
 #############################
 
-VERSION    = 1.1
+VERSION    = 1.2
 
 # cross-compile : set PREFIX and PATH
 PREFIX     = /Space/ltib2/ltib/rootfs_l
@@ -15,7 +15,7 @@ DEST_PATH  = release/
 HOST       = $(CC_PATH)$(CROSS)
 CC         = $(HOST)gcc
 DEFINES    = -DQ_ASSERT -D_GNU_SOURCE -DTM_VERSION='"$(VERSION)"'
-CFLAGS     = -g3 -O2 -Wall -Werror -std=gnu99 -march=armv7-a -mfpu=neon $(DEFINES)
+CFLAGS     = -O2 -Wall -Werror -std=gnu99 -march=armv7-a -mfpu=neon $(DEFINES)
 INCPATH    = -I$(PREFIX)/usr/include -I$(PREFIX)/usr/local/include -I. -I./include
 LINK       = $(HOST)gcc
 LIBPATH    = -L$(PREFIX)/usr/lib -L$(PREFIX)/usr/local/lib -L$(PREFIX)/lib
