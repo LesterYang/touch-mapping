@@ -9,7 +9,7 @@ VERSION    = 1.2
 PREFIX     = /Space/ltib2/ltib/rootfs_l
 CC_PATH    = /opt/freescale/usr/local/gcc-4.6.2-glibc-2.13-linaro-multilib-2011.12/fsl-linaro-toolchain/bin/
 CROSS      = arm-linux-
-DEST_PATH  = release/
+DEST_PATH  = release
 
 # Compiler
 HOST       = $(CC_PATH)$(CROSS)
@@ -24,9 +24,9 @@ RPATH_LINK = $(PREFIX)/usr/lib
 LFLAGS     = -Wl,-rpath-link=$(RPATH_LINK)
 LIBS       = $(LIBPATH) -lpthread -lmtdev -lQSI-IPCLib 
 AR         = $(HOST)ar
+OBJ_PATH   = $(DEST_PATH)/.obj
 
-
-OBJECTS    =  $(shell ls ./src/*.c | sed 's/\.c/.o/g')
+OBJECTS    = $(shell ls ./src/*.c | sed 's/\.c/.o/g')
     		 
 # All Target
 all: tm-daemon tm-test move
@@ -44,10 +44,12 @@ tm-test:
 move:
 	cp tm-daemon $(DEST_PATH) && rm tm-daemon
 	cp test/tm-test $(DEST_PATH) && rm test/tm-test
+	mv $(OBJECTS) $(OBJ_PATH)
+	cd test; make move
 	sync
 	
 clean:
-	rm -f $(OBJECTS)
+	rm -f $(OBJ_PATH)/*.o
 	cd test; make clean
 
 

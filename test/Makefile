@@ -23,6 +23,7 @@ RPATH_LINK = $(PREFIX)/usr/lib
 LFLAGS     = -Wl,-rpath-link=$(RPATH_LINK)
 LIBS       = $(LIBPATH) -lpthread -lts -lQSI-IPCLib 
 AR         = $(HOST)ar
+OBJ_PATH   = .obj
 
 OBJECTS    = $(shell ls ./*.c | sed 's/\.c/.o/g') 
 			 
@@ -37,10 +38,11 @@ tm-test: $(OBJECTS)
 $(OBJECTS): %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCPATH) $< -o $@
 	
-
+move:
+	mv $(OBJECTS) $(OBJ_PATH)
 	
 clean:
-	rm -f $(OBJECTS)
+	rm -f $(OBJ_PATH)/*.o
 	
 
 

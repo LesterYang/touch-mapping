@@ -94,7 +94,7 @@ struct test_conf test_cfg[] = {
 
 #define MAX_TEST_CFG   (Q_ELEMENTS(test_cfg))
 
-#define OPT_ORG_EVT (1)
+//#define OPT_ORG_EVT (1)
 #define use_arg(flag, max, arg, idx) ( flag && idx < max && idx >= 0 && arg[idx] >= 0 )
 
 struct option long_opts[] = {
@@ -103,7 +103,7 @@ struct option long_opts[] = {
     {"event",               1, 0,   'e'},
     {"fb",                  1, 0,   'f'},
     {"ap",                  1, 0,   'a'},
-    {"input",               1, 0,   OPT_ORG_EVT},
+    {"input",               1, 0,   'i'},
     {"bind",                1, 0,   'b'},
     {"split",               0, 0,   's'},
     {"calibrate",           0, 0,   'c'},
@@ -189,7 +189,7 @@ void tm_test_usage()
                     "   -p  --master        panel which is set\n"
                     "   -a  --ap            append application programs\n"
                     "   -e  --event         append touch event device\n"
-                    "       --input         set touch event device for calibration\n"
+                    "   -i  --input         set touch event device for calibration\n"
                     "   -f  --fb            append frame buffer device\n"
                     "   -n  --pnlnum        set panel number\n"
                     "   -b  --bind          bind apploications to panel\n"
@@ -756,7 +756,7 @@ int main(int argc, const char *argv[])
     tm_cmd_t cmd;
     char i;
     int fd, opt_idx, c, max_pnl=PNL_NUM;
-    char *short_opts = "p:sa:n:e:f:chvC:T:b:";
+    char *short_opts = "p:sa:n:e:f:chvC:T:b:i:";
     pid_t pid;
 
     memset((char*)&cmd, 0, sizeof(cmd));
@@ -791,7 +791,7 @@ int main(int argc, const char *argv[])
                 ttm.arg.fb.set = 1;
                 memcpy(fb_buf, optarg, strlen(optarg));
                 break;
-            case OPT_ORG_EVT:
+            case 'i':
                 ttm.arg.org_evt.set = 1;
                 memcpy(org_evt_buf, optarg, strlen(optarg));
                 break;
