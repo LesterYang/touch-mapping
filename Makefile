@@ -42,8 +42,8 @@ tm-test:
 	cd test; make
 	
 move:
-	cp tm-daemon $(DEST_PATH) && rm tm-daemon
-	cp test/tm-test $(DEST_PATH) && rm test/tm-test
+	mv tm-daemon $(DEST_PATH)
+	mv test/tm-test $(DEST_PATH)
 	mv $(OBJECTS) $(OBJ_PATH)
 	cd test; make move
 	sync
