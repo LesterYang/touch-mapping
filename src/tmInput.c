@@ -51,11 +51,14 @@ typedef struct _tm_input_dev {
     fd_set            evfds;
     tm_input_type_t   type;
 
-    tm_ap_info_t**    act_ap;
-    uint8_t           max_act_num;
+   // tm_ap_info_t**    act_ap;
+   // uint8_t           max_act_num;
 
     q_thread*         thread;
     list_head_t	      node;
+
+    int                 threshold; // see THRESHOLD_UNIT
+    tm_input_timeval_t  timer;
 
     volatile int      slot;
     tm_input_queue_t  input_queue[SLOT_NUM];
@@ -82,6 +85,7 @@ tm_errno_t  tm_input_init_events(void);
 void        tm_input_close_events(void);
 void        tm_input_remove_dev(void);
 
+q_bool tm_input_threshold_timeout(tm_input_dev_t* dev);
 void tm_input_send_event(tm_ap_info_t* ap, tm_input_event_t* evt, uint16_t type, uint16_t code, int val);
 void tm_input_check_slot(tm_ap_info_t* ap, tm_input_event_t* evt, tm_input_dev_t* dev);
 void tm_input_sync_single_touch(tm_input_dev_t* dev);
@@ -221,15 +225,25 @@ tm_errno_t tm_input_init_events()
 
     list_for_each_entry(tm_input.tm_pnl_head, panel, node)
     {
+        char* threshold;
+        
     	dev = (tm_input_dev_t*)q_calloc(sizeof(tm_input_dev_t));
 
     	if(dev == NULL)
     	    continue;
 
+        if( (threshold = getenv("QSI_TM_THRESHOLD")) == NULL )
+            threshold = DEFAULT_THRESHOLD;
+
     	dev->panel = panel;
-    	dev->max_act_num = tm_input.ap_num ;
-        if(dev->max_act_num)
-            dev->act_ap = (tm_ap_info_t**)q_calloc(dev->max_act_num * sizeof(tm_ap_info_t*));
+    	//dev->max_act_num = tm_input.ap_num ;
+        dev->threshold = atoi(threshold);
+        tm_input_get_time(&dev->timer);
+
+        q_dbg(Q_DBG, "input threshold : %d", dev->threshold);
+        
+        //if(dev->max_act_num)
+        //    dev->act_ap = (tm_ap_info_t**)q_calloc(dev->max_act_num * sizeof(tm_ap_info_t*));
 
         q_list_add(&tm_input.dev_head, &dev->node);
     	tm_input.dev_num++;
@@ -288,12 +302,20 @@ void tm_input_remove_dev()
     		dev->thread = NULL;
     	}
 
-    	q_free(dev->act_ap);
+    	//q_free(dev->act_ap);
     	q_list_del(&dev->node);
     	q_free(dev);
     }
 }
 
+q_bool tm_input_threshold_timeout(tm_input_dev_t* dev)
+{
+    tm_input_timeval_t now;
+
+    tm_input_get_time(&now);
+
+    return (tm_input_elapsed_time(&now, &dev->timer) > dev->threshold) ? q_true : q_false;
+}
 
 void tm_input_send_event(tm_ap_info_t* ap, tm_input_event_t* evt, uint16_t type, uint16_t code, int val)
 {
@@ -347,6 +369,7 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
             tm_input_send_event(q->ap.cur, &evt, EV_KEY, BTN_TOUCH, 0);
             tm_input_send_event(q->ap.cur, &evt, EV_SYN, SYN_REPORT, 0);
             q->status = TM_INPUT_STATUS_IDLE;
+            tm_input_get_time(&dev->timer);
             break;
 
         case TM_INPUT_STATUS_PRESS:
@@ -404,6 +427,10 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
             tm_input_send_event(q->ap.cur, &evt, EV_SYN, SYN_REPORT, 0);
             break;
 
+        case TM_INPUT_STATUS_IDLE:
+            //if(tm_input_threshold_timeout(dev) && q->mt.p)
+            //    q->status = TM_INPUT_STATUS_PRESS;
+            break;
         default:
             break;
     }
@@ -425,9 +452,19 @@ void tm_input_parse_single_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
         case EV_KEY:
             if(evt->code == BTN_TOUCH)
             {
-                if(evt->value)
+                if(evt->value && tm_input_threshold_timeout(dev))
+                {
                     q->status = TM_INPUT_STATUS_TOUCH;
-                else
+                    break;
+                }
+
+                if(q->status == TM_INPUT_STATUS_PRESS)
+                {
+                    // ignore, because there is no x/y events
+                    q->status = TM_INPUT_STATUS_IDLE;
+                    tm_input_get_time(&dev->timer);
+                }
+                else if(q->status != TM_INPUT_STATUS_IDLE)
                     q->status = TM_INPUT_STATUS_RELEASE;
             }
             break;
@@ -636,7 +673,7 @@ void tm_input_thread_func(void *data)
 
                 if(dev->type == TM_INPUT_TYPE_SINGLE)
                 {
-                    ret = q_loop_read(dev->panel->fd, evt, sizeof(tm_input_event_t));
+                    ret = q_read(dev->panel->fd, evt, sizeof(tm_input_event_t));
                     if( ret == (ssize_t)sizeof(tm_input_event_t) && !tm_input.suspend)
                         tm_input_parse_single_touch(dev, (tm_input_event_t*)evt);
                 }

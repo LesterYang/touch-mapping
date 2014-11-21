@@ -8,10 +8,15 @@
 
 #define IPC_CMD_GET_VER  (0xd0)
 
+
+// command length
 #define IPC_SET_MAP_LEN  (10)
 #define IPC_SET_ONE_LEN  (2)
 #define IPC_CLR_MAP_LEN  (1)
+
 #define IPC_GET_VER_LEN  (0)
+
+
 
 #define IPC_MAX_NAME     (8)
 

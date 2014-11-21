@@ -8,6 +8,8 @@
 #define LONG_BITS (sizeof(long) << 3)
 #define NUM_LONGS(bits) (((bits) + LONG_BITS - 1) / LONG_BITS)
 #define SLOT_NUM (5)
+#define DEFAULT_THRESHOLD "0"
+#define THRESHOLD_UNIT    (100000) //100ms
 
 typedef enum _tm_input_status tm_input_status_t;
 typedef enum _tm_input_type tm_input_type_t;
@@ -49,6 +51,11 @@ static inline int testBit(long bit, const long *array)
 static inline void tm_input_get_time(tm_input_timeval_t *time)
 {
     gettimeofday(time, NULL);
+}
+
+static inline int tm_input_elapsed_time(tm_input_timeval_t *now, tm_input_timeval_t *old)
+{
+    return ((now->tv_sec - old->tv_sec) * 1000000 + (now->tv_usec - old->tv_usec))/THRESHOLD_UNIT;
 }
 
 static inline void tm_input_add_time(tm_input_timeval_t *time, int ms)

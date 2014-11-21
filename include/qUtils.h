@@ -64,9 +64,9 @@ typedef int q_bool;
         }                                                                       \
         else if( lv!=Q_DBG_DISABLE && lv >= dbg_level )                         \
         {                                                                       \
-            fprintf(stderr, "tm-daemon : ");                                             \
-            fprintf(stderr, expr,  ##__VA_ARGS__);                                       \
-            fprintf(stderr, "\n");                                                       \
+            fprintf(stderr, "tm-daemon : ");                                    \
+            fprintf(stderr, expr,  ##__VA_ARGS__);                              \
+            fprintf(stderr, "\n");                                              \
         }                                                                       \
     } while (0)
 
