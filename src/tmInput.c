@@ -59,6 +59,7 @@ typedef struct _tm_input_dev {
 
     int                 threshold; // see THRESHOLD_UNIT
     tm_input_timeval_t  timer;
+    tm_input_timespec_t clock;
 
     volatile int      slot;
     tm_input_queue_t  input_queue[SLOT_NUM];
@@ -86,6 +87,7 @@ void        tm_input_close_events(void);
 void        tm_input_remove_dev(void);
 
 q_bool tm_input_threshold_timeout(tm_input_dev_t* dev);
+q_bool tm_input_threshold_clock_timeout(tm_input_dev_t* dev);
 void tm_input_send_event(tm_ap_info_t* ap, tm_input_event_t* evt, uint16_t type, uint16_t code, int val);
 void tm_input_check_slot(tm_ap_info_t* ap, tm_input_event_t* evt, tm_input_dev_t* dev);
 void tm_input_sync_single_touch(tm_input_dev_t* dev);
@@ -238,8 +240,11 @@ tm_errno_t tm_input_init_events()
     	dev->panel = panel;
     	//dev->max_act_num = tm_input.ap_num ;
         dev->threshold = atoi(threshold);
-        tm_input_get_time(&dev->timer);
+        //tm_input_get_time(&dev->timer);
+        tm_input_get_clock_time(&dev->clock);
 
+        //q_dbg(Q_DBG, "get first system time: %lu:%lu", dev->timer.tv_sec, dev->timer.tv_usec);
+        q_dbg(Q_DBG, "get first clock time: %lu:%lu", dev->clock.tv_sec, dev->clock.tv_nsec);
         q_dbg(Q_DBG, "input threshold : %d", dev->threshold);
         
         //if(dev->max_act_num)
@@ -314,8 +319,38 @@ q_bool tm_input_threshold_timeout(tm_input_dev_t* dev)
 
     tm_input_get_time(&now);
 
+#if 1
+    if (tm_input_elapsed_time(&now, &dev->timer) > dev->threshold)
+        return q_true;
+    else
+    {
+        q_dbg(Q_DBG, "ignore event, system time: %lu:%lu", now.tv_sec, now.tv_usec);
+        return q_false;
+    }
+#else
     return (tm_input_elapsed_time(&now, &dev->timer) > dev->threshold) ? q_true : q_false;
+#endif
 }
+
+q_bool tm_input_threshold_clock_timeout(tm_input_dev_t* dev)
+{
+    tm_input_timespec_t now;
+
+    tm_input_get_clock_time(&now);
+
+#if 1
+    if (tm_input_elapsed_clock_time(&now, &dev->clock) > dev->threshold)
+        return q_true;
+    else
+    {
+        q_dbg(Q_DBG, "ignore event, clock time: %lu:%lu", now.tv_sec, now.tv_nsec);
+        return q_false;
+    }
+#else
+    return (tm_input_elapsed_clock_time(&now, &dev->clock) > dev->threshold) ? q_true : q_false;
+#endif
+}
+
 
 void tm_input_send_event(tm_ap_info_t* ap, tm_input_event_t* evt, uint16_t type, uint16_t code, int val)
 {
@@ -369,7 +404,8 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
             tm_input_send_event(q->ap.cur, &evt, EV_KEY, BTN_TOUCH, 0);
             tm_input_send_event(q->ap.cur, &evt, EV_SYN, SYN_REPORT, 0);
             q->status = TM_INPUT_STATUS_IDLE;
-            tm_input_get_time(&dev->timer);
+            //tm_input_get_time(&dev->timer);
+            tm_input_get_clock_time(&dev->clock);
             break;
 
         case TM_INPUT_STATUS_PRESS:
@@ -452,7 +488,8 @@ void tm_input_parse_single_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
         case EV_KEY:
             if(evt->code == BTN_TOUCH)
             {
-                if(evt->value && tm_input_threshold_timeout(dev))
+                //if(evt->value && tm_input_threshold_timeout(dev))           
+                if(evt->value && tm_input_threshold_clock_timeout(dev))
                 {
                     q->status = TM_INPUT_STATUS_TOUCH;
                     break;
@@ -462,7 +499,8 @@ void tm_input_parse_single_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
                 {
                     // ignore, because there is no x/y events
                     q->status = TM_INPUT_STATUS_IDLE;
-                    tm_input_get_time(&dev->timer);
+                    //tm_input_get_time(&dev->timer);
+                    tm_input_get_clock_time(&dev->clock);
                 }
                 else if(q->status != TM_INPUT_STATUS_IDLE)
                     q->status = TM_INPUT_STATUS_RELEASE;

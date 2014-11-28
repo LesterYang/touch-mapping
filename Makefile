@@ -22,7 +22,7 @@ LIBPATH    = -L$(PREFIX)/usr/lib -L$(PREFIX)/usr/local/lib -L$(PREFIX)/lib
 RPATH      =
 RPATH_LINK = $(PREFIX)/usr/lib
 LFLAGS     = -Wl,-rpath-link=$(RPATH_LINK)
-LIBS       = $(LIBPATH) -lpthread -lmtdev -lQSI-IPCLib 
+LIBS       = $(LIBPATH) -lpthread -lmtdev -lQSI-IPCLib -lrt
 AR         = $(HOST)ar
 OBJ_PATH   = $(DEST_PATH)/.obj
 

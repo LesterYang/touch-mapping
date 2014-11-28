@@ -13,7 +13,7 @@
 typedef struct _tm_info
 {
     tm_display_t*       dis_conf;
-	
+
     list_head_t       	ap_head;
     list_head_t       	pnl_head;
     q_mutex*            mutex;
@@ -27,7 +27,6 @@ void          tm_remove_all_display(void);
 tm_ap_info_t* tm_get_default_ap(int panel_id);
 void          tm_set_default_display(void);
 tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel);
-
 
 tm_errno_t tm_init()
 {

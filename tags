@@ -279,7 +279,6 @@ abs_end_x	include/tmMapping.h	/^    int abs_end_x;$/;"	m	struct:_tm_fb_param
 abs_end_y	include/tmMapping.h	/^    int abs_end_y;$/;"	m	struct:_tm_fb_param
 abs_st_x	include/tmMapping.h	/^    int abs_st_x;$/;"	m	struct:_tm_fb_param
 abs_st_y	include/tmMapping.h	/^    int abs_st_y;$/;"	m	struct:_tm_fb_param
-act_ap	src/tmInput.c	/^    tm_ap_info_t**    act_ap;$/;"	m	struct:_tm_input_dev	file:
 act	test/tm_test.h	/^    int   act;$/;"	m	struct:_evt_data
 a	test/ts_calibrate.c	/^	int a[7];$/;"	m	struct:__anon4	file:
 ap_buf	test/tm_test.c	/^static char ap_buf[128];$/;"	v	file:
@@ -440,7 +439,6 @@ long_opts	src/main.c	/^struct option long_opts[] = {$/;"	v	typeref:struct:option
 long_opts	test/tm_test.c	/^struct option long_opts[] = {$/;"	v	typeref:struct:option
 main	src/main.c	/^int main(int argc, char* argv[])$/;"	f
 main	test/tm_test.c	/^int main(int argc, const char *argv[])$/;"	f
-max_act_num	src/tmInput.c	/^    uint8_t           max_act_num;$/;"	m	struct:_tm_input_dev	file:
 max_x	include/tmMapping.h	/^    int16_t max_x;$/;"	m	struct:_tm_native_size_param
 max_y	include/tmMapping.h	/^    int16_t max_y;$/;"	m	struct:_tm_native_size_param
 maxfd	src/tmInput.c	/^    int               maxfd;$/;"	m	struct:_tm_input_dev	file:
