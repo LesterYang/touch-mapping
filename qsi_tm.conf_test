@@ -1,0 +1,46 @@
+# Description : Configuration file for tm-daemon.
+#               Set event and fb path, and bind 
+#
+# Configuration type : 1. fb_info
+#                      2. cal_conf
+#                      3. ap_info
+#                      4. pnl_info
+#
+# The order of configuration : [fb_info or cal_conf]
+#                              -> [ap_info]
+#                              -> [pnl_info]
+
+#######################################################
+# framebuffer information : [type] [id] [device path] 
+#######################################################
+fb_info 0 /dev/fb0
+fb_info 1 /dev/fb4
+fb_info 2 /dev/fb9
+fb_info 3 auto_phone
+
+##################################################
+# calibrate : [type] [id] [paremter ...]         
+# paremter refer to ts_calibrate TSLIB_CALIBFILE 
+##################################################
+cal_conf 0 -1573 69344 -400016 66402 200 -153138 65536 
+cal_conf 1 70 -19318 73025352 13993 -65 -7864992 65536 
+cal_conf 2 64 -19296 72509152 14093 34 -8539252 65536 
+
+##############################################################
+# ap: [type] [id] [event path] [touch type] [bind the above]
+##############################################################
+ap_info 0 /dev/input/event10 fb_info 0
+ap_info 1 /dev/input/event11 fb_info 0
+ap_info 2 /dev/input/event12 fb_info 3
+ap_info 3 /dev/input/event13 fb_info 0
+ap_info 4 /dev/input/event14 fb_info 0
+ap_info 5 /dev/input/event15 fb_info 0
+ap_info 6 /dev/input/event16 fb_info 1
+ap_info 7 /dev/input/event17 fb_info 2
+
+#####################################################
+# panel : [type] [id] [event path] [bind the above]
+#####################################################
+pnl_info 0 /dev/input/event20 cal_conf 0 fb_info 0 ap_info 0
+pnl_info 1 /dev/input/event21 cal_conf 1 fb_info 1 ap_info 6
+pnl_info 2 /dev/input/event22 cal_conf 2 fb_info 2 ap_info 7

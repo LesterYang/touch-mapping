@@ -82,6 +82,8 @@ tm_ap_info_t*    tm_transfer(int *x, int *y, tm_panel_info_t* panel);
 void tm_return_version(unsigned int len, char* from);
 void tm_clear_map(unsigned int len, unsigned char *msg);
 void tm_set_map(unsigned int len, unsigned char *msg);
+void tm_update_ap_native_size(unsigned int len, unsigned char *msg);
+
 
 
 #endif /* TM_H_ */

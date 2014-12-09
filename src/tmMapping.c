@@ -259,7 +259,7 @@ err:
 
 tm_errno_t tm_mapping_fb_config()
 {
-    int id, fd;
+    int id;
     struct fb_var_screeninfo fb_var;
     tm_native_size_param_t* native_size;
     char *param;
@@ -282,23 +282,33 @@ tm_errno_t tm_mapping_fb_config()
 
     native_size->fb_path = q_strdup((const char*)param);
 
-    if((fd = open(native_size->fb_path, O_RDWR)) == -1)
+    if(memcmp(native_size->fb_path, FB_CFG_AUTO_DEV, sizeof(FB_CFG_AUTO_DEV)-1) == 0)
     {
-        q_dbg(Q_ERR,"open %s error", native_size->fb_path);
-        goto err_param;
+        native_size->max_x = FB_CFG_DEFAULT_X;
+        native_size->max_y = FB_CFG_DEFAULT_Y; 
     }
- 
-    if(ioctl(fd, FBIOGET_VSCREENINFO, &fb_var) < 0)
+    else
     {
-        q_dbg(Q_ERR,"get fb size error");
-        goto err_fd;
+        int fd;
+        if((fd = open(native_size->fb_path, O_RDWR)) == -1)
+        {
+            q_dbg(Q_ERR,"open %s error", native_size->fb_path);
+            goto err_param;
+        }
+     
+        if(ioctl(fd, FBIOGET_VSCREENINFO, &fb_var) < 0)
+        {
+            q_dbg(Q_ERR,"get fb size error");
+            close(fd);
+            goto err_param;
+        }
+        
+        native_size->max_x = fb_var.xres;
+        native_size->max_y = fb_var.yres;
+
+        close(fd);
     }
     
-    native_size->max_x = fb_var.xres;
-    native_size->max_y = fb_var.yres;
-
-    close(fd);
-
     q_mutex_lock(tm_handler.mutex);
 
     q_list_add(&tm_handler.native_size_head, &native_size->node);
@@ -308,8 +318,6 @@ tm_errno_t tm_mapping_fb_config()
 
     return TM_ERRNO_SUCCESS;
 
-err_fd:
-    close(fd);
 err_param:
     q_free((char*)native_size->fb_path);
 err:
@@ -601,6 +609,11 @@ tm_native_size_param_t* tm_mapping_get_native_size_param(int id)
     }
 
     return size;
+}
+
+q_bool tm_mapping_native_size_is_const(tm_native_size_param_t* size)
+{
+    return (memcmp(size->fb_path, FB_CFG_DEV, sizeof(FB_CFG_DEV)-1)) ? q_false : q_true;  
 }
 
 void tm_mapping_print_config(list_head_t* ap_head, list_head_t* pnl_head)

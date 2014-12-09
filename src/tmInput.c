@@ -338,6 +338,9 @@ q_bool tm_input_threshold_clock_timeout(tm_input_dev_t* dev)
 
     tm_input_get_clock_time(&now);
 
+    if(now.tv_sec < dev->clock.tv_sec)
+        return q_true;
+    
 #if 1
     if (tm_input_elapsed_clock_time(&now, &dev->clock) > dev->threshold)
         return q_true;

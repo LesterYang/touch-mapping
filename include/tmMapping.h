@@ -7,11 +7,16 @@
 #include "qUtils.h"
 #include "tmError.h"
 
-#define QSI_TM_CFG         "/home/qsi_tm/qsi_tm.conf"
-#define AP_CFG             "ap_info"
-#define PNL_CFG            "pnl_info"
-#define CAL_CFG            "cal_conf"
-#define FB_CFG             "fb_info"
+#define QSI_TM_CFG          "/home/qsi_tm/qsi_tm.conf"
+#define AP_CFG              "ap_info"
+#define PNL_CFG             "pnl_info"
+#define CAL_CFG             "cal_conf"
+#define FB_CFG              "fb_info"
+
+#define FB_CFG_DEV          "/dev/fb"
+#define FB_CFG_AUTO_DEV     "auto"
+#define FB_CFG_DEFAULT_X    (800)
+#define FB_CFG_DEFAULT_Y    (480)
 
 #define BUF_SIZE            (256)
 #define MULTIPLE            (4096)
@@ -65,11 +70,13 @@ struct _tm_calibrate
 
 struct _tm_fb_param // relative proportion to native size
 {
+    // percent
     int st_x;
     int st_y;
     int w;
     int h;
 
+    // absolute position
     int abs_st_x;
     int abs_st_y;
     int abs_end_x;
@@ -93,6 +100,7 @@ struct _tm_config
 
 tm_errno_t tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head);
 void       tm_mapping_destroy_handler(list_head_t* ap_head, list_head_t* pnl_head);
+q_bool     tm_mapping_native_size_is_const(tm_native_size_param_t* size);
 
 void tm_mapping_print_config(list_head_t* ap_head, list_head_t* pnl_head);
 void tm_mapping_print_cal_info(void);

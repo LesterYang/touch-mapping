@@ -96,11 +96,12 @@ void tm_ipc_recv(const char *from, unsigned int len, unsigned char *msg)
 {
     q_dbg(Q_INFO,"recv len %d, from %s", len, from);
 
+    len--;
     switch(msg[0])
     {
         case IPC_CMD_SET_MAP:
             // cmd, panel, st_x, st_y, w, h, ap, st_x, st_y, w, h
-            tm_set_map(len-1, &msg[1]);
+            tm_set_map(len, &msg[1]);
             break;
         case IPC_CMD_SET_ONE:
             if(len-1 == IPC_SET_ONE_LEN)
@@ -113,10 +114,13 @@ void tm_ipc_recv(const char *from, unsigned int len, unsigned char *msg)
             }
             break;
         case IPC_CMD_CLR_MAP:
-            tm_clear_map(len-1, &msg[1]);
+            tm_clear_map(len, &msg[1]);
+            break;
+        case IPC_CMD_SET_APSIZE:
+            tm_update_ap_native_size(len, &msg[1]);
             break;
         case IPC_CMD_GET_VER:
-            tm_return_version(len-1, (char*)from);
+            tm_return_version(len, (char*)from);
             break;
         default:
             break;

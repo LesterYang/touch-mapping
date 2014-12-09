@@ -3,7 +3,7 @@
 # Author: Lester
 #############################
 
-VERSION    = 1.3
+VERSION    = 1.4
 
 # cross-compile : set PREFIX and PATH
 PREFIX     = /Space/ltib2/ltib/rootfs_l

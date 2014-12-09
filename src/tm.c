@@ -21,7 +21,7 @@ typedef struct _tm_info
 
 static tm_info_t tm;
 
-tm_errno_t    tm_set_fb_param(tm_fb_param_t* fb, int start_x, int start_y, int per_width, int per_high);
+tm_errno_t    tm_set_fb_param(tm_fb_param_t* fb, int per_st_x, int per_st_y, int per_width, int per_high);
 void          tm_remove_display(tm_panel_info_t* panel);
 void          tm_remove_all_display(void);
 tm_ap_info_t* tm_get_default_ap(int panel_id);
@@ -211,16 +211,46 @@ void tm_set_map(unsigned int len, unsigned char *msg)
     tm_mapping_print_panel_info(&tm.pnl_head);
 }
 
+void tm_update_ap_native_size(unsigned int len, unsigned char *msg)
+{
+    tm_ap_info_t* ap = NULL;
+    tm_display_t* dis;
+    tm_panel_info_t* panel;
 
-tm_errno_t tm_set_fb_param(tm_fb_param_t* fb, int start_x, int start_y, int per_width, int per_high)
+    if(len != IPC_CMD_SET_APSIZE_LEN)
+        return;
+
+    ap = tm_get_ap_info(msg[0]);
+
+    if(!ap || !ap->native_size)
+        return;
+
+    if(tm_mapping_native_size_is_const(ap->native_size))
+        return;
+    
+    ap->native_size->max_x = 256 * msg[1] + msg[2];
+    ap->native_size->max_y = 256 * msg[3] + msg[4];
+
+    // update display setting
+    list_for_each_entry(&tm.pnl_head, panel, node)
+    {
+        list_for_each_entry(&panel->display_head, dis, node)
+        {
+            if(dis->ap == ap)
+                tm_fillup_fb_param(&dis->from, ap->native_size);
+        }
+    }
+}
+
+tm_errno_t tm_set_fb_param(tm_fb_param_t* fb, int per_st_x, int per_st_y, int per_width, int per_high)
 {
     q_assert(fb);
 
-    if(start_x + per_width > 100 || start_y + per_high > 100)
+    if(per_st_x + per_width > 100 || per_st_y + per_high > 100)
         return TM_ERRNO_DEV_PARAM;
 
-    fb->st_x = start_x;
-    fb->st_y = start_y;
+    fb->st_x = per_st_x;
+    fb->st_y = per_st_y;
     fb->w = per_width;
     fb->h = per_high;
 
