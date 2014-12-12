@@ -37,6 +37,7 @@ struct _tm_ap_info
     tm_input_type_t         touch_type;
     tm_native_size_param_t* native_size;
     volatile int            slot;
+    q_bool                  threshold;
 
     list_head_t             node;
     q_mutex*                mutex;
@@ -83,6 +84,7 @@ void tm_return_version(unsigned int len, char* from);
 void tm_clear_map(unsigned int len, unsigned char *msg);
 void tm_set_map(unsigned int len, unsigned char *msg);
 void tm_update_ap_native_size(unsigned int len, unsigned char *msg);
+void tm_switch_ap_threshold(unsigned int len, unsigned char *msg);
 
 
 

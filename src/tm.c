@@ -113,10 +113,21 @@ tm_display_t* tm_match_display(int x, int y, tm_panel_info_t* panel)
 {
     tm_display_t* dis = NULL;
 
+    q_dbg(Q_DBG_CHK_MATCH,"panel id %d search %d %d ->",panel->id, x, y);
+
     list_for_each_entry(&panel->display_head, dis, node)
-    {
+    {  
+        q_dbg(Q_DBG_CHK_MATCH,"                  x:%4d~%4d y:%4d~%4d"
+                                ,dis->to.abs_st_x 
+                                ,dis->to.abs_end_x
+                                ,dis->to.abs_st_y
+                                ,dis->to.abs_end_y);
+    
         if(tm_point_is_in_range(&dis->to, x, y))
+        {
+             q_dbg(Q_DBG_CHK_MATCH,"matched ap id %d", dis->ap->id);
             break;
+        }
     }
 
     if(dis == NULL)
@@ -240,7 +251,24 @@ void tm_update_ap_native_size(unsigned int len, unsigned char *msg)
                 tm_fillup_fb_param(&dis->from, ap->native_size);
         }
     }
+      tm_mapping_print_panel_info(&tm.pnl_head);
 }
+
+void tm_switch_ap_threshold(unsigned int len, unsigned char *msg)
+{
+    tm_ap_info_t* ap = NULL;
+    
+    if(len != IPC_CMD_EVT_INTR_LEN)
+        return;
+
+    ap = tm_get_ap_info(msg[0]);
+
+    if(ap)
+        ap->threshold = (q_bool)msg[1];
+
+    q_dbg(Q_DBG_THRESHOLD,"ap id %2d threshold : %d", ap->id, ap->threshold);
+}
+
 
 tm_errno_t tm_set_fb_param(tm_fb_param_t* fb, int per_st_x, int per_st_y, int per_width, int per_high)
 {
@@ -279,6 +307,7 @@ void tm_remove_all_display()
 
 tm_ap_info_t* tm_get_default_ap(int panel_id)
 {
+    // default : get ap info by ap id the same as panel id
     tm_ap_info_t* ap = tm_get_ap_info(panel_id);
 
     if(ap == NULL)

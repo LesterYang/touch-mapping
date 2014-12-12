@@ -87,7 +87,7 @@ void        tm_input_close_events(void);
 void        tm_input_remove_dev(void);
 
 q_bool tm_input_threshold_timeout(tm_input_dev_t* dev);
-q_bool tm_input_threshold_clock_timeout(tm_input_dev_t* dev);
+q_bool tm_input_threshold_clock_timeup(tm_input_dev_t* dev);
 void tm_input_send_event(tm_ap_info_t* ap, tm_input_event_t* evt, uint16_t type, uint16_t code, int val);
 void tm_input_check_slot(tm_ap_info_t* ap, tm_input_event_t* evt, tm_input_dev_t* dev);
 void tm_input_sync_single_touch(tm_input_dev_t* dev);
@@ -134,7 +134,8 @@ const char* tm_input_evt_str(int type, int code)
             case ABS_Y:             return "type:ABS, code:Y";
             case ABS_PRESSURE:      return "type:ABS, code:PRESSURE";
             case ABS_MT_SLOT:       return "type:ABS, code:SLOT";
-            case ABS_MT_TOUCH_MAJOR:return "type:ABS, code:MAJOR";
+            case ABS_MT_TOUCH_MAJOR:return "type:ABS, code:TOUCH_MAJOR";
+            case ABS_MT_WIDTH_MAJOR:return "type:ABS, code:WIDTH_MAJOR";
             case ABS_MT_POSITION_X: return "type:ABS, code:MT_X";
             case ABS_MT_POSITION_Y: return "type:ABS, code:MT_Y";
             case ABS_MT_TRACKING_ID:return "type:ABS, code:TRK_ID";
@@ -238,17 +239,11 @@ tm_errno_t tm_input_init_events()
             threshold = DEFAULT_THRESHOLD;
 
     	dev->panel = panel;
-    	//dev->max_act_num = tm_input.ap_num ;
         dev->threshold = atoi(threshold);
-        //tm_input_get_time(&dev->timer);
         tm_input_get_clock_time(&dev->clock);
 
-        //q_dbg(Q_DBG, "get first system time: %lu:%lu", dev->timer.tv_sec, dev->timer.tv_usec);
-        q_dbg(Q_DBG, "get first clock time: %lu:%lu", dev->clock.tv_sec, dev->clock.tv_nsec);
-        q_dbg(Q_DBG, "input threshold : %d", dev->threshold);
-        
-        //if(dev->max_act_num)
-        //    dev->act_ap = (tm_ap_info_t**)q_calloc(dev->max_act_num * sizeof(tm_ap_info_t*));
+        q_dbg(Q_DBG_THRESHOLD, "get first clock time: %lu:%lu", dev->clock.tv_sec, dev->clock.tv_nsec);
+        q_dbg(Q_DBG_THRESHOLD, "input threshold : %d", dev->threshold);
 
         q_list_add(&tm_input.dev_head, &dev->node);
     	tm_input.dev_num++;
@@ -307,7 +302,6 @@ void tm_input_remove_dev()
     		dev->thread = NULL;
     	}
 
-    	//q_free(dev->act_ap);
     	q_list_del(&dev->node);
     	q_free(dev);
     }
@@ -319,20 +313,16 @@ q_bool tm_input_threshold_timeout(tm_input_dev_t* dev)
 
     tm_input_get_time(&now);
 
-#if 1
     if (tm_input_elapsed_time(&now, &dev->timer) > dev->threshold)
         return q_true;
     else
     {
-        q_dbg(Q_DBG, "ignore event, system time: %lu:%lu", now.tv_sec, now.tv_usec);
+        q_dbg(Q_DBG_THRESHOLD, "ignore event, now time: %lu:%lu", now.tv_sec, now.tv_usec);
         return q_false;
     }
-#else
-    return (tm_input_elapsed_time(&now, &dev->timer) > dev->threshold) ? q_true : q_false;
-#endif
 }
 
-q_bool tm_input_threshold_clock_timeout(tm_input_dev_t* dev)
+q_bool tm_input_threshold_clock_timeup(tm_input_dev_t* dev)
 {
     tm_input_timespec_t now;
 
@@ -340,18 +330,16 @@ q_bool tm_input_threshold_clock_timeout(tm_input_dev_t* dev)
 
     if(now.tv_sec < dev->clock.tv_sec)
         return q_true;
-    
-#if 1
+
     if (tm_input_elapsed_clock_time(&now, &dev->clock) > dev->threshold)
+    {
         return q_true;
+    }
     else
     {
-        q_dbg(Q_DBG, "ignore event, clock time: %lu:%lu", now.tv_sec, now.tv_nsec);
+        q_dbg(Q_DBG_THRESHOLD, "ignore event, now clock time: %lu:%lu", now.tv_sec, now.tv_nsec);
         return q_false;
     }
-#else
-    return (tm_input_elapsed_clock_time(&now, &dev->clock) > dev->threshold) ? q_true : q_false;
-#endif
 }
 
 
@@ -366,7 +354,7 @@ void tm_input_send_event(tm_ap_info_t* ap, tm_input_event_t* evt, uint16_t type,
     if(ap->fd > 0)
     {
         q_dbg(Q_DBG_POINT,"send to %s, event :",ap->evt_path);
-        q_dbg(Q_DBG_POINT,"%-24s value:%4d",tm_input_evt_str(evt->type, evt->code), evt->value);
+        q_dbg(Q_DBG_POINT,"send %-24s value:%4d",tm_input_evt_str(evt->type, evt->code), evt->value);
 
         if(write(ap->fd, evt, sizeof(tm_input_event_t)) == -1)
             q_dbg(Q_ERR,"write %s error",ap->evt_path);
@@ -380,6 +368,7 @@ void tm_input_check_slot(tm_ap_info_t* ap, tm_input_event_t* evt, tm_input_dev_t
     if (dev->slot != ap->slot) 
     {
         ap->slot = dev->slot;
+        q_dbg(Q_DBG_SEND_MULTI,"send slot %d",ap->slot);
         tm_input_send_event(ap, evt, EV_ABS, ABS_MT_SLOT, ap->slot);
     }
 }
@@ -407,7 +396,6 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
             tm_input_send_event(q->ap.cur, &evt, EV_KEY, BTN_TOUCH, 0);
             tm_input_send_event(q->ap.cur, &evt, EV_SYN, SYN_REPORT, 0);
             q->status = TM_INPUT_STATUS_IDLE;
-            //tm_input_get_time(&dev->timer);
             tm_input_get_clock_time(&dev->clock);
             break;
 
@@ -426,6 +414,12 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
             }
             else
             {
+                return;
+            }
+
+            if(q->ap.cur->threshold && !tm_input_threshold_clock_timeup(dev))
+            {
+                q->status = TM_INPUT_STATUS_IDLE;
                 return;
             }
 
@@ -490,23 +484,21 @@ void tm_input_parse_single_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
 
         case EV_KEY:
             if(evt->code == BTN_TOUCH)
-            {
-                //if(evt->value && tm_input_threshold_timeout(dev))           
-                if(evt->value && tm_input_threshold_clock_timeout(dev))
+            {      
+                if(evt->value)
                 {
                     q->status = TM_INPUT_STATUS_TOUCH;
-                    break;
                 }
-
-                if(q->status == TM_INPUT_STATUS_PRESS)
+                else if(q->status == TM_INPUT_STATUS_PRESS)
                 {
                     // ignore, because there is no x/y events
                     q->status = TM_INPUT_STATUS_IDLE;
-                    //tm_input_get_time(&dev->timer);
                     tm_input_get_clock_time(&dev->clock);
                 }
                 else if(q->status != TM_INPUT_STATUS_IDLE)
+                {
                     q->status = TM_INPUT_STATUS_RELEASE;
+                }
             }
             break;
 
@@ -538,6 +530,10 @@ void tm_input_sync_multi_touch(tm_input_dev_t* dev)
     tm_input_event_t evt; 
 
     tm_input_get_time(&evt.time);
+
+    q_dbg(Q_DBG_MULTI_POINT,"x y : %4d %4d",q->mt.x, q->mt.y);
+    q_dbg(Q_DBG_MULTI_POINT,"maj : %4d %4d", q->mt.touch_major, q->mt.width_major);
+    q_dbg(Q_DBG_MULTI_POINT,"s id: %4d %4d", dev->slot, q->mt.tracking_id);
     
     switch(q->status)
     {
@@ -566,6 +562,13 @@ void tm_input_sync_multi_touch(tm_input_dev_t* dev)
             tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_POSITION_X, q->cur.x);
             tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_POSITION_Y, q->cur.y);
             tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_TOUCH_MAJOR, q->cur.touch_major);
+            tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_WIDTH_MAJOR, q->cur.width_major);
+
+            q_dbg(Q_DBG_SEND_MULTI,"send id: %d",q->cur.tracking_id);
+            q_dbg(Q_DBG_SEND_MULTI,"send xy: %4d %4d",q->cur.x, q->cur.y);
+            
+
+            
             q->status = TM_INPUT_STATUS_MT_DRAG;
             break;
 
@@ -580,6 +583,7 @@ void tm_input_sync_multi_touch(tm_input_dev_t* dev)
             tm_input_check_slot(q->ap.cur, &evt, dev);
             
             tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_TRACKING_ID, q->cur.tracking_id);
+            q_dbg(Q_DBG_SEND_MULTI,"send id: %d",q->cur.tracking_id);
             q->status = TM_INPUT_STATUS_MT_IDLE;
             break;
 
@@ -589,6 +593,9 @@ void tm_input_sync_multi_touch(tm_input_dev_t* dev)
             q->cur.touch_major = q->mt.touch_major;
             
             q->ap.cur = tm_transfer(&q->cur.x, &q->cur.y, dev->panel);
+
+                     
+           
             
             if(!q->ap.cur)
                 return;
@@ -597,25 +604,30 @@ void tm_input_sync_multi_touch(tm_input_dev_t* dev)
             {    
                 tm_input_check_slot(q->ap.last, &evt, dev);
                 tm_input_send_event(q->ap.last, &evt, EV_ABS, ABS_MT_TRACKING_ID, -1);
-
+                q_dbg(Q_DBG_SEND_MULTI,"send id: -1");
                 tm_input_check_slot(q->ap.cur, &evt, dev);
                 tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_TRACKING_ID, q->cur.tracking_id);
+                q_dbg(Q_DBG_SEND_MULTI,"send id: %d",q->cur.tracking_id);
             }
             else
             {
                 tm_input_check_slot(q->ap.cur, &evt, dev);
             }
-            
+
             tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_POSITION_X, q->cur.x);
             tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_POSITION_Y, q->cur.y);
             tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_TOUCH_MAJOR, q->cur.touch_major);
+            tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_WIDTH_MAJOR, q->cur.width_major);
+            q_dbg(Q_DBG_SEND_MULTI,"send xy: %4d %4d",q->cur.x, q->cur.y);
+            q_dbg(Q_DBG_SEND_MULTI,"send ma: %4d %4d",q->cur.touch_major, q->cur.width_major);
 
             break;
 
         default:
             return;
     }
-    
+
+    q_dbg(Q_DBG_SEND_MULTI,"------ Sync ------");
     tm_input_send_event(q->ap.cur, &evt, EV_SYN, SYN_REPORT, 0);
     return;
 }
@@ -627,7 +639,7 @@ void tm_input_parse_multi_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
     if(tm_input.open == q_false)
         return;
 
-    q_dbg(Q_DBG_POINT,"%-24s value:%4d",tm_input_evt_str(evt->type, evt->code), evt->value);
+    q_dbg(Q_DBG_RECV_MULTI,"%-24s value:%4d",tm_input_evt_str(evt->type, evt->code), evt->value);
 
     switch (evt->type)
     {

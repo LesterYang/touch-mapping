@@ -3,7 +3,7 @@
 # Author: Lester
 #############################
 
-VERSION    = 1.4
+VERSION    = 1.5
 
 # cross-compile : set PREFIX and PATH
 PREFIX     = /Space/ltib2/ltib/rootfs_l
@@ -42,6 +42,7 @@ tm-test:
 	cd test; make
 	
 move:
+	test -d $(OBJ_PATH) || mkdir -p $(OBJ_PATH)
 	mv tm-daemon $(DEST_PATH)
 	mv test/tm-test $(DEST_PATH)
 	mv $(OBJECTS) $(OBJ_PATH)

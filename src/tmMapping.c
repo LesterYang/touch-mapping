@@ -394,6 +394,7 @@ tm_errno_t tm_mapping_ap_config(list_head_t* ap_head)
 
     close(fd);
 
+    ap->threshold = q_true;
     ap->mutex = q_mutex_new(q_true, q_true);
 
     tm_mapping_ap_bind_config(ap);

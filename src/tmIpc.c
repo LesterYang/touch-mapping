@@ -100,11 +100,11 @@ void tm_ipc_recv(const char *from, unsigned int len, unsigned char *msg)
     switch(msg[0])
     {
         case IPC_CMD_SET_MAP:
-            // cmd, panel, st_x, st_y, w, h, ap, st_x, st_y, w, h
             tm_set_map(len, &msg[1]);
             break;
+            
         case IPC_CMD_SET_ONE:
-            if(len-1 == IPC_SET_ONE_LEN)
+            if(len == IPC_SET_ONE_LEN)
             {
                 tm_clear_map(IPC_CLR_MAP_LEN, &msg[1]);
                 unsigned char cmd[]={0, 0, 0, 100, 100, 0, 0, 0, 100, 100};
@@ -113,15 +113,23 @@ void tm_ipc_recv(const char *from, unsigned int len, unsigned char *msg)
                 tm_set_map(IPC_SET_MAP_LEN, cmd);
             }
             break;
+            
         case IPC_CMD_CLR_MAP:
             tm_clear_map(len, &msg[1]);
             break;
+            
         case IPC_CMD_SET_APSIZE:
             tm_update_ap_native_size(len, &msg[1]);
             break;
+            
+        case IPC_CMD_EVT_INTR:
+            tm_switch_ap_threshold(len, &msg[1]);
+            break;
+            
         case IPC_CMD_GET_VER:
             tm_return_version(len, (char*)from);
             break;
+            
         default:
             break;
     }

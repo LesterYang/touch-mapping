@@ -1,4 +1,24 @@
+[vesrion 1.5 : 20141212]
+              1. add protocl EVT_INTR : enable/disable a filter that skip 
+                 events if the interval time is less than a threshold time.
+
+[vesrion 1.4 : 20141210]
+              1. add protocol SET_RES : set ap resoultion
+              2. qsi_tm.conf add fb_info type (auto_xxx) to represent the 
+                 resoultion is changeable
+
+[vesrion 1.3 : 20141120]
+              1. add the interval limit for every touch event
+              2. add environment variable QSI_TM_THRESHOLD to set interval 
+                 time, unit is 100ms [defult 0]
+
+[vesrion 1.2 : 20141104]
+              1. support multi-touch
+              2. add environment variable QSI_TM_CFG to set configuration 
+                 file path [defalut /home/qsi_tm/qsi_tm.conf]
+
 [vesrion 1.1 : 20141009]
-                            1. fix segmentation fault if a touch poit has no match ap
+              1. fix segmentation fault if poit doesn't match any ap
+
 [vesrion 1.0 : 20141008]    
-                            1. first release  
+              1. first release  

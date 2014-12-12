@@ -7,6 +7,7 @@
 #define IPC_CMD_CLR_MAP  (0xa2)
 
 #define IPC_CMD_SET_APSIZE (0xb0)
+#define IPC_CMD_EVT_INTR   (0xb1)
 
 #define IPC_CMD_GET_VER  (0xd0)
 
@@ -16,7 +17,9 @@
 #define IPC_SET_ONE_LEN  (2)
 #define IPC_CLR_MAP_LEN  (1)
 
-#define IPC_CMD_SET_APSIZE_LEN (5) 
+#define IPC_CMD_SET_APSIZE_LEN (5)
+#define IPC_CMD_EVT_INTR_LEN   (2)
+
 
 #define IPC_GET_VER_LEN  (0)
 

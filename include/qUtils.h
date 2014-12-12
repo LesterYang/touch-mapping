@@ -15,9 +15,14 @@
 #define Q_DBG_DISABLE   (0x70)
 #define Q_DBG_ENABLE    (0x71)
 
-#define Q_DBG_POINT Q_DBG_DISABLE
-#define Q_DBG_MAP   Q_DBG_DISABLE
-#define Q_DBG_CONF  Q_DBG_DISABLE
+#define Q_DBG_POINT       Q_DBG_DISABLE
+#define Q_DBG_MULTI_POINT Q_DBG_DISABLE
+#define Q_DBG_SEND_MULTI  Q_DBG_DISABLE
+#define Q_DBG_RECV_MULTI  Q_DBG_DISABLE
+#define Q_DBG_CHK_MATCH   Q_DBG_DISABLE
+#define Q_DBG_MAP         Q_DBG_DISABLE
+#define Q_DBG_CONF        Q_DBG_DISABLE
+#define Q_DBG_THRESHOLD   Q_DBG_DISABLE
 
 #define dbg_level Q_INFO
 
@@ -304,6 +309,7 @@ typedef struct q_thread {
     void *userdata;
     q_bool joined;
     q_atomic_t running;
+    char* name;
 }q_thread;
 
 q_thread*   q_thread_new(q_thread_func_t thread_func, void *userdata);
