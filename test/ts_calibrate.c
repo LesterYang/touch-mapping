@@ -44,6 +44,8 @@
 
 static char calpoint[MAX_PNL_NUM][128];
 static int calnum;
+static char cfg_name[1024];
+
 
 static int palette [] =
 {
@@ -243,16 +245,56 @@ int ts_cal(fb_data_t* fb, char* evt_path)
     return i;
 }
 
+int get_cfg_path()
+{
+    char proc[32]={0};
+    char path[1024]={0};
+    char *p;
+    
+    sprintf(proc, "/proc/%d/exe", getpid());
+
+    if(readlink(proc, path, 1024)<0)
+        return -1;
+
+    //get qsi_tm version folder
+    if(!(p=strrchr(path,'/')))
+        return -1;
+    *p=0;
+
+    // get qsi_tm folder
+    if(!(p=strrchr(path,'/')))
+        return -1;
+    *p=0;
+
+    sprintf(cfg_name, "%s/qsi_tm.conf", path);
+
+    if(access(cfg_name, R_OK) != 0)
+    {
+        dbg_log("no %s or can't read this file", cfg_name);
+        return -1;
+    }
+    
+    return 0;
+}
+
+
+
 void update_calibrate()
 {
     int i;
     FILE *fw,*fr;
     char buf[BUF_LEN]={0};
     char sh[BUF_LEN]={0};
+    char *cfg;
 
-    if(!(fr=fopen(TEST_CFG_FILE,"r")))
+    if(get_cfg_path() < 0)
+        cfg = TMP_CFG_FILE;
+    else
+        cfg = cfg_name;
+
+    if(!(fr=fopen(cfg, "r")))
     {
-        printf("open %s error\n",TEST_CFG_FILE);
+        printf("open %s error\n",cfg);
         return;
     }
 
@@ -301,11 +343,11 @@ void update_calibrate()
     fclose(fr);
     fclose(fw);
     
-    sprintf(sh, "cp %s %s.bak", TEST_CFG_FILE, TEST_CFG_FILE);
+    sprintf(sh, "cp %s %s.bak", cfg, cfg);
     system(sh);
 
     memset(sh, 0, BUF_LEN);
-    sprintf(sh, "cp %s %s", TMP_CFG_FILE, TEST_CFG_FILE);
+    sprintf(sh, "cp %s %s", TMP_CFG_FILE, cfg);
     system(sh);
     sync();
 }

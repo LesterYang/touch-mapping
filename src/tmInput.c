@@ -14,6 +14,8 @@
 #include <sys/select.h>
 #include <linux/input.h>
 #include <mtdev.h>
+#include <signal.h>
+
 
 #include "tm.h"
 
@@ -57,9 +59,10 @@ typedef struct _tm_input_dev {
     q_thread*         thread;
     list_head_t	      node;
 
-    int                 threshold; // see THRESHOLD_UNIT
+    unsigned int        threshold; // see THRESHOLD_UNIT
     tm_input_timeval_t  timer;
     tm_input_timespec_t clock;
+    tm_input_time_stauts_t timer_status;
 
     volatile int      slot;
     tm_input_queue_t  input_queue[SLOT_NUM];
@@ -328,16 +331,19 @@ q_bool tm_input_threshold_clock_timeup(tm_input_dev_t* dev)
 
     tm_input_get_clock_time(&now);
 
+    q_dbg(Q_DBG_THRESHOLD, "old clock time: %lu:%lu", dev->clock.tv_sec, dev->clock.tv_nsec);
+    q_dbg(Q_DBG_THRESHOLD, "now clock time: %lu:%lu", now.tv_sec, now.tv_nsec);
+
     if(now.tv_sec < dev->clock.tv_sec)
         return q_true;
 
-    if (tm_input_elapsed_clock_time(&now, &dev->clock) > dev->threshold)
+    if (tm_input_elapsed_clock_time(&now, &dev->clock) >= dev->threshold)
     {
         return q_true;
     }
     else
     {
-        q_dbg(Q_DBG_THRESHOLD, "ignore event, now clock time: %lu:%lu", now.tv_sec, now.tv_nsec);
+        q_dbg(Q_DBG_THRESHOLD, "--- ignore event ---");
         return q_false;
     }
 }
@@ -410,7 +416,6 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
             if(q->ap.cur)
             {
                 q->ap.last = q->ap.cur;
-                q_dbg(Q_INFO, "press event, %s to %s\n",dev->panel->evt_path, q->ap.cur->evt_path);
             }
             else
             {
@@ -422,6 +427,8 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
                 q->status = TM_INPUT_STATUS_IDLE;
                 return;
             }
+
+            q_dbg(Q_INFO, "press event, %s to %s\n",dev->panel->evt_path, q->ap.cur->evt_path);
 
             tm_input_send_event(q->ap.cur, &evt, EV_KEY, BTN_TOUCH, 1);
             tm_input_send_event(q->ap.cur, &evt, EV_SYN, SYN_REPORT, 0);
@@ -549,13 +556,14 @@ void tm_input_sync_multi_touch(tm_input_dev_t* dev)
             if(q->ap.cur)
             {
                 q->ap.last = q->ap.cur;
-                q_dbg(Q_INFO, "press event, %s to %s\n",dev->panel->evt_path, q->ap.cur->evt_path);
             }
             else
             {
                 return;
             }
-            
+
+            q_dbg(Q_INFO, "press event, %s to %s\n",dev->panel->evt_path, q->ap.cur->evt_path);
+
             tm_input_check_slot(q->ap.cur, &evt, dev);
 
             tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_TRACKING_ID, q->cur.tracking_id);
@@ -594,9 +602,6 @@ void tm_input_sync_multi_touch(tm_input_dev_t* dev)
             
             q->ap.cur = tm_transfer(&q->cur.x, &q->cur.y, dev->panel);
 
-                     
-           
-            
             if(!q->ap.cur)
                 return;
             
@@ -748,3 +753,63 @@ void tm_input_thread_func(void *data)
         mtdev_close(&m_dev);
     }
 }
+
+#if 0
+static void tm_input_timer_change(tm_input_dev_t* dev, tm_input_time_stauts_t timer_status);
+static void tm_input_timer_func(int signum);
+
+
+static void tm_input_timer_change(tm_input_dev_t* dev, tm_input_time_stauts_t timer_status)
+{
+    struct itimerval val;
+
+    dev->timer_status = timer_status;
+
+    switch(dev->timer_status)
+    {
+        case TM_INPUT_TIME_STATUS_START:
+            
+            val.it_value.tv_sec		= dev->threshold / 10;
+			val.it_value.tv_usec	= dev->threshold % 10;
+			val.it_interval.tv_sec	= 0;
+			val.it_interval.tv_usec	= 0;
+
+			if(setitimer(ITIMER_REAL, &val, NULL) < 0){
+				q_dbg(Q_ERR, "set timer error\n");
+				return;
+			}
+			signal(SIGALRM, tm_input_timer_func);
+			dev->timer_status = TM_INPUT_TIME_STATUS_RUNNING;
+            break;
+            
+        case TM_INPUT_TIME_STATUS_STOP:
+            val.it_value.tv_sec		= 0;
+			val.it_value.tv_usec	= 0;
+			val.it_interval.tv_sec	= 0;
+			val.it_interval.tv_usec	= 0;
+
+			if(setitimer(ITIMER_REAL, &val, NULL) < 0){
+				q_dbg(Q_ERR, "set timer error\n");
+				return;
+			}
+			signal(SIGALRM, tm_input_timer_func);
+			dev->timer_status = TM_INPUT_TIME_STATUS_RUNNING;
+            break;
+            
+        case TM_INPUT_TIME_STATUS_RUNNING:
+            break;
+            
+        case TM_INPUT_TIME_STATUS_IDLE:
+            break;
+            
+        default:
+            break;
+    }
+}
+
+static void tm_input_timer_func(int signum)
+{
+    if (signum != SIGALRM)
+        return;
+}
+#endif

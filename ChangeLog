@@ -1,24 +1,31 @@
+[vesrion 1.6 : 20141223]
+              1. tm-daemon/tm-test will search config file in location if 
+                 environment variables(QSI_TM_CFG/TEST_CFG_FILE) are not 
+                 set. If search nothing, using default path.
+              2. Fix issue that touch events are filtered after reset the 
+                 system date and time
+
 [vesrion 1.5 : 20141212]
-              1. add protocl EVT_INTR : enable/disable a filter that skip 
+              1. Add protocl EVT_INTR : enable/disable a filter that skip 
                  events if the interval time is less than a threshold time.
 
 [vesrion 1.4 : 20141210]
-              1. add protocol SET_RES : set ap resoultion
+              1. Add protocol SET_RES : set ap resoultion
               2. qsi_tm.conf add fb_info type (auto_xxx) to represent the 
                  resoultion is changeable
 
 [vesrion 1.3 : 20141120]
-              1. add the interval limit for every touch event
-              2. add environment variable QSI_TM_THRESHOLD to set interval 
+              1. Add the interval limit for every touch event
+              2. Add environment variable QSI_TM_THRESHOLD to set interval 
                  time, unit is 100ms [defult 0]
 
 [vesrion 1.2 : 20141104]
-              1. support multi-touch
-              2. add environment variable QSI_TM_CFG to set configuration 
-                 file path [defalut /home/qsi_tm/qsi_tm.conf]
+              1. Support multi-touch
+              2. Add environment variable QSI_TM_CFG to set configuration 
+                 file path [default /home/qsi_tm/qsi_tm.conf]
 
 [vesrion 1.1 : 20141009]
-              1. fix segmentation fault if poit doesn't match any ap
+              1. Fix segmentation fault if poit doesn't match any ap
 
 [vesrion 1.0 : 20141008]    
-              1. first release  
+              1. First release  

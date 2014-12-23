@@ -18,6 +18,7 @@
 typedef struct _tm_handler
 {
     q_mutex*        mutex;
+    char            cfg_path[TM_PATH_LEN];
     tm_config_t     conf;
     list_head_t	    calibrate_head;
     list_head_t     native_size_head;
@@ -25,6 +26,7 @@ typedef struct _tm_handler
 
 static tm_handler_t tm_handler;
 
+tm_errno_t tm_mapping_get_cfg_path();
 tm_errno_t tm_mapping_update_config(list_head_t* ap_head, list_head_t* pnl_head);
 void       tm_mapping_remove_config(list_head_t* ap_head, list_head_t* pnl_head);
 tm_errno_t tm_mapping_calibrate_config(void);
@@ -71,6 +73,38 @@ void tm_mapping_destroy_handler(list_head_t* ap_head, list_head_t* pnl_head)
         q_mutex_free(tm_handler.mutex);
 }
 
+tm_errno_t tm_mapping_get_cfg_path()
+{
+    char proc[32]={0};
+    char path[TM_PATH_LEN]={0};
+    char *p;
+    
+    sprintf(proc, "/proc/%d/exe", getpid());
+
+    if(readlink(proc, path, TM_PATH_LEN)<0)
+        return TM_ERRNO_OTHER;
+
+    //get qsi_tm version folder
+    if(!(p=strrchr(path,'/')))
+        return TM_ERRNO_OTHER;
+    *p=0;
+
+    // get qsi_tm folder
+    if(!(p=strrchr(path,'/')))
+        return TM_ERRNO_OTHER;
+    *p=0;
+
+    sprintf(tm_handler.cfg_path, "%s/qsi_tm.conf", path);
+
+    if(access(tm_handler.cfg_path, R_OK) != 0)
+    {
+        q_dbg(Q_INFO,"no %s or can't read this file", tm_handler.cfg_path);
+        return TM_ERRNO_NO_CONF;
+    }
+    
+    return TM_ERRNO_SUCCESS;
+}
+
 tm_errno_t tm_mapping_update_config(list_head_t* ap_head, list_head_t* pnl_head)
 {
     FILE *fr;
@@ -81,8 +115,13 @@ tm_errno_t tm_mapping_update_config(list_head_t* ap_head, list_head_t* pnl_head)
     tm_errno_t err;
 
     if( (conf_file = getenv("QSI_TM_CFG")) == NULL )
-        conf_file = default_conf;
-
+    {
+        if((tm_mapping_get_cfg_path() == TM_ERRNO_SUCCESS))
+            conf_file = tm_handler.cfg_path;
+        else        
+            conf_file = default_conf;
+    }
+    
     q_dbg(Q_INFO, "configure file is %s", conf_file);
 
     fr = fopen(conf_file, "r");

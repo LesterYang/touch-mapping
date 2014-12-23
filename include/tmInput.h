@@ -16,6 +16,8 @@
 
 
 typedef enum _tm_input_status tm_input_status_t;
+typedef enum _tm_input_time_status tm_input_time_stauts_t;
+
 typedef enum _tm_input_type tm_input_type_t;
 
 typedef struct input_event tm_input_event_t;
@@ -38,6 +40,17 @@ enum _tm_input_status
 
     TM_INPUT_STATUS_NONE = -1
 };
+
+enum _tm_input_time_status
+{
+    TM_INPUT_TIME_STATUS_START,
+    TM_INPUT_TIME_STATUS_STOP,
+    TM_INPUT_TIME_STATUS_RUNNING,
+    TM_INPUT_TIME_STATUS_IDLE,
+
+    TM_INPUT_TIME_STATUS_NONE = -1
+};
+
 
 enum _tm_input_type
 {
@@ -70,7 +83,7 @@ static inline int tm_input_elapsed_time(tm_input_timeval_t *now, tm_input_timeva
     return ((now->tv_sec - old->tv_sec) * 1000000 + (now->tv_usec - old->tv_usec))/THRESHOLD_UNIT;
 }
 
-static inline int tm_input_elapsed_clock_time(tm_input_timespec_t *now, tm_input_timespec_t *old)
+static inline unsigned int tm_input_elapsed_clock_time(tm_input_timespec_t *now, tm_input_timespec_t *old)
 {
     return ((now->tv_sec - old->tv_sec) * 10) + ((now->tv_nsec - old->tv_nsec)/THRESHOLD_CLOCK_UNIT);
 }
