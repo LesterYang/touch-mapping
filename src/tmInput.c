@@ -53,9 +53,6 @@ typedef struct _tm_input_dev {
     fd_set            evfds;
     tm_input_type_t   type;
 
-   // tm_ap_info_t**    act_ap;
-   // uint8_t           max_act_num;
-
     q_thread*         thread;
     list_head_t	      node;
 
@@ -574,8 +571,6 @@ void tm_input_sync_multi_touch(tm_input_dev_t* dev)
 
             q_dbg(Q_DBG_SEND_MULTI,"send id: %d",q->cur.tracking_id);
             q_dbg(Q_DBG_SEND_MULTI,"send xy: %4d %4d",q->cur.x, q->cur.y);
-            
-
             
             q->status = TM_INPUT_STATUS_MT_DRAG;
             break;

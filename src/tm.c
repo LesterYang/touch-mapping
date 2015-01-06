@@ -75,10 +75,10 @@ void tm_fillup_fb_param(tm_fb_param_t* fb, tm_native_size_param_t* native)
     q_assert(fb);
     q_assert(native);
 
-    fb->abs_st_x = (fb->st_x * native->max_x) / 100;
-    fb->abs_st_y = (fb->st_y * native->max_y) / 100;
-    fb->abs_end_x = fb->abs_st_x + ((native->max_x * fb->w) / 100);
-    fb->abs_end_y = fb->abs_st_y + ((native->max_y * fb->h) / 100);
+    fb->abs_begin_x = (fb->begin_x * native->max_x) / 100;
+    fb->abs_begin_y = (fb->begin_y * native->max_y) / 100;
+    fb->abs_end_x = fb->abs_begin_x + ((native->max_x * fb->w) / 100);
+    fb->abs_end_y = fb->abs_begin_y + ((native->max_y * fb->h) / 100);
 }
 
 tm_ap_info_t* tm_get_ap_info(int id)
@@ -118,12 +118,12 @@ tm_display_t* tm_match_display(int x, int y, tm_panel_info_t* panel)
     list_for_each_entry(&panel->display_head, dis, node)
     {  
         q_dbg(Q_DBG_CHK_MATCH,"                  x:%4d~%4d y:%4d~%4d"
-                                ,dis->to.abs_st_x 
-                                ,dis->to.abs_end_x
-                                ,dis->to.abs_st_y
-                                ,dis->to.abs_end_y);
+                                ,dis->to_pnl.abs_begin_x 
+                                ,dis->to_pnl.abs_end_x
+                                ,dis->to_pnl.abs_begin_y
+                                ,dis->to_pnl.abs_end_y);
     
-        if(tm_point_is_in_range(&dis->to, x, y))
+        if(tm_point_is_in_range(&dis->to_pnl, x, y))
         {
              q_dbg(Q_DBG_CHK_MATCH,"matched ap id %d", dis->ap->id);
             break;
@@ -202,20 +202,20 @@ void tm_set_map(unsigned int len, unsigned char *msg)
 
     dis->ap = ap;
 
-    if(tm_set_fb_param(&dis->to, msg[1], msg[2], msg[3], msg[4]) != TM_ERRNO_SUCCESS)
+    if(tm_set_fb_param(&dis->to_pnl, msg[1], msg[2], msg[3], msg[4]) != TM_ERRNO_SUCCESS)
     {
         q_free(dis);
         return;
     }
 
-    if(tm_set_fb_param(&dis->from, msg[6], msg[7], msg[8], msg[9]) != TM_ERRNO_SUCCESS)
+    if(tm_set_fb_param(&dis->from_ap, msg[6], msg[7], msg[8], msg[9]) != TM_ERRNO_SUCCESS)
     {
         q_free(dis);
         return;
     }
     
-    tm_fillup_fb_param(&dis->from, dis->ap->native_size);
-    tm_fillup_fb_param(&dis->to, panel->native_size);
+    tm_fillup_fb_param(&dis->from_ap, dis->ap->native_size);
+    tm_fillup_fb_param(&dis->to_pnl, panel->native_size);
 
     q_list_add(&panel->display_head, &dis->node);
     panel->link_num++;
@@ -248,7 +248,7 @@ void tm_update_ap_native_size(unsigned int len, unsigned char *msg)
         list_for_each_entry(&panel->display_head, dis, node)
         {
             if(dis->ap == ap)
-                tm_fillup_fb_param(&dis->from, ap->native_size);
+                tm_fillup_fb_param(&dis->from_ap, ap->native_size);
         }
     }
       tm_mapping_print_panel_info(&tm.pnl_head);
@@ -277,8 +277,8 @@ tm_errno_t tm_set_fb_param(tm_fb_param_t* fb, int per_st_x, int per_st_y, int pe
     if(per_st_x + per_width > 100 || per_st_y + per_high > 100)
         return TM_ERRNO_DEV_PARAM;
 
-    fb->st_x = per_st_x;
-    fb->st_y = per_st_y;
+    fb->begin_x = per_st_x;
+    fb->begin_y = per_st_y;
     fb->w = per_width;
     fb->h = per_high;
 
@@ -339,17 +339,17 @@ void tm_set_default_display()
 
         dis->ap = tm_get_default_ap(panel->id);
 
-        dis->from.st_x = 0;
-        dis->from.st_y = 0;
-        dis->from.w = 100;
-        dis->from.h = 100;
-        dis->to.st_x = 0;
-        dis->to.st_y = 0;
-        dis->to.w = 100;
-        dis->to.h = 100;
+        dis->from_ap.begin_x= 0;
+        dis->from_ap.begin_y = 0;
+        dis->from_ap.w = 100;
+        dis->from_ap.h = 100;
+        dis->to_pnl.begin_x = 0;
+        dis->to_pnl.begin_y = 0;
+        dis->to_pnl.w = 100;
+        dis->to_pnl.h = 100;
 
-        tm_fillup_fb_param(&dis->from, dis->ap->native_size);
-        tm_fillup_fb_param(&dis->to, panel->native_size);
+        tm_fillup_fb_param(&dis->from_ap, dis->ap->native_size);
+        tm_fillup_fb_param(&dis->to_pnl, panel->native_size);
 
         q_list_add(&panel->display_head, &dis->node);
 

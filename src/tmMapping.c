@@ -483,17 +483,17 @@ tm_errno_t tm_mapping_pnl_bind_config(tm_panel_info_t* panel)
             
             dis->ap = tm_get_ap_info(atoi(param));
 
-            dis->from.st_x = 0;
-            dis->from.st_y = 0;
-            dis->from.w = 100;
-            dis->from.h = 100;
-            dis->to.st_x = 0;
-            dis->to.st_y = 0;
-            dis->to.w = 100;
-            dis->to.h = 100;
+            dis->from_ap.begin_x = 0;
+            dis->from_ap.begin_x = 0;
+            dis->from_ap.w = 100;
+            dis->from_ap.h = 100;
+            dis->to_pnl.begin_x = 0;
+            dis->to_pnl.begin_x = 0;
+            dis->to_pnl.w = 100;
+            dis->to_pnl.h = 100;
 
-            tm_fillup_fb_param(&dis->from, dis->ap->native_size);
-            tm_fillup_fb_param(&dis->to, panel->native_size);
+            tm_fillup_fb_param(&dis->from_ap, dis->ap->native_size);
+            tm_fillup_fb_param(&dis->to_pnl, panel->native_size);
 
             q_list_add(&panel->display_head, &dis->node);
         }
@@ -549,23 +549,28 @@ void tm_mapping_matrix_mult(tm_trans_matrix_t *matrix, int* vector)
 
 void tm_mapping_point(tm_display_t* dis, int src_x, int src_y, int* dest_x, int* dest_y)
 {  
-    if(dis->to.swap)
+    /*                             [ap]      [panel]
+        *   [framebuffer]   :    from         to
+        *   [touch event]  :    dest         src
+        */
+
+    if(dis->to_pnl.swap)
     {
         src_x ^= src_y;
         src_y ^= src_x;
         src_x ^= src_y;
     }
     
-    if(dis->to.horizontal != dis->from.horizontal)
-        src_x = dis->to.abs_end_x - src_x;
+    if(dis->to_pnl.horizontal != dis->from_ap.horizontal)
+        src_x = dis->to_pnl.abs_end_x - src_x;
     
-    if(dis->to.vertical != dis->from.vertical)
-        src_y = dis->to.abs_end_y - src_y;
+    if(dis->to_pnl.vertical != dis->from_ap.vertical)
+        src_y = dis->to_pnl.abs_end_y - src_y;
     
-    *dest_x = dis->from.abs_st_x + ((src_x - dis->to.abs_st_x) * FB_LEN_X(dis->from)) / FB_LEN_X(dis->to);
-    *dest_y = dis->from.abs_st_y + ((src_y - dis->to.abs_st_y) * FB_LEN_Y(dis->from)) / FB_LEN_Y(dis->to);
+    *dest_x = FB_MAP_X(src_x, dis);
+    *dest_y = FB_MAP_Y(src_y, dis);
 
-    if(dis->from.swap)
+    if(dis->from_ap.swap)
     {
         *dest_x ^= *dest_y;
         *dest_y ^= *dest_x;
@@ -611,16 +616,16 @@ tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
 
 #if Q_DBG_MAP == Q_DBG_ENABLE
     int per_x,per_y;
-    per_x = ((coord.x-dis->to.abs_st_x)*100)/(dis->to.abs_end_x - dis->to.abs_st_x);
-    per_y = ((coord.y-dis->to.abs_st_y)*100)/(dis->to.abs_end_y - dis->to.abs_st_y);
+    per_x = ((coord.x-dis->to_pnl.abs_begin_x)*100)/(dis->to_pnl.abs_end_x - dis->to_pnl.abs_begin_x);
+    per_y = ((coord.y-dis->to_pnl.abs_begin_y)*100)/(dis->to_pnl.abs_end_y - dis->to_pnl.abs_begin_y);
     q_dbg(Q_DBG_MAP,"pnl : %d%% %d%% (%d,%d)",per_x,per_y, coord.x, coord.y);
 #endif
 
     tm_mapping_point(dis, coord.x, coord.y, x, y);
 
 #if Q_DBG_MAP == Q_DBG_ENABLE
-    per_x = ((*x-dis->from.abs_st_x)*100)/(dis->from.abs_end_x - dis->from.abs_st_x);
-    per_y = ((*y-dis->from.abs_st_y)*100)/(dis->from.abs_end_y - dis->from.abs_st_y);
+    per_x = ((*x-dis->from_ap.abs_begin_x)*100)/(dis->from_ap.abs_end_x - dis->from_ap.abs_begin_x);
+    per_y = ((*y-dis->from_ap.abs_begin_y)*100)/(dis->from_ap.abs_end_y - dis->from_ap.abs_begin_y);
     q_dbg(Q_DBG_MAP,"out : %d%% %d%% (%d,%d)",per_x,per_y, *x, *y);
 #endif
 
@@ -722,14 +727,14 @@ void tm_mapping_print_panel_info(list_head_t* pnl_head)
         {
             q_dbg(Q_INFO,"               display ap %d, (%d~%d, %d~%d) -> (%d~%d, %d~%d)\n",
             		dis->ap->id,
-            		dis->from.abs_st_x,
-            		dis->from.abs_end_x,
-            		dis->from.abs_st_y,
-            		dis->from.abs_end_y,
-            		dis->to.abs_st_x,
-            		dis->to.abs_end_x,
-            		dis->to.abs_st_y,
-            		dis->to.abs_end_y);
+            		dis->from_ap.abs_begin_x,
+            		dis->from_ap.abs_end_x,
+            		dis->from_ap.abs_begin_y,
+            		dis->from_ap.abs_end_y,
+            		dis->to_pnl.abs_begin_x,
+            		dis->to_pnl.abs_end_x,
+            		dis->to_pnl.abs_begin_y,
+            		dis->to_pnl.abs_end_y);
         }
     }
 }

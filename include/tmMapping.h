@@ -31,8 +31,17 @@
 #define dejitter_boundary(pos, max, delta)  (pos < 0 && pos > -(delta)) ? 0 :               \
                                             (pos > max && pos < max + delta) ? max : pos
 
-#define FB_LEN_X(fb) (fb.abs_st_x - fb.abs_end_x)
-#define FB_LEN_Y(fb) (fb.abs_st_y - fb.abs_end_y)
+#define FB_LEN_X(fb) (fb.abs_begin_x - fb.abs_end_x)
+#define FB_LEN_Y(fb) (fb.abs_begin_y - fb.abs_end_y)
+#define FB_MAP_X(x, p)                                          \
+    ( p->from_ap.abs_begin_x                                    \
+      + ((x - p->to_pnl.abs_begin_x) * FB_LEN_X(p->from_ap))    \
+      / FB_LEN_X(p->to_pnl))
+#define FB_MAP_Y(y, p)                                          \
+    ( p->from_ap.abs_begin_y                                    \
+      + ((y - p->to_pnl.abs_begin_y) * FB_LEN_Y(p->from_ap))    \
+      / FB_LEN_Y(p->to_pnl))
+
 
 typedef struct _tm_native_size_param    tm_native_size_param_t;
 typedef struct _tm_fb_param             tm_fb_param_t;
@@ -72,14 +81,14 @@ struct _tm_calibrate
 struct _tm_fb_param // relative proportion to native size
 {
     // percent
-    int st_x;
-    int st_y;
+    int begin_x;
+    int begin_y;
     int w;
     int h;
 
     // absolute position
-    int abs_st_x;
-    int abs_st_y;
+    int abs_begin_x;
+    int abs_begin_y;
     int abs_end_x;
     int abs_end_y;
     

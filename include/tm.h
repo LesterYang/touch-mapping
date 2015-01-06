@@ -19,10 +19,10 @@
 })
 
 #define tm_point_is_in_range(fb, x, y)              \
-(!( x < (fb)->abs_st_x    ||                        \
-	x > (fb)->abs_end_x   ||                    \
-	y < (fb)->abs_st_y    ||                    \
-	y > (fb)->abs_end_y   )                     \
+(!( x < (fb)->abs_begin_x   ||                      \
+	x > (fb)->abs_end_x     ||                      \
+	y < (fb)->abs_begin_y   ||                      \
+	y > (fb)->abs_end_y   )                         \
 )
 
 typedef struct _tm_ap_info      tm_ap_info_t;
@@ -46,8 +46,8 @@ struct _tm_ap_info
 struct _tm_display
 {
     tm_ap_info_t*   ap;
-    tm_fb_param_t   from;
-    tm_fb_param_t   to;
+    tm_fb_param_t   from_ap;
+    tm_fb_param_t   to_pnl;
 	
     list_head_t     node;
     tm_display_t*   next;

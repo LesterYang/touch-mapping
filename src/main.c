@@ -212,9 +212,8 @@ int main(int argc, char* argv[])
                 break;
 
             case TM_STATUS_REINIT:
-
-		switch_main_status(TM_STATUS_INIT);
-		break;
+                switch_main_status(TM_STATUS_INIT);
+                break;
 
             case TM_STATUS_ERROR:
                 switch_main_status(TM_STATUS_DEINIT);
