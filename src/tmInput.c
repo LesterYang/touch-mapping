@@ -80,7 +80,6 @@ typedef struct _tm_input{
 static tm_input_t tm_input;
 
 const char* tm_input_evt_str(int type, int code);
-void        tm_input_clean_stdin(void);
 void        tm_input_set_type(tm_input_dev_t* dev);
 tm_errno_t  tm_input_init_events(void);
 void        tm_input_close_events(void);
@@ -167,30 +166,6 @@ const char* tm_input_evt_str(int type, int code)
     return "type:XXXX, code:Unknown";
 }
 
-void tm_input_clean_stdin()
-{
-    fd_set fds;
-    struct timeval tv;
-    char buf[8];
-    int stdin = 0, stdout = 1;
-
-    FD_ZERO (&fds);
-    FD_SET (stdin, &fds);
-    tv.tv_sec  = 0;
-    tv.tv_usec = 0;
-
-    while (0 < select(stdout, &fds, NULL, NULL, &tv))
-    {
-        while (q_read(stdin, buf, 8)) {;}
-        FD_ZERO (&fds);
-        FD_SET (stdin, &fds);
-        tv.tv_sec  = 0;
-        tv.tv_usec = 1;
-    }
-//  q_close(stdin);
-    return;
-}
-
 void tm_input_set_type(tm_input_dev_t* dev)
 {
     long absbits[NUM_LONGS(ABS_CNT)]={0};
@@ -223,8 +198,6 @@ tm_errno_t tm_input_init_events()
         else
             q_dbg(Q_INFO,"Opened ap id %2d -> %s, fd %d",ap->id, ap->evt_path, ap->fd);
     }
-
-//  tm_input_clean_stdin();
 
     list_for_each_entry(tm_input.tm_pnl_head, panel, node)
     {
@@ -495,7 +468,7 @@ void tm_input_parse_single_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
                 }
                 else if(q->status == TM_INPUT_STATUS_PRESS)
                 {
-                    // ignore, because there is no x/y events
+                    // ignore release, because haven't press yet
                     q->status = TM_INPUT_STATUS_IDLE;
                     tm_input_get_clock_time(&dev->clock);
                 }
@@ -749,62 +722,3 @@ void tm_input_thread_func(void *data)
     }
 }
 
-#if 0
-static void tm_input_timer_change(tm_input_dev_t* dev, tm_input_time_stauts_t timer_status);
-static void tm_input_timer_func(int signum);
-
-
-static void tm_input_timer_change(tm_input_dev_t* dev, tm_input_time_stauts_t timer_status)
-{
-    struct itimerval val;
-
-    dev->timer_status = timer_status;
-
-    switch(dev->timer_status)
-    {
-        case TM_INPUT_TIME_STATUS_START:
-            
-            val.it_value.tv_sec		= dev->threshold / 10;
-			val.it_value.tv_usec	= dev->threshold % 10;
-			val.it_interval.tv_sec	= 0;
-			val.it_interval.tv_usec	= 0;
-
-			if(setitimer(ITIMER_REAL, &val, NULL) < 0){
-				q_dbg(Q_ERR, "set timer error\n");
-				return;
-			}
-			signal(SIGALRM, tm_input_timer_func);
-			dev->timer_status = TM_INPUT_TIME_STATUS_RUNNING;
-            break;
-            
-        case TM_INPUT_TIME_STATUS_STOP:
-            val.it_value.tv_sec		= 0;
-			val.it_value.tv_usec	= 0;
-			val.it_interval.tv_sec	= 0;
-			val.it_interval.tv_usec	= 0;
-
-			if(setitimer(ITIMER_REAL, &val, NULL) < 0){
-				q_dbg(Q_ERR, "set timer error\n");
-				return;
-			}
-			signal(SIGALRM, tm_input_timer_func);
-			dev->timer_status = TM_INPUT_TIME_STATUS_RUNNING;
-            break;
-            
-        case TM_INPUT_TIME_STATUS_RUNNING:
-            break;
-            
-        case TM_INPUT_TIME_STATUS_IDLE:
-            break;
-            
-        default:
-            break;
-    }
-}
-
-static void tm_input_timer_func(int signum)
-{
-    if (signum != SIGALRM)
-        return;
-}
-#endif
