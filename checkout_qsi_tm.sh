@@ -284,9 +284,10 @@ update_program()
 {
     log_info "update program ... "
 
-    test -d "$output"  || log_exit "[line $LINENO] no $output directory"
-    test -z "$input" && log_exit "[line $LINENO] no set version"
-
+    test -d "$output" || log_exit "[line $LINENO] no $output directory"
+    test -z "$input"  && log_exit "[line $LINENO] no set version"
+    test "`dirname $input`" == "$output" && return 0
+	
     cp -r $input $output/ || log_exit "[line $LINENO] copy error"
     sync
 }
@@ -298,7 +299,7 @@ update_link()
     local link_ver="tm"
     local link_proj="qsi_conf"
 
-    test -z "$project"   && log_exit "[line $LINENO] no set project"
+    test -z "$project" && log_exit "[line $LINENO] no set project"
     test -L "$output/$link_ver"  && rm "$output/$link_ver"
     test -L "$output/$link_proj" && rm "$output/$link_proj"
 

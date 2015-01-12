@@ -93,7 +93,7 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev);
 void tm_input_parse_single_touch(tm_input_dev_t* dev, tm_input_event_t* evt);
 void tm_input_sync_multi_touch(tm_input_dev_t* dev);
 void tm_input_parse_multi_touch(tm_input_dev_t* dev, tm_input_event_t* evt);
-void tm_input_reset_select_time(tm_input_dev_t* dev, struct timeval* tv);
+void tm_input_reset_select_time(tm_input_dev_t* dev, tm_input_timeval_t* tv);
 void tm_input_thread_func(void *data);
 
 
@@ -656,7 +656,7 @@ void tm_input_parse_multi_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
     }
 }
 
-void tm_input_reset_select_time(tm_input_dev_t* dev, struct timeval* tv)
+void tm_input_reset_select_time(tm_input_dev_t* dev, tm_input_timeval_t* tv)
 {
     FD_ZERO(&dev->evfds);
     FD_SET(dev->panel->fd, &dev->evfds);
@@ -668,7 +668,7 @@ void tm_input_thread_func(void *data)
 {
     int ret = 0;
     tm_input_dev_t* dev = (tm_input_dev_t*)data;
-    struct timeval tv;
+    tm_input_timeval_t tv;
     struct mtdev m_dev;
 
     memset(&m_dev, 0, sizeof(struct mtdev));
