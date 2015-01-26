@@ -111,7 +111,7 @@ tm_errno_t tm_mapping_update_config(list_head_t* ap_head, list_head_t* pnl_head)
     char buf[BUF_SIZE];
     char *conf_file = NULL;
     char *default_conf = QSI_TM_CFG;
-    char *param;
+    char *param, *p;
     tm_errno_t err;
 
     if( (conf_file = getenv("QSI_TM_CFG")) == NULL )
@@ -145,6 +145,9 @@ tm_errno_t tm_mapping_update_config(list_head_t* ap_head, list_head_t* pnl_head)
 
         if((param = strtok(buf," ")) == NULL)
             continue;
+
+        if((p=strchr(buf, '#')))
+            p[0]=0;
 
         if(memcmp(param, CAL_CFG, sizeof(CAL_CFG)) == 0)
         {
