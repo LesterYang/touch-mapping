@@ -28,12 +28,12 @@ typedef struct timespec tm_input_timespec_t;
 enum _tm_input_status
 {
     TM_INPUT_STATUS_IDLE=0,
+        
     TM_INPUT_STATUS_TOUCH,
     TM_INPUT_STATUS_PRESS,
     TM_INPUT_STATUS_DRAG,
     TM_INPUT_STATUS_RELEASE,
 
-    TM_INPUT_STATUS_MT_IDLE=0, 
     TM_INPUT_STATUS_MT_PRESS,
     TM_INPUT_STATUS_MT_RELEASE,
     TM_INPUT_STATUS_MT_DRAG,

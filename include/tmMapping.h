@@ -13,6 +13,8 @@
 #define PNL_CFG             "pnl_info"
 #define CAL_CFG             "cal_conf"
 #define FB_CFG              "fb_info"
+#define COPY_CFG            "duplicate"
+
 
 #define FB_CFG_DEV          "/dev/fb"
 #define FB_CFG_AUTO_DEV     "auto"

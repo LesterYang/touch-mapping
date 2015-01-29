@@ -60,6 +60,10 @@ struct _tm_panel_info
     int             fd;
     int             link_num;
 
+    const char*     duplicate_evt_path;
+    int             duplicate_fd;
+    q_bool          duplicate;
+
     tm_calibrate_t* cal_param;
     tm_native_size_param_t* native_size;
 
@@ -79,6 +83,7 @@ tm_panel_info_t* tm_get_panel_info(int id);
 tm_ap_info_t*    tm_match_ap(int x, int y, tm_panel_info_t* panel);
 tm_display_t*    tm_match_display(int x, int y, tm_panel_info_t* panel);
 tm_ap_info_t*    tm_transfer(int *x, int *y, tm_panel_info_t* panel);
+void             tm_duplicate_transfer(int *x, int *y, tm_panel_info_t* panel);
 
 void tm_return_version(unsigned int len, char* from);
 void tm_clear_map(unsigned int len, unsigned char *msg);

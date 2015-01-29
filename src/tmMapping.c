@@ -15,6 +15,15 @@
 #include <linux/fb.h>
 #include "tm.h"
 
+typedef union {
+    int vec[3];
+    struct{
+        int x;
+        int y;
+        int z;
+    };
+}tm_coord_t;
+
 typedef struct _tm_handler
 {
     q_mutex*        mutex;
@@ -34,6 +43,7 @@ tm_errno_t tm_mapping_native_size_config(void);
 tm_errno_t tm_mapping_fb_config(void);
 tm_errno_t tm_mapping_pnl_config(list_head_t* pnl_head);
 tm_errno_t tm_mapping_ap_config(list_head_t* ap_head);
+tm_errno_t tm_mapping_duplicate_config(void);
 tm_errno_t tm_mapping_pnl_bind_config(tm_panel_info_t* panel);
 tm_errno_t tm_mapping_ap_bind_config(tm_ap_info_t* ap);
 
@@ -169,6 +179,11 @@ tm_errno_t tm_mapping_update_config(list_head_t* ap_head, list_head_t* pnl_head)
             if((err = tm_mapping_pnl_config(pnl_head)) != TM_ERRNO_SUCCESS)
                 return err;
         }
+        else if(memcmp(param, COPY_CFG, sizeof(COPY_CFG)) == 0)
+        {
+            if((err = tm_mapping_duplicate_config()) != TM_ERRNO_SUCCESS)
+                return err;
+        }
     }
 
     fclose(fr);
@@ -210,6 +225,7 @@ void tm_mapping_remove_config(list_head_t* ap_head, list_head_t* pnl_head)
     {
         q_list_del(&panel->node);
         q_free((char*)panel->evt_path);
+        q_free((char*)panel->duplicate_evt_path);
         if(panel->mutex) q_mutex_free(panel->mutex);
             q_free(panel);
     }
@@ -341,14 +357,14 @@ tm_errno_t tm_mapping_fb_config()
         if(ioctl(fd, FBIOGET_VSCREENINFO, &fb_var) < 0)
         {
             q_dbg(Q_ERR,"get fb size error");
-            close(fd);
+            q_close(fd);
             goto err_param;
         }
         
         native_size->max_x = fb_var.xres;
         native_size->max_y = fb_var.yres;
 
-        close(fd);
+        q_close(fd);
     }
     
     q_mutex_lock(tm_handler.mutex);
@@ -389,6 +405,7 @@ tm_errno_t tm_mapping_pnl_config(list_head_t* pnl_head)
 
     panel->evt_path = q_strdup((const char*)param);
     panel->mutex = q_mutex_new(q_true, q_true);
+    panel->duplicate = q_false;
     q_init_head(&panel->display_head);
 
     tm_mapping_pnl_bind_config(panel);
@@ -434,7 +451,7 @@ tm_errno_t tm_mapping_ap_config(list_head_t* ap_head)
     else
         goto err_fd;
 
-    close(fd);
+    q_close(fd);
 
     ap->threshold = q_true;
     ap->mutex = q_mutex_new(q_true, q_true);
@@ -446,13 +463,37 @@ tm_errno_t tm_mapping_ap_config(list_head_t* ap_head)
     return TM_ERRNO_SUCCESS;
 
 err_fd:
-    close(fd);
+    q_close(fd);
 err_param:
     q_free((char*)ap->evt_path);
 err:
     q_free(ap);
     return TM_ERRNO_PARAM;
 }
+
+tm_errno_t tm_mapping_duplicate_config()
+{
+    int id;
+    tm_panel_info_t* panel;
+    char *param;
+
+    if(((param = strtok(NULL," ")) == NULL) || ((id = atoi(param)) < 0) )
+        return TM_ERRNO_PARAM;
+    
+    panel = tm_get_panel_info(id);
+
+    if(panel == NULL)
+        return TM_ERRNO_NO_DEV;
+
+    if((param = strtok(NULL," ")) == NULL)
+        return TM_ERRNO_PARAM;
+    
+    panel->duplicate_evt_path = q_strdup((const char*)param);
+    panel->duplicate = q_true;
+   
+    return TM_ERRNO_SUCCESS;
+}
+
 
 tm_errno_t tm_mapping_pnl_bind_config(tm_panel_info_t* panel)
 {
@@ -585,14 +626,7 @@ tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
 {
     tm_calibrate_t* cal = panel->cal_param;
     tm_display_t* dis;
-    union {
-         int vec[3];
-         struct{
-             int x;
-             int y;
-             int z;
-         };
-     }coord;
+    tm_coord_t coord;
 
     q_assert(panel);
     
@@ -634,6 +668,31 @@ tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel)
 
     return dis->ap;
 }
+
+void tm_mapping_duplicate_transfer(int *x, int *y, tm_panel_info_t* panel)
+{
+    tm_calibrate_t* cal = panel->cal_param;
+    tm_coord_t coord;
+
+    q_assert(panel);
+    
+    coord.x = *x;
+    coord.y = *y;
+    coord.z = 1;
+   
+    // raw touch point -> frame buffer point
+    tm_mapping_matrix_mult(&cal->trans_matrix, coord.vec);
+
+    coord.x /= cal->scaling;
+    coord.y /= cal->scaling;
+
+    //de-jitter boundary
+    *x = dejitter_boundary(coord.x, panel->native_size->max_x, JITTER_BOUNDARY);
+    *y = dejitter_boundary(coord.y, panel->native_size->max_y, JITTER_BOUNDARY);
+
+    return;
+}
+
 
 tm_calibrate_t* tm_mapping_get_calibrate_param(int id)
 {

@@ -3,7 +3,7 @@
 # Author: Lester
 #############################
 
-VERSION    = 1.6
+VERSION    = 1.7
 
 # cross-compile : set PREFIX and PATH
 PREFIX     = /qsi_rootfs/rootfs_l

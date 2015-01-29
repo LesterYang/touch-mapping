@@ -9,7 +9,7 @@ proj_pattern="qsi_tm.conf*"
 ###################
 # system parameter
 ###################
-program_name="qsi_alsa"
+program_name="qsi_tm"
 _func_="main()"
 redirect="/dev/console"
 arglist="$@"
@@ -176,7 +176,7 @@ choose_version()
     res=`find $location -type d -name "$ver_pattern"`
 
     if [ -z "$res" ];then
-        log_exit "[line $LINENO] no qsi_alsa source"
+        log_exit "[line $LINENO] no qsi_tm source"
     fi
 
     res=$(echo "$res" | sed 'a,' | tr -d '\n')
@@ -249,7 +249,7 @@ choose_project()
 
     #:<<'MENU'
 
-    PS3='Please choose config: '
+    PS3='Please choose project: '
 
     select opt in "${proj_candidate[@]}"
     do
@@ -284,10 +284,9 @@ update_program()
 {
     log_info "update program ... "
 
-    test -d "$output" || log_exit "[line $LINENO] no $output directory"
-    test -z "$input"  && log_exit "[line $LINENO] no set version"
-    test "`dirname $input`" == "$output" && return 0
-	
+    test -d "$output"  || log_exit "[line $LINENO] no $output directory"
+    test -z "$input" && log_exit "[line $LINENO] no set version"
+
     cp -r $input $output/ || log_exit "[line $LINENO] copy error"
     sync
 }
@@ -297,9 +296,9 @@ update_link()
     log_info "update link ... "
   
     local link_ver="tm"
-    local link_proj="qsi_conf"
+    local link_proj="qsi_tm.conf"
 
-    test -z "$project" && log_exit "[line $LINENO] no set project"
+    test -z "$project"   && log_exit "[line $LINENO] no set project"
     test -L "$output/$link_ver"  && rm "$output/$link_ver"
     test -L "$output/$link_proj" && rm "$output/$link_proj"
 
@@ -325,5 +324,5 @@ show_param
 update_program
 update_link
 
-log_notify "Finish qsi_alsa [$new]" "$c_LGreen"
+log_notify "Finish qsi_tm [$new]" "$c_LGreen"
 

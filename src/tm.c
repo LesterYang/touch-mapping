@@ -27,6 +27,7 @@ void          tm_remove_all_display(void);
 tm_ap_info_t* tm_get_default_ap(int panel_id);
 void          tm_set_default_display(void);
 tm_ap_info_t* tm_mapping_transfer(int *x, int *y, tm_panel_info_t* panel);
+void          tm_mapping_duplicate_transfer(int *x, int *y, tm_panel_info_t* panel);
 
 tm_errno_t tm_init()
 {
@@ -144,6 +145,15 @@ tm_ap_info_t* tm_transfer(int *x, int *y, tm_panel_info_t* panel)
         return NULL;
     return tm_mapping_transfer(x, y, panel);
 }
+
+void tm_duplicate_transfer(int *x, int *y, tm_panel_info_t* panel)
+{
+    if (!x || !y)
+        return;
+   tm_mapping_duplicate_transfer(x, y, panel);
+   return;
+}
+
 
 void tm_return_version(unsigned int len, char* from)
 {

@@ -45,6 +45,7 @@ typedef struct _tm_input_queue{
     tm_input_coord_t            cur;
     tm_input_coord_t            last;
     tm_input_coord_t            mt;
+    tm_input_coord_t            dup;
 }tm_input_queue_t;
 
 typedef struct _tm_input_dev {
@@ -88,7 +89,9 @@ void        tm_input_remove_dev(void);
 q_bool tm_input_threshold_timeout(tm_input_dev_t* dev);
 q_bool tm_input_threshold_clock_timeup(tm_input_dev_t* dev);
 void tm_input_send_event(tm_ap_info_t* ap, tm_input_event_t* evt, uint16_t type, uint16_t code, int val);
+void tm_input_duplicate_event(tm_panel_info_t* pnl, tm_input_event_t* evt, uint16_t type, uint16_t code, int val);
 void tm_input_check_slot(tm_ap_info_t* ap, tm_input_event_t* evt, tm_input_dev_t* dev);
+void tm_inpute_duplicate(tm_input_dev_t* dev);
 void tm_input_sync_single_touch(tm_input_dev_t* dev);
 void tm_input_parse_single_touch(tm_input_dev_t* dev, tm_input_event_t* evt);
 void tm_input_sync_multi_touch(tm_input_dev_t* dev);
@@ -230,6 +233,19 @@ tm_errno_t tm_input_init_events()
             q_dbg(Q_INFO,"Opened panel id %2d -> %s, fd %d",panel->id, panel->evt_path, panel->fd);
             dev->thread = q_thread_new(tm_input_thread_func, dev);
         }
+
+        if(panel->duplicate && panel->duplicate_evt_path)
+        {
+            if((panel->duplicate_fd = open (panel->duplicate_evt_path, O_WRONLY)) < 0)
+            {
+                q_dbg(Q_ERR,"Opened %s error",panel->duplicate_evt_path);
+            }
+            else
+            {
+                q_dbg(Q_INFO,"Duplicate panel id %2d -> %s, fd %d",panel->id, panel->duplicate_evt_path, panel->duplicate_fd);
+            }
+        }
+        
         tm_input_set_type(dev);
     }
 
@@ -255,7 +271,9 @@ void tm_input_close_events()
     	if(dev->panel != NULL && dev->panel->fd > 0)
     	{
             q_close(dev->panel->fd);
+            q_close(dev->panel->duplicate_fd);
             dev->panel->fd = -1;
+            dev->panel->duplicate_fd = -1;
         }
     }
 }
@@ -339,6 +357,24 @@ void tm_input_send_event(tm_ap_info_t* ap, tm_input_event_t* evt, uint16_t type,
     tm_input_add_time(&evt->time, 5);
 }
 
+void tm_input_duplicate_event(tm_panel_info_t* pnl, tm_input_event_t* evt, uint16_t type, uint16_t code, int val)
+{
+    q_assert(pnl);
+
+    evt->type = type;
+    evt->code = code;
+    evt->value = val;
+
+    if(pnl->duplicate_fd >= 0)
+    {
+        if(write(pnl->duplicate_fd, evt, sizeof(tm_input_event_t)) == -1)
+            q_dbg(Q_ERR,"write %s error",pnl->duplicate_evt_path);
+    }
+
+    tm_input_add_time(&evt->time, 5);
+}
+
+
 void tm_input_check_slot(tm_ap_info_t* ap, tm_input_event_t* evt, tm_input_dev_t* dev)
 {
     if (dev->slot != ap->slot) 
@@ -348,6 +384,93 @@ void tm_input_check_slot(tm_ap_info_t* ap, tm_input_event_t* evt, tm_input_dev_t
         tm_input_send_event(ap, evt, EV_ABS, ABS_MT_SLOT, ap->slot);
     }
 }
+
+void tm_inpute_duplicate(tm_input_dev_t* dev)
+{
+    tm_panel_info_t* pnl = dev->panel;
+    tm_input_queue_t* q = &dev->input_queue[dev->slot];
+    tm_input_event_t evt;
+    static int last_slot;
+
+    if(pnl->duplicate == q_false)
+        return;
+        
+    q->dup.x = q->mt.x;
+    q->dup.y = q->mt.y;
+    q->dup.touch_major = q->mt.touch_major;
+    q->dup.width_major = q->mt.width_major;
+    q->dup.tracking_id = q->mt.tracking_id;
+
+    tm_input_get_time(&evt.time);
+
+    switch(q->status)
+    {
+        case TM_INPUT_STATUS_PRESS:
+            tm_duplicate_transfer(&q->dup.x, &q->dup.y, pnl);
+            tm_input_duplicate_event(pnl, &evt, EV_KEY, BTN_TOUCH, 1);
+            tm_input_duplicate_event(pnl, &evt, EV_SYN, SYN_REPORT, 0);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_X, q->dup.x);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_Y, q->dup.y);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_PRESSURE, q->dup.p);
+            break;
+            
+        case TM_INPUT_STATUS_DRAG:
+            tm_duplicate_transfer(&q->dup.x, &q->dup.y, pnl);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_X, q->dup.x);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_Y, q->dup.y);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_PRESSURE, q->dup.p);
+            break;
+            
+        case TM_INPUT_STATUS_RELEASE:
+            q->dup.p = q->mt.p = 0;
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_PRESSURE, q->dup.p);
+            tm_input_duplicate_event(pnl, &evt, EV_KEY, BTN_TOUCH, 0);
+            break;
+            
+        case TM_INPUT_STATUS_MT_PRESS:
+            tm_duplicate_transfer(&q->dup.x, &q->dup.y, pnl);
+            if(last_slot != dev->slot)
+            {
+                last_slot = dev->slot;
+                tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_SLOT, dev->slot);
+            } 
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_TRACKING_ID, q->dup.tracking_id);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_POSITION_X, q->dup.x);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_POSITION_Y, q->dup.y);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_TOUCH_MAJOR, q->dup.touch_major);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_WIDTH_MAJOR, q->dup.width_major);
+            break;
+            
+        case TM_INPUT_STATUS_MT_DRAG:
+            tm_duplicate_transfer(&q->dup.x, &q->dup.y, pnl);
+            if(last_slot != dev->slot)
+            {
+                last_slot = dev->slot;
+                tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_SLOT, dev->slot);
+            } 
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_POSITION_X, q->dup.x);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_POSITION_Y, q->dup.y);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_TOUCH_MAJOR, q->dup.touch_major);
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_WIDTH_MAJOR, q->dup.width_major);
+            break;
+            
+        case TM_INPUT_STATUS_MT_RELEASE:
+            q->dup.touch_major = q->mt.touch_major = 0;
+            if(last_slot != dev->slot)
+            {
+                last_slot = dev->slot;
+                tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_SLOT, dev->slot);
+            } 
+            tm_input_duplicate_event(pnl, &evt, EV_ABS, ABS_MT_TRACKING_ID, q->dup.tracking_id);
+            break;
+            
+        default:
+            return;
+    }
+
+    tm_input_duplicate_event(pnl, &evt, EV_SYN, SYN_REPORT, 0);
+}
+
 
 void tm_input_sync_single_touch(tm_input_dev_t* dev)
 {
@@ -367,6 +490,8 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
 
             if(!q->ap.cur)
                 return;
+
+            tm_inpute_duplicate(dev);
 
             tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_PRESSURE, q->cur.p);
             tm_input_send_event(q->ap.cur, &evt, EV_KEY, BTN_TOUCH, 0);
@@ -398,6 +523,8 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
                 return;
             }
 
+            tm_inpute_duplicate(dev);
+
             q_dbg(Q_INFO, "press event, %s to %s\n",dev->panel->evt_path, q->ap.cur->evt_path);
 
             tm_input_send_event(q->ap.cur, &evt, EV_KEY, BTN_TOUCH, 1);
@@ -422,6 +549,8 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
             if(!q->ap.cur)
                 return;
 
+            tm_inpute_duplicate(dev);
+        
             if(q->ap.cur != q->ap.last)
             {
                 tm_input_send_event(q->ap.last, &evt, EV_ABS, ABS_PRESSURE, 0);
@@ -534,6 +663,7 @@ void tm_input_sync_multi_touch(tm_input_dev_t* dev)
 
             q_dbg(Q_INFO, "press event, %s to %s\n",dev->panel->evt_path, q->ap.cur->evt_path);
 
+            tm_inpute_duplicate(dev);
             tm_input_check_slot(q->ap.cur, &evt, dev);
 
             tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_TRACKING_ID, q->cur.tracking_id);
@@ -556,11 +686,12 @@ void tm_input_sync_multi_touch(tm_input_dev_t* dev)
             if(!q->ap.cur)
                 return;
 
+            tm_inpute_duplicate(dev);
             tm_input_check_slot(q->ap.cur, &evt, dev);
             
             tm_input_send_event(q->ap.cur, &evt, EV_ABS, ABS_MT_TRACKING_ID, q->cur.tracking_id);
             q_dbg(Q_DBG_SEND_MULTI,"send id: %d",q->cur.tracking_id);
-            q->status = TM_INPUT_STATUS_MT_IDLE;
+            q->status = TM_INPUT_STATUS_IDLE;
             break;
 
         case TM_INPUT_STATUS_MT_DRAG:
@@ -572,6 +703,8 @@ void tm_input_sync_multi_touch(tm_input_dev_t* dev)
 
             if(!q->ap.cur)
                 return;
+
+            tm_inpute_duplicate(dev);
             
             if(q->ap.last != q->ap.cur)
             {    
