@@ -11,6 +11,12 @@
 #define TM_VERSION "?"
 #endif
 
+/************************************
+ * Environment variable                                *
+ *     QSI_TM_THRESHOLD : threshold             *
+ *     QSI_TM_CFG            : configuration file  *
+************************************/
+
 
 #define __tm_list_add(head, new)                    \
 ({                                                  \
