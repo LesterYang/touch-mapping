@@ -15,6 +15,7 @@ enum _tm_errno{
     TM_ERRNO_SWAP       = -9,       // Need to swap x,y
     TM_ERRNO_NO_CONF    = -10,      // No configuration
     TM_ERRNO_NO_FD      = -11,      // Event doesn't opened
+    TM_ERRNO_IOCTL      = -12,      // IOCTL error
     TM_ERRNO_OTHER      = -64       // Other error
 };
 
@@ -31,8 +32,9 @@ static inline const char* tm_err_str(tm_errno_t no)
         case TM_ERRNO_POINT:        return " Points are out of rage";
         case TM_ERRNO_PARAM:        return " Function parameter error";
         case TM_ERRNO_SWAP:         return " Need to swap xy";
-        case TM_ERRNO_NO_CONF:      return " No configuration";
+        case TM_ERRNO_NO_CONF:      return " Configuration error";
         case TM_ERRNO_NO_FD:     	return " Event doesn't opened";
+        case TM_ERRNO_IOCTL:        return " IOCTL error";
         case TM_ERRNO_OTHER:        return " Other error";
         default:            break;
     }

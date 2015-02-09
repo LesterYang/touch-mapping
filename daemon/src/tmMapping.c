@@ -406,21 +406,28 @@ tm_errno_t tm_mapping_pnl_config(list_head_t* pnl_head)
     panel->evt_path = q_strdup((const char*)param);
     panel->mutex = q_mutex_new(q_true, q_true);
     panel->duplicate = q_false;
-    q_init_head(&panel->display_head);
 
-    tm_mapping_pnl_bind_config(panel);
+
+    if(tm_mapping_pnl_bind_config(panel) == TM_ERRNO_NO_DEV)
+        goto err_bind;
+    
+    q_init_head(&panel->display_head);
     q_list_add(pnl_head, &panel->node);
 
     return TM_ERRNO_SUCCESS;
 
+err_bind:
+    q_free((char*)panel->evt_path);
+    q_mutex_free(panel->mutex);
 err:
     q_free(panel);
-    return TM_ERRNO_PARAM;
+    return TM_ERRNO_NO_CONF;
 }
 
 tm_errno_t tm_mapping_ap_config(list_head_t* ap_head)
 {
     int id, fd;
+    tm_errno_t err = TM_ERRNO_SUCCESS;
     tm_ap_info_t* ap;
     char *param;
     long absbits[NUM_LONGS(ABS_CNT)]={0};
@@ -436,39 +443,53 @@ tm_errno_t tm_mapping_ap_config(list_head_t* ap_head)
     ap->id = id;
 
     if((param = strtok(NULL," ")) == NULL)
+    {
+        err = TM_ERRNO_NO_CONF;
         goto err;
-
+    }
+    
     ap->evt_path = q_strdup((const char*)param);
 
     if((fd=open(ap->evt_path, O_RDWR))<0)
     {
         q_dbg(Q_ERR,"open %s error", ap->evt_path);
+        err = TM_ERRNO_NO_FD;
         goto err_param; 
     }
 
     if (ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(absbits)), absbits) >= 0)
         ap->touch_type = testBit(ABS_MT_POSITION_X, absbits)?TM_INPUT_TYPE_MT_B:TM_INPUT_TYPE_SINGLE;
     else
+    {
+        err = TM_ERRNO_IOCTL;
         goto err_fd;
-
+    }
+    
     q_close(fd);
 
     ap->threshold = q_true;
     ap->mutex = q_mutex_new(q_true, q_true);
 
-    tm_mapping_ap_bind_config(ap);
-
+    if(tm_mapping_ap_bind_config(ap) == TM_ERRNO_NO_DEV)
+    {
+        err = TM_ERRNO_NO_CONF;
+        goto err_bind;
+    }
+    
     q_list_add(ap_head, &ap->node);
 
     return TM_ERRNO_SUCCESS;
 
+
+err_bind:
+    q_mutex_free(ap->mutex);
 err_fd:
     q_close(fd);
 err_param:
     q_free((char*)ap->evt_path);
 err:
     q_free(ap);
-    return TM_ERRNO_PARAM;
+    return err;
 }
 
 tm_errno_t tm_mapping_duplicate_config()
@@ -514,6 +535,9 @@ tm_errno_t tm_mapping_pnl_bind_config(tm_panel_info_t* panel)
             if((param = strtok(NULL," ")) == NULL)
                 return TM_ERRNO_PARAM;
             panel->native_size = tm_mapping_get_native_size_param(atoi(param));
+            
+            if(panel->native_size == NULL)
+                return TM_ERRNO_NO_DEV;
         }
         else if(memcmp(param, AP_CFG, sizeof(AP_CFG)) == 0)
         {
@@ -526,6 +550,12 @@ tm_errno_t tm_mapping_pnl_bind_config(tm_panel_info_t* panel)
                 return TM_ERRNO_ALLOC;
             
             dis->ap = tm_get_ap_info(atoi(param));
+
+            if(dis->ap == NULL)
+            {
+                q_free(dis);
+                return TM_ERRNO_NO_DEV;
+            }
 
             dis->from_ap.begin_x = 0;
             dis->from_ap.begin_x = 0;
@@ -561,7 +591,10 @@ tm_errno_t tm_mapping_ap_bind_config(tm_ap_info_t* ap)
             if((param = strtok(NULL," ")) == NULL)
                 return TM_ERRNO_PARAM;
 
-             ap->native_size = tm_mapping_get_native_size_param(atoi(param));
+            ap->native_size = tm_mapping_get_native_size_param(atoi(param));
+
+            if(ap->native_size == NULL)
+                return TM_ERRNO_NO_DEV;
         }
     }
     return TM_ERRNO_SUCCESS;

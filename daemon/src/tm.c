@@ -54,6 +54,7 @@ tm_errno_t tm_init()
         return err_no;
     }
 
+    // panel had no display setting if it didn't bind ap id or bound error ap id 
     tm_set_default_display();
 
     tm_mapping_print_config(&tm.ap_head, &tm.pnl_head);

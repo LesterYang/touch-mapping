@@ -24,7 +24,7 @@
 #include "tslib.h"
 #include "fbutils.h"
 #include "tm_test.h"
-#include "../include/tm.h"
+#include "../daemon/include/tm.h"
 
  
 static int palette [] =
