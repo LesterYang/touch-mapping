@@ -313,10 +313,11 @@ typedef struct q_thread {
 }q_thread;
 
 q_thread*   q_thread_new(q_thread_func_t thread_func, void *userdata);
-void        q_thread_delet(q_thread *t);
 void        q_thread_free(q_thread *t);
+void        q_thread_wait_free(q_thread *t);
 int         q_thread_join(q_thread *t);
 void*       q_thread_get_data(q_thread *t);
+void        q_thread_cancellation_point();
 
 
 // ===============================================

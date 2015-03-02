@@ -44,7 +44,7 @@ install:
 	@test -d $(DESTDIR) || mkdir -p $(DESTDIR)
 	@mv $(PROGRAM) $(DEST_PATH)/
 	@sync
-	@echo -e '\e[1;33mOutput : $(DESTDIR)/$(PROGRAM)\e[0m'
+	@echo -e '\e[1;33mOutput : $(DEST_PATH)/$(PROGRAM)\e[0m'
 	
 clean:
 	@echo -e '\e[1;31mClean $(PROGRAM)...\e[0m'

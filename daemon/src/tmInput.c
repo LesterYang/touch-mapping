@@ -289,7 +289,7 @@ void tm_input_remove_dev()
     {
     	if(dev->thread)
     	{
-    		q_thread_free(dev->thread);
+    		q_thread_wait_free(dev->thread);
     		dev->thread = NULL;
     	}
 
@@ -823,8 +823,7 @@ void tm_input_thread_func(void *data)
     while(tm_input.open)
     {
         do{
-            if(tm_input.open == q_false)
-                break;
+            q_thread_cancellation_point();
 
             if(ret > 0 && dev->panel->fd > 0 && FD_ISSET(dev->panel->fd, &dev->evfds))
             {

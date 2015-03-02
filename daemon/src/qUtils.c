@@ -237,20 +237,20 @@ q_thread* q_thread_new(q_thread_func_t thread_func, void *userdata)
 	return t;
 }
 
-void q_thread_delet(q_thread *t)
-{
-	q_assert(t);
-	pthread_detach(t->id);
-	q_free(t);
-	t = NULL;
-}
-
 void q_thread_free(q_thread *t)
 {
 	q_assert(t);
-	q_thread_join(t);
+	pthread_detach(t->id);
+    pthread_cancel(t->id);
 	q_free(t);
-	t = NULL;
+}
+
+void q_thread_wait_free(q_thread *t)
+{
+    q_assert(t);
+    pthread_cancel(t->id);
+    q_thread_join(t);
+    q_free(t);
 }
 
 int q_thread_join(q_thread *t)
@@ -265,6 +265,11 @@ void* q_thread_get_data(q_thread *t)
 {
     q_assert(t);
     return t->userdata;
+}
+
+void q_thread_cancellation_point()
+{
+    pthread_testcancel();
 }
 
 q_mutex* q_mutex_new(q_bool recursive, q_bool inherit_priority)
