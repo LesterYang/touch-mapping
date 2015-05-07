@@ -12,8 +12,8 @@
 #define default_pan "/sys/class/graphics/fb0/pan"
 
 #define TEST_CFG_FILE    "/home/qsi_tm/qsi_tm.conf"
-#define TEST_IPC_NAME    "QSIPL2"
-#define TEST_IPC_TARGET  "QSIPL3"
+#define TEST_IPC_NAME    "QSISY2"
+#define TEST_IPC_TARGET  "QSISY3"
 
 #define EVT_LEN     (1+sizeof(default_evt))
 #define FB_LEN      (1+sizeof(default_fb))

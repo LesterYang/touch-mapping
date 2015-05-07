@@ -225,7 +225,7 @@ q_thread* q_thread_new(q_thread_func_t thread_func, void *userdata)
 	t=(q_thread *)q_malloc(sizeof(q_thread));
 	t->thread_func = thread_func;
 	t->userdata = userdata;
-	t->joined = q_false;
+	t->joined = false;
 
 	q_atomic_set(&t->running,0);
 	if (pthread_create(&t->id, NULL, internal_thread_func, t) < 0) {
@@ -257,7 +257,7 @@ int q_thread_join(q_thread *t)
 {
 	if (t->joined)
 	        return -1;
-	t->joined = q_true;
+	t->joined = true;
 	return pthread_join(t->id, NULL);
 }
 
@@ -272,7 +272,7 @@ void q_thread_cancellation_point()
     pthread_testcancel();
 }
 
-q_mutex* q_mutex_new(q_bool recursive, q_bool inherit_priority)
+q_mutex* q_mutex_new(bool recursive, bool inherit_priority)
 {
 	q_mutex *m;
 	pthread_mutexattr_t attr;
@@ -315,16 +315,16 @@ void q_mutex_lock(q_mutex *m)
 	q_assert(pthread_mutex_lock(&m->mutex) == 0);
 }
 
-q_bool q_mutex_try_lock(q_mutex *m)
+bool q_mutex_try_lock(q_mutex *m)
 {
     int r;
     q_assert(m);
 
     if ((r = pthread_mutex_trylock(&m->mutex)) != 0) {
         q_assert(r == EBUSY);
-        return q_false;
+        return false;
     }
-    return q_true;
+    return true;
 }
 
 void q_mutex_unlock(q_mutex *m)
@@ -437,7 +437,7 @@ int q_get_queue(q_queue* q, char* buf, size_t len)
 	return i;
 }
 
-int q_set_queue(q_queue* q, void* buf, size_t len, q_bool expand)
+int q_set_queue(q_queue* q, void* buf, size_t len, bool expand)
 {
 	q_assert(q);
 	q_assert(buf);
@@ -451,7 +451,7 @@ int q_set_queue(q_queue* q, void* buf, size_t len, q_bool expand)
 	return i;
 }
 
-int q_add_queue(q_queue* q, void* item, q_bool expand)
+int q_add_queue(q_queue* q, void* item, bool expand)
 {
 	q_assert(q);
 

@@ -58,7 +58,7 @@ struct option long_opts[] = {
 };
 
 tm_status_t g_status = TM_STATUS_NONE;
-q_bool g_daemonise = q_false;
+bool g_daemonise = false;
 char g_name[IPC_MAX_NAME]={0};
 
 void usage(char* arg)
@@ -156,7 +156,7 @@ int main(int argc, char* argv[])
                 break;
 
             case 'd':
-                g_daemonise = q_true;
+                g_daemonise = true;
                 break;
 
             case 'h':

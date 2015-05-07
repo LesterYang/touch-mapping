@@ -3,7 +3,7 @@
 # Author: Lester
 #############################
 
-VERSION    = 1.7
+VERSION    = 1.8
 PROGRAM    = tm-daemon
 
 # cross-compile : set PREFIX and PATH

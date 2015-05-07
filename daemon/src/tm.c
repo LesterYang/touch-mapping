@@ -36,7 +36,7 @@ tm_errno_t tm_init()
     q_init_head(&tm.ap_head);
     q_init_head(&tm.pnl_head);
 
-    tm.mutex    = q_mutex_new(q_true, q_true);
+    tm.mutex    = q_mutex_new(true, true);
     tm.dis_conf = NULL;
 
     // do check
@@ -54,7 +54,6 @@ tm_errno_t tm_init()
         return err_no;
     }
 
-    // panel had no display setting if it didn't bind ap id or bound error ap id 
     tm_set_default_display();
 
     tm_mapping_print_config(&tm.ap_head, &tm.pnl_head);
@@ -275,7 +274,7 @@ void tm_switch_ap_threshold(unsigned int len, unsigned char *msg)
     ap = tm_get_ap_info(msg[0]);
 
     if(ap)
-        ap->threshold = (q_bool)msg[1];
+        ap->threshold = (bool)msg[1];
 
     q_dbg(Q_DBG_THRESHOLD,"ap id %2d threshold : %d", ap->id, ap->threshold);
 }
@@ -340,6 +339,7 @@ void tm_set_default_display()
 
     list_for_each_entry(&tm.pnl_head, panel, node)
     {
+        // check panel has display setting or not 
         if(panel->display_head.next != NULL)
             continue;
 

@@ -43,7 +43,7 @@ struct _tm_ap_info
     tm_input_type_t         touch_type;
     tm_native_size_param_t* native_size;
     volatile int            slot;
-    q_bool                  threshold;
+    bool                  threshold;
 
     list_head_t             node;
     q_mutex*                mutex;
@@ -68,7 +68,7 @@ struct _tm_panel_info
 
     const char*     duplicate_evt_path;
     int             duplicate_fd;
-    q_bool          duplicate;
+    bool            duplicate;
 
     tm_calibrate_t* cal_param;
     tm_native_size_param_t* native_size;

@@ -67,8 +67,8 @@ typedef struct _tm_input_dev {
 }tm_input_dev_t;
 
 typedef struct _tm_input{
-    volatile q_bool     open;
-    volatile q_bool     suspend;
+    volatile bool       open;
+    volatile bool       suspend;
     list_head_t*        tm_ap_head;
     list_head_t*        tm_pnl_head;
 
@@ -86,8 +86,8 @@ tm_errno_t  tm_input_init_events(void);
 void        tm_input_close_events(void);
 void        tm_input_remove_dev(void);
 
-q_bool tm_input_threshold_timeout(tm_input_dev_t* dev);
-q_bool tm_input_threshold_clock_timeup(tm_input_dev_t* dev);
+bool tm_input_threshold_timeout(tm_input_dev_t* dev);
+bool tm_input_threshold_clock_timeup(tm_input_dev_t* dev);
 void tm_input_send_event(tm_ap_info_t* ap, tm_input_event_t* evt, uint16_t type, uint16_t code, int val);
 void tm_input_duplicate_event(tm_panel_info_t* pnl, tm_input_event_t* evt, uint16_t type, uint16_t code, int val);
 void tm_input_check_slot(tm_ap_info_t* ap, tm_input_event_t* evt, tm_input_dev_t* dev);
@@ -108,8 +108,8 @@ tm_errno_t tm_input_init(list_head_t* ap_head, list_head_t* pnl_head)
 
     q_init_head(&tm_input.dev_head);
 
-    tm_input.open        = q_true;
-    tm_input.suspend     = q_false;
+    tm_input.open        = true;
+    tm_input.suspend     = false;
     tm_input.tm_ap_head	 = ap_head;
     tm_input.tm_pnl_head = pnl_head;
     
@@ -121,7 +121,7 @@ tm_errno_t tm_input_init(list_head_t* ap_head, list_head_t* pnl_head)
 
 void tm_input_deinit()
 {
-    tm_input.open = q_false;
+    tm_input.open = false;
     tm_input_close_events();
     tm_input_remove_dev();
 }
@@ -283,7 +283,7 @@ void tm_input_remove_dev()
     tm_input_dev_t* dev;
     tm_input.dev_num = 0;
 
-    tm_input.open = q_false;
+    tm_input.open = false;
 
     while((dev = list_first_entry(&tm_input.dev_head, tm_input_dev_t, node)) != NULL)
     {
@@ -298,22 +298,22 @@ void tm_input_remove_dev()
     }
 }
 
-q_bool tm_input_threshold_timeout(tm_input_dev_t* dev)
+bool tm_input_threshold_timeout(tm_input_dev_t* dev)
 {
     tm_input_timeval_t now;
 
     tm_input_get_time(&now);
 
     if (tm_input_elapsed_time(&now, &dev->timer) > dev->threshold)
-        return q_true;
+        return true;
     else
     {
         q_dbg(Q_DBG_THRESHOLD, "ignore event, now time: %lu:%lu", now.tv_sec, now.tv_usec);
-        return q_false;
+        return false;
     }
 }
 
-q_bool tm_input_threshold_clock_timeup(tm_input_dev_t* dev)
+bool tm_input_threshold_clock_timeup(tm_input_dev_t* dev)
 {
     tm_input_timespec_t now;
 
@@ -323,16 +323,16 @@ q_bool tm_input_threshold_clock_timeup(tm_input_dev_t* dev)
     q_dbg(Q_DBG_THRESHOLD, "now clock time: %lu:%lu", now.tv_sec, now.tv_nsec);
 
     if(now.tv_sec < dev->clock.tv_sec)
-        return q_true;
+        return true;
 
     if (tm_input_elapsed_clock_time(&now, &dev->clock) >= dev->threshold)
     {
-        return q_true;
+        return true;
     }
     else
     {
         q_dbg(Q_DBG_THRESHOLD, "--- ignore event ---");
-        return q_false;
+        return false;
     }
 }
 
@@ -392,7 +392,7 @@ void tm_inpute_duplicate(tm_input_dev_t* dev)
     tm_input_event_t evt;
     static int last_slot;
 
-    if(pnl->duplicate == q_false)
+    if(pnl->duplicate == false)
         return;
         
     q->dup.x = q->mt.x;
@@ -525,7 +525,7 @@ void tm_input_sync_single_touch(tm_input_dev_t* dev)
 
             tm_inpute_duplicate(dev);
 
-            q_dbg(Q_INFO, "press event, %s to %s\n",dev->panel->evt_path, q->ap.cur->evt_path);
+            q_dbg(Q_INFO, "press event(%d,%d), %s to %s\n", q->cur.x, q->cur.y, dev->panel->evt_path, q->ap.cur->evt_path);
 
             tm_input_send_event(q->ap.cur, &evt, EV_KEY, BTN_TOUCH, 1);
             tm_input_send_event(q->ap.cur, &evt, EV_SYN, SYN_REPORT, 0);
@@ -579,7 +579,7 @@ void tm_input_parse_single_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
 {
     tm_input_queue_t* q = &dev->input_queue[0];
 
-    if(tm_input.open == q_false)
+    if(tm_input.open == false)
         return;
 
     switch (evt->type)
@@ -597,7 +597,8 @@ void tm_input_parse_single_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
                 }
                 else if(q->status == TM_INPUT_STATUS_PRESS)
                 {
-                    // ignore release, because haven't press yet
+                    // ignore release event, 
+                    // because deamon hasn't recieved press event yet
                     q->status = TM_INPUT_STATUS_IDLE;
                     tm_input_get_clock_time(&dev->clock);
                 }
@@ -742,7 +743,7 @@ void tm_input_parse_multi_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
 {
     tm_input_queue_t* q = &dev->input_queue[dev->slot];
 
-    if(tm_input.open == q_false)
+    if(tm_input.open == false)
         return;
 
     q_dbg(Q_DBG_RECV_MULTI,"%-24s value:%4d",tm_input_evt_str(evt->type, evt->code), evt->value);

@@ -62,7 +62,7 @@ tm_errno_t  tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_hea
 
     tm_errno_t err;
 
-    tm_handler.mutex = q_mutex_new(q_true, q_true);
+    tm_handler.mutex = q_mutex_new(true, true);
 
     q_init_head(&tm_handler.calibrate_head);
     q_init_head(&tm_handler.native_size_head);
@@ -404,8 +404,8 @@ tm_errno_t tm_mapping_pnl_config(list_head_t* pnl_head)
         goto err;
 
     panel->evt_path = q_strdup((const char*)param);
-    panel->mutex = q_mutex_new(q_true, q_true);
-    panel->duplicate = q_false;
+    panel->mutex = q_mutex_new(true, true);
+    panel->duplicate = false;
 
 
     if(tm_mapping_pnl_bind_config(panel) == TM_ERRNO_NO_DEV)
@@ -467,8 +467,8 @@ tm_errno_t tm_mapping_ap_config(list_head_t* ap_head)
     
     q_close(fd);
 
-    ap->threshold = q_true;
-    ap->mutex = q_mutex_new(q_true, q_true);
+    ap->threshold = true;
+    ap->mutex = q_mutex_new(true, true);
 
     if(tm_mapping_ap_bind_config(ap) == TM_ERRNO_NO_DEV)
     {
@@ -510,7 +510,7 @@ tm_errno_t tm_mapping_duplicate_config()
         return TM_ERRNO_PARAM;
     
     panel->duplicate_evt_path = q_strdup((const char*)param);
-    panel->duplicate = q_true;
+    panel->duplicate = true;
    
     return TM_ERRNO_SUCCESS;
 }
@@ -751,9 +751,9 @@ tm_native_size_param_t* tm_mapping_get_native_size_param(int id)
     return size;
 }
 
-q_bool tm_mapping_native_size_is_const(tm_native_size_param_t* size)
+bool tm_mapping_native_size_is_const(tm_native_size_param_t* size)
 {
-    return (memcmp(size->fb_path, FB_CFG_DEV, sizeof(FB_CFG_DEV)-1)) ? q_false : q_true;  
+    return (memcmp(size->fb_path, FB_CFG_DEV, sizeof(FB_CFG_DEV)-1)) ? false : true;  
 }
 
 void tm_mapping_print_config(list_head_t* ap_head, list_head_t* pnl_head)
@@ -820,7 +820,8 @@ void tm_mapping_print_panel_info(list_head_t* pnl_head)
 
         list_for_each_entry(&panel->display_head, dis, node)
         {
-            q_dbg(Q_INFO,"               display ap %d, (%d~%d, %d~%d) -> (%d~%d, %d~%d)\n",
+            q_dbg(Q_INFO,"%14s display ap %d, (%d~%d, %d~%d) -> (%d~%d, %d~%d)\n",
+                    "",
             		dis->ap->id,
             		dis->from_ap.abs_begin_x,
             		dis->from_ap.abs_end_x,

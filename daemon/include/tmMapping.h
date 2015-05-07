@@ -112,7 +112,7 @@ struct _tm_config
 
 tm_errno_t tm_mapping_create_handler(list_head_t* ap_head, list_head_t* pnl_head);
 void       tm_mapping_destroy_handler(list_head_t* ap_head, list_head_t* pnl_head);
-q_bool     tm_mapping_native_size_is_const(tm_native_size_param_t* size);
+bool       tm_mapping_native_size_is_const(tm_native_size_param_t* size);
 
 void tm_mapping_print_config(list_head_t* ap_head, list_head_t* pnl_head);
 void tm_mapping_print_cal_info(void);

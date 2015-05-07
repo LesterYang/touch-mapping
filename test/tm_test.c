@@ -26,7 +26,7 @@ struct test_conf{
     int fb;
     int ap;
     int evt;
-    int org_evt;
+    int pnl_evt;
 };
 
 struct panel_bind {
@@ -56,7 +56,7 @@ struct argument{
     struct args ap;
     struct args fb;
     struct args evt;
-    struct args org_evt;
+    struct args pnl_evt;
     struct args bind;
 };
 
@@ -84,7 +84,7 @@ static char bind_buf[128];
 static char client_name[32];
 static char target_name[32];
 static char evt_buf[128];
-static char org_evt_buf[128];
+static char pnl_evt_buf[128];
 
 struct test_conf test_cfg[] = {
     {0, PNL0_FB_NUM, PNL0_DEFAULT_AP, PNL0_DEFAULT_EVT, PNL0_ORG_EVT},
@@ -187,17 +187,20 @@ void tm_test_usage()
     fprintf(stderr, "Usage: tm-test OPTION\n"
                     "OPTION\n"
                     "   -p  --master        panel which is set\n"
-                    "   -a  --ap            append application programs\n"
-                    "   -e  --event         append touch event device\n"
-                    "   -i  --input         set touch event device for calibration\n"
-                    "   -f  --fb            append frame buffer device\n"
+                    "   -a  --ap            application programs id\n"
+                    "                       [default: 0,4,6]\n"
+                    "   -e  --event         touch event device for ap test\n"
+                    "                       [default: 0,4,6]\n"
+                    "   -i  --input         raw event from panel, only for calibration\n"
+                    "                       [default: 20,21,22]\n"
+                    "   -f  --fb            frame buffer device\n"
+                    "                       [default: 0,4,9]\n"
                     "   -n  --pnlnum        set panel number\n"
-                    "   -b  --bind          bind apploications to panel\n"
-                    "                       separate by panels ':' \n"
-                    "   -s  --split         split mode\n"
+                    "                       [default: 3]\n"
+                    "   -s  --split         enable split mode\n"
                     "   -c  --calibrate     calibrateon\n"
-                    "   -C  --client        IPC client\n"
-                    "   -T  --target        IPC tm-daemon name\n"
+                    "   -C  --client        IPC client [default: QSISY2]\n"
+                    "   -T  --target        IPC tm-daemon name [default: QSISY3]\n"
                     "   -h  --help          show usage\n"
                     "   -v  --version       show version\n");
     _exit(0);
@@ -320,12 +323,12 @@ int get_evt(int pnl)
         return (pnl<MAX_TEST_CFG && pnl >= 0) ? test_cfg[pnl].evt : -1;
 }
 
-int get_org_evt(int pnl)
+int get_pnl_evt(int pnl)
 {
-    if(use_arg(ttm.arg.org_evt.set, ttm.arg.org_evt.num, ttm.arg.org_evt.data, pnl))
-        return ttm.arg.org_evt.data[pnl];
+    if(use_arg(ttm.arg.pnl_evt.set, ttm.arg.pnl_evt.num, ttm.arg.pnl_evt.data, pnl))
+        return ttm.arg.pnl_evt.data[pnl];
     else
-        return (pnl<MAX_TEST_CFG && pnl >= 0) ? test_cfg[pnl].org_evt : -1;
+        return (pnl<MAX_TEST_CFG && pnl >= 0) ? test_cfg[pnl].pnl_evt : -1;
 }
 
 int select_bind_pnl(int ap)
@@ -592,7 +595,7 @@ void tm_calibrate()
         fb.fb_id = get_fb(i);
         fb.dev[FB_NUM_POS]= '0' + fb.fb_id;
         fb.pan[PAN_NUM_POS]= '0' + fb.fb_id;
-        evt.num = get_org_evt(i);
+        evt.num = get_pnl_evt(i);
 
         if((evt.dev[EVT_NUM_POS] = evt.num/10))
         {
@@ -704,8 +707,8 @@ void parse_options()
     if(ttm.arg.evt.set)
         ttm.arg.evt.num = set_args(evt_buf, ttm.arg.evt.data, MAX_PNL_NUM);
     
-    if(ttm.arg.org_evt.set)
-        ttm.arg.org_evt.num = set_args(org_evt_buf, ttm.arg.org_evt.data, MAX_PNL_NUM);
+    if(ttm.arg.pnl_evt.set)
+        ttm.arg.pnl_evt.num = set_args(pnl_evt_buf, ttm.arg.pnl_evt.data, MAX_PNL_NUM);
 
     if(ttm.arg.bind.set)
     {
@@ -725,15 +728,15 @@ void show_args_for_debug()
 
     for(i=0;i<max_pnl;i++)
     {
-        printf("%d -> ap  : %2d, ",i, get_ap(i));
-        printf("evt : %2d, ",get_evt(i));
-        printf("fb  : %2d, ",get_fb(i));
-        printf("org : %2d\n",get_org_evt(i));
+        printf("ap %d (on pnl %d), ",get_ap(i), i);
+        printf("ap_read_evt: %d, ",get_evt(i));
+        printf("ap_display_fb: %d, ",get_fb(i));
+        printf("pnl_%d_read_evt: %d\n",i, get_pnl_evt(i));
     }
 
-    printf("panel     : %d\n",ttm.pnl_arg);
-    printf("calibrate : %d\n",ttm.calibrate);
-    printf("split     : %d\n",ttm.split);
+    printf("master panel : %d\n",ttm.pnl_arg);
+    printf("calibrate    : %s\n",(ttm.calibrate)?"yes":"no");
+    printf("split mode   : %s\n",(ttm.split)?"yes":"no");
 
     if(ttm.arg.bind.set)
     {
@@ -753,13 +756,16 @@ void show_args_for_debug()
 
 int main(int argc, const char *argv[])
 { 
-    tm_cmd_t cmd;
+    tm_cmd_t ipc_cmd;
     char i;
     int fd, opt_idx, c, max_pnl=PNL_NUM;
     char *short_opts = "p:sa:n:e:f:chvC:T:b:i:";
     pid_t pid;
 
-    memset((char*)&cmd, 0, sizeof(cmd));
+    if(argc == 1)
+        tm_test_usage();
+
+    memset((char*)&ipc_cmd, 0, sizeof(tm_cmd_t));
 
     while ((c = getopt_long(argc, (char* const*)argv, short_opts, long_opts, &opt_idx)) != -1)
     {
@@ -792,8 +798,8 @@ int main(int argc, const char *argv[])
                 memcpy(fb_buf, optarg, strlen(optarg));
                 break;
             case 'i':
-                ttm.arg.org_evt.set = 1;
-                memcpy(org_evt_buf, optarg, strlen(optarg));
+                ttm.arg.pnl_evt.set = 1;
+                memcpy(pnl_evt_buf, optarg, strlen(optarg));
                 break;
             case 'c':
                 ttm.calibrate = 1;
@@ -886,10 +892,10 @@ int main(int argc, const char *argv[])
     if(open_ipc())
         return 0;
 
-//    cmd.general.hdr=0xd0;
-//    cmd.len=1;
+//    ipc_cmd.general.hdr=0xd0;
+//    ipc_cmd.len=1;
 //    ttm.wait_ver=1;
-//    send_ipc(&cmd);
+//    send_ipc(&ipc_cmd);
 //
 //    while(ttm.wait_ver)
 //        sleep(1);
@@ -901,32 +907,32 @@ int main(int argc, const char *argv[])
     {
         if(ttm.mode == MONO_AP)
         {
-            cmd.stretch.hdr=0xa1;
-            cmd.stretch.panel=i;
-            cmd.stretch.ap=ttm.arg.ap.data[0];
-            cmd.len=3;
-            send_ipc(&cmd);
+            ipc_cmd.stretch.hdr=0xa1;
+            ipc_cmd.stretch.panel=i;
+            ipc_cmd.stretch.ap=ttm.arg.ap.data[0];
+            ipc_cmd.len=3;
+            send_ipc(&ipc_cmd);
         }
         else
         {	
-            cmd.clear.hdr=0xa2;
-            cmd.clear.panel=i;
-            cmd.len=2;
+            ipc_cmd.clear.hdr=0xa2;
+            ipc_cmd.clear.panel=i;
+            ipc_cmd.len=2;
             
-            send_ipc(&cmd);
+            send_ipc(&ipc_cmd);
       
             for(int j=0; j<ttm.arg.ap.num; j++)
             {
-                cmd.append.hdr=0xa0;
-                cmd.append.panel=i;
-                cmd.append.ap=ttm.arg.ap.data[j];
+                ipc_cmd.append.hdr=0xa0;
+                ipc_cmd.append.panel=i;
+                ipc_cmd.append.ap=ttm.arg.ap.data[j];
 
-                set_pnl_append_cmd(&cmd.append, j);
-                set_ap_append_cmd(&cmd.append, j);
+                set_pnl_append_cmd(&ipc_cmd.append, j);
+                set_ap_append_cmd(&ipc_cmd.append, j);
                
-                cmd.len=11;
+                ipc_cmd.len=11;
 
-                send_ipc(&cmd);
+                send_ipc(&ipc_cmd);
             }
         }
     }

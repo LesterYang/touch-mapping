@@ -5,6 +5,7 @@
 #include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 // debug
 #define Q_ALL   (0)
@@ -26,12 +27,6 @@
 
 #define dbg_level Q_INFO
 
-
-typedef int q_bool;
-
-#define q_false ((q_bool) 0)
-#define q_true (!q_false)
-
 #define Q_MAX_ALLOC_SIZE (1024*1024*64)  //64MB
 
 #ifdef __GNUC__
@@ -44,7 +39,7 @@ typedef int q_bool;
 #define Q_PRETTY_FUNCTION ""
 #endif
 
-#define q_nothing() do {} while (q_false)
+#define q_nothing() do {} while (false)
 
 #ifdef Q_ASSERT
 #define q_assert(expr)                                                                          \
@@ -307,7 +302,7 @@ typedef struct q_thread {
     pthread_t id;
     q_thread_func_t thread_func;
     void *userdata;
-    q_bool joined;
+    bool joined;
     q_atomic_t running;
     char* name;
 }q_thread;
@@ -331,10 +326,10 @@ typedef struct q_cond {
     pthread_cond_t cond;
 }q_cond;
 
-q_mutex*    q_mutex_new(q_bool recursive, q_bool inherit_priority);
+q_mutex*    q_mutex_new(bool recursive, bool inherit_priority);
 void 	    q_mutex_free(q_mutex *m);
 void 	    q_mutex_lock(q_mutex *m);
-q_bool 	    q_mutex_try_lock(q_mutex *m);
+bool 	    q_mutex_try_lock(q_mutex *m);
 void 	    q_mutex_unlock(q_mutex *m);
 
 q_cond*	    q_cond_new();
@@ -376,9 +371,9 @@ typedef struct q_queue {
 q_queue*    q_create_queue(int size);
 void        q_destroy_queue(q_queue* q);
 int         q_get_queue(q_queue* q, char* buf, size_t len);
-int         q_set_queue(q_queue* q, void* buf, size_t len, q_bool expand);
+int         q_set_queue(q_queue* q, void* buf, size_t len, bool expand);
 int         q_pop_queue(q_queue* q, char* item);
-int         q_add_queue(q_queue* q, void* item, q_bool expand);
+int         q_add_queue(q_queue* q, void* item, bool expand);
 int         q_peek_queue(q_queue* q, char* item, int idx);
 size_t      q_size_queue(q_queue* q);
 void        q_expand_queue(q_queue* q);
@@ -418,16 +413,16 @@ static inline const char *q_strnull(const char *x)
     return x ? x : "(null)";
 }
 
-static inline q_bool q_isempty_queue(q_queue* q)
+static inline bool q_isempty_queue(q_queue* q)
 {
 	q_assert(q);
-	return (q->front == q->rear) ? q_true:q_false ;
+	return (q->front == q->rear) ? true:false ;
 }
 
-static inline q_bool q_isfull_queue(q_queue* q)
+static inline bool q_isfull_queue(q_queue* q)
 {
 	q_assert(q);
-	return (q->front == (q->rear + 1)%(q->len_buf) ) ? q_true:q_false ;
+	return (q->front == (q->rear + 1)%(q->len_buf) ) ? true:false ;
 }
 
 #endif /* QUTILS_H_ */
