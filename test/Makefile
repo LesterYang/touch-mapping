@@ -3,7 +3,7 @@
 # Author: Lester
 #############################
 
-VERSION    = 1.7
+VERSION    = 1.8
 PROGRAM    = tm-test
 
 # cross-compile : set PREFIX and PATH
@@ -16,14 +16,14 @@ DEST_PATH  = ../output
 HOST       = $(CC_PATH)$(CROSS)
 CC         = $(HOST)gcc
 DEFINES    = -DQ_ASSERT -D_GNU_SOURCE -DTM_TEST_VERSION='"$(VERSION)"'
-CFLAGS     = -O2 -Wall -std=gnu99 -march=armv7-a -mfpu=neon $(DEFINES)
+CFLAGS     = -O2 -g -Wall -std=gnu99 -march=armv7-a -mfpu=neon $(DEFINES)
 INCPATH    = -I$(PREFIX)/usr/include -I$(PREFIX)/usr/local/include -I. -I../include
 LINK       = $(HOST)gcc
 LIBPATH    = -L$(PREFIX)/usr/lib -L$(PREFIX)/usr/local/lib -L$(PREFIX)/lib
 RPATH      =
 RPATH_LINK = $(PREFIX)/usr/lib
 LFLAGS     = -Wl,-rpath-link=$(RPATH_LINK)
-LIBS       = $(LIBPATH) -lpthread -lts -lQSI-IPCLib 
+LIBS       = $(LIBPATH) -lpthread -lQSI-IPCLib -lts
 AR         = $(HOST)ar
 OBJ_PATH   = 
 

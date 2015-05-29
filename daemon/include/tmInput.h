@@ -6,6 +6,7 @@
 #include "tmMapping.h"
 #include <time.h>
 
+#define USE_MTDEV (0)
 
 #define LONG_BITS (sizeof(long) << 3)
 #define NUM_LONGS(bits) (((bits) + LONG_BITS - 1) / LONG_BITS)
@@ -13,6 +14,7 @@
 #define DEFAULT_THRESHOLD "0"
 #define THRESHOLD_UNIT          (100000)     //100ms
 #define THRESHOLD_CLOCK_UNIT    (100000000)  //100ms
+
 
 
 typedef enum _tm_input_status tm_input_status_t;

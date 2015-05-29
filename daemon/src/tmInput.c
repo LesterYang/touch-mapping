@@ -763,6 +763,7 @@ void tm_input_parse_multi_touch(tm_input_dev_t* dev, tm_input_event_t* evt)
                 case ABS_MT_POSITION_Y:
                     q->mt.y = evt->value;
                     break;
+                case ABS_MT_PRESSURE:
                 case ABS_MT_TOUCH_MAJOR:
                     q->mt.touch_major = evt->value;
                     break;
@@ -803,11 +804,12 @@ void tm_input_thread_func(void *data)
     int ret = 0;
     tm_input_dev_t* dev = (tm_input_dev_t*)data;
     tm_input_timeval_t tv;
-    struct mtdev m_dev;
-
-    memset(&m_dev, 0, sizeof(struct mtdev));
 
     q_dbg(Q_DBG,"thread run : name : %d %s",dev->panel->id, dev->panel->evt_path);
+
+#if USE_MTDEV
+    struct mtdev m_dev;
+    memset(&m_dev, 0, sizeof(struct mtdev));
 
     if(dev->type != TM_INPUT_TYPE_SINGLE)
     {
@@ -817,6 +819,7 @@ void tm_input_thread_func(void *data)
             return;
         }
     }
+#endif
 
     if(dev->panel->fd > dev->maxfd)
         dev->maxfd = dev->panel->fd;
@@ -838,7 +841,12 @@ void tm_input_thread_func(void *data)
                 }
                 else
                 {
+                #if USE_MTDEV
                     while(mtdev_get(&m_dev, dev->panel->fd, (tm_input_event_t*)evt, 1) > 0)
+                #else
+                    ret = q_read(dev->panel->fd, evt, sizeof(tm_input_event_t));
+                    if( ret == (ssize_t)sizeof(tm_input_event_t))
+                #endif
                     {
                         if(!tm_input.suspend)
                             tm_input_parse_multi_touch(dev, (tm_input_event_t*)evt);
@@ -848,10 +856,12 @@ void tm_input_thread_func(void *data)
             tm_input_reset_select_time(dev, &tv);
         }while( (ret = select((dev->maxfd)+1,  &dev->evfds, NULL, NULL, &tv)) >= 0);
     }
+#if USE_MTDEV
 
     if(dev->type != TM_INPUT_TYPE_SINGLE)
     {
         mtdev_close(&m_dev);
     }
+#endif
 }
 

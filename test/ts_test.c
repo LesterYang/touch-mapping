@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <unistd.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -25,6 +26,10 @@
 #include "fbutils.h"
 #include "tm_test.h"
 #include "../daemon/include/tm.h"
+
+#ifndef ABS_MT_SLOT
+#define ABS_MT_SLOT 0x2f
+#endif
 
  
 static int palette [] =
@@ -206,16 +211,69 @@ void set_button(fb_data_t* fb)
     } 
 }
 
+int tm_read_event(int fd, struct ts_sample *samp)
+{
+    int r;
+    static struct input_event evt;
+    static int slot;
+    int reading = 1;
+    
+    while(reading)
+    {
+        r = read(fd, &evt, sizeof(struct input_event));
 
+        if(r != sizeof(struct input_event))
+            return -1;
+
+        if(evt.type == EV_SYN)
+            break;
+
+        if(slot)
+            continue;
+    
+        switch (evt.type)
+        {
+            case EV_ABS:
+                switch (evt.code)
+                {
+                    case ABS_X:
+                    case ABS_MT_POSITION_X:
+                       samp->x = evt.value; 
+                       break;
+                    case ABS_Y:
+                    case ABS_MT_POSITION_Y:
+                        samp->y = evt.value; 
+                        break;
+                    case ABS_MT_SLOT:
+                        slot = evt.value;
+                        break;
+                    default:
+                        break;
+                }
+                break;   
+            default:
+                break;
+        }
+    }
+    return 1;
+}
+
+
+#define USE_TS (0)
 int ts_test(fb_data_t* fb, evt_data_t* evt)
 {
+#if USE_TS
     struct tsdev *ts = NULL;
+#else
+    int fd;
+#endif
     int x, y;
     unsigned int i;
     unsigned int mode = 0;
 
     if (evt->act)
     {
+#if USE_TS    
         ts = ts_open (evt->dev, 0);
 
         if (!ts) {
@@ -227,6 +285,13 @@ int ts_test(fb_data_t* fb, evt_data_t* evt)
             perror("ts_config");
             exit(1);
         }
+#else
+        fd = open(evt->dev, O_RDONLY);
+        if (fd<0) {
+            perror (evt->dev);
+            exit(1);
+        }
+#endif
     }
 
     if (open_framebuffer(fb)) {
@@ -250,9 +315,11 @@ int ts_test(fb_data_t* fb, evt_data_t* evt)
         /* Show the cross */
         if ((mode & 15) != 1)
             put_cross(x, y, 2 | XORMODE);
-
+#if USE_TS 
         ret = ts_read(ts, &samp, 1);
-
+#else
+        ret = tm_read_event(fd, &samp);
+#endif
         /* Hide it */
         if ((mode & 15) != 1)
             put_cross(x, y, 2 | XORMODE);
@@ -326,6 +393,7 @@ void set_conf_button()
     buttons [0].y = buttons [1].y = 40;
 }
 
+#if USE_TS
 int replace_config(fb_data_t* fb, evt_data_t* evt)
 {
     struct tsdev *ts;
@@ -394,7 +462,7 @@ int replace_config(fb_data_t* fb, evt_data_t* evt)
     close_framebuffer();
     return 0;
 }
-
+#endif
 int refresh_tm_test(fb_data_t* fb)
 {
     unsigned int i;

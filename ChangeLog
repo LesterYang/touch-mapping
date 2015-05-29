@@ -1,3 +1,10 @@
+[vesrion 1.8 : 20150522]
+              1. Fix issue that daemon gets segmentation fault if ap/panel
+                 bind non-existent fb_info id in qsi_tm.conf
+              2. Running without libmtdev
+              3. while receive ABS_MT_PRESSURE, assign TOUCH_MAJOR value
+              4. tm-test calibrate : Replace ts_read() with tm_read_event()
+                 
 [vesrion 1.7 : 20150129]
               1. new duplicate event function. refer to qsi_tm.conf
               2. allow '#' as a comment for ech line in configuration
