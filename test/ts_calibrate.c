@@ -256,17 +256,17 @@ int get_cfg_path()
     if(readlink(proc, path, 1024)<0)
         return -1;
 
-    //get qsi_tm version folder
+    //get lst_tm version folder
     if(!(p=strrchr(path,'/')))
         return -1;
     *p=0;
 
-    // get qsi_tm folder
+    // get lst_tm folder
     if(!(p=strrchr(path,'/')))
         return -1;
     *p=0;
 
-    sprintf(cfg_name, "%s/qsi_tm.conf", path);
+    sprintf(cfg_name, "%s/lst_tm.conf", path);
 
     if(access(cfg_name, R_OK) != 0)
     {

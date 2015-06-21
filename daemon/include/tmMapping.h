@@ -8,7 +8,7 @@
 #include "tmError.h"
 
 #define TM_PATH_LEN         (1024)
-#define QSI_TM_CFG          "/home/qsi_tm/qsi_tm.conf"
+#define LST_TM_CFG          "/home/lst_tm/lst_tm.conf"
 #define AP_CFG              "ap_info"
 #define PNL_CFG             "pnl_info"
 #define CAL_CFG             "cal_conf"

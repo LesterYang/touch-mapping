@@ -1,9 +1,9 @@
 /*
  *  tmMapping.c
- *  Copyright © 2014 QSI Inc.
+ *  Copyright © 2014  
  *  All rights reserved.
  *  
- *       Author : Lester Yang <lester.yang@qsitw.com>
+ *       Author : Lester Yang <sab7412@yahoo.com.tw>
  *  Description : Mapping algorithm
  */
  
@@ -94,17 +94,17 @@ tm_errno_t tm_mapping_get_cfg_path()
     if(readlink(proc, path, TM_PATH_LEN)<0)
         return TM_ERRNO_OTHER;
 
-    //get qsi_tm version folder
+    //get lst_tm version folder
     if(!(p=strrchr(path,'/')))
         return TM_ERRNO_OTHER;
     *p=0;
 
-    // get qsi_tm folder
+    // get lst_tm folder
     if(!(p=strrchr(path,'/')))
         return TM_ERRNO_OTHER;
     *p=0;
 
-    sprintf(tm_handler.cfg_path, "%s/qsi_tm.conf", path);
+    sprintf(tm_handler.cfg_path, "%s/lst_tm.conf", path);
 
     if(access(tm_handler.cfg_path, R_OK) != 0)
     {
@@ -120,11 +120,11 @@ tm_errno_t tm_mapping_update_config(list_head_t* ap_head, list_head_t* pnl_head)
     FILE *fr;
     char buf[BUF_SIZE];
     char *conf_file = NULL;
-    char *default_conf = QSI_TM_CFG;
+    char *default_conf = LST_TM_CFG;
     char *param, *p;
     tm_errno_t err;
 
-    if( (conf_file = getenv("QSI_TM_CFG")) == NULL )
+    if( (conf_file = getenv("LST_TM_CFG")) == NULL )
     {
         if((tm_mapping_get_cfg_path() == TM_ERRNO_SUCCESS))
             conf_file = tm_handler.cfg_path;

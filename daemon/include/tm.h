@@ -13,8 +13,8 @@
 
 /************************************
  * Environment variable                                *
- *     QSI_TM_THRESHOLD : threshold             *
- *     QSI_TM_CFG            : configuration file  *
+ *     LST_TM_THRESHOLD : threshold             *
+ *     LST_TM_CFG            : configuration file  *
 ************************************/
 
 

@@ -1,9 +1,9 @@
 /*
  *  qUtils.c
- *  Copyright © 2014 QSI Inc.
+ *  Copyright © 2014  
  *  All rights reserved.
  *  
- *       Author : Lester Yang <lester.yang@qsitw.com>
+ *       Author : Lester Yang <sab7412@yahoo.com.tw>
  *  Description : Utilities function
  */
  
@@ -54,12 +54,12 @@ void* q_malloc(size_t size)
 
     if (size > 0 && size < Q_MAX_ALLOC_SIZE){
     	if (!(p = malloc(size))){
-    		fprintf(stderr, "qsiFinc : malloc error");
+    		fprintf(stderr, "lstFunc : malloc error");
     		return NULL;
     	}
     }
     else{
-    	fprintf(stderr, "qsiFinc : allocation size error");
+    	fprintf(stderr, "lstFunc : allocation size error");
     	return NULL;
     }
     return p;
@@ -71,12 +71,12 @@ void* q_calloc(size_t size)
 
     if (size > 0 && size < Q_MAX_ALLOC_SIZE){
     	if (!(p =  calloc(1, size))){
-    		fprintf(stderr, "qsiFinc : calloc error");
+    		fprintf(stderr, "lstFunc : calloc error");
     		return NULL;
     	}
     }
     else{
-    	fprintf(stderr, "qsiFinc : allocation size error");
+    	fprintf(stderr, "lstFunc : allocation size error");
     	return NULL;
     }
     return p;

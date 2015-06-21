@@ -1,9 +1,9 @@
 /*
  *  main.c
- *  Copyright © 2014 QSI Inc.
+ *  Copyright © 2014  
  *  All rights reserved.
  *  
- *       Author : Lester Yang <lester.yang@qsitw.com>
+ *       Author : Lester Yang <sab7412@yahoo.com.tw>
  *  Description : tm-daemon 
  */
  

@@ -1,9 +1,9 @@
 /*
  *  tmInput.c
- *  Copyright © 2014 QSI Inc.
+ *  Copyright © 2014  
  *  All rights reserved.
  *  
- *       Author : Lester Yang <lester.yang@qsitw.com>
+ *       Author : Lester Yang <sab7412@yahoo.com.tw>
  *  Description : Initialize touch event device and frame buffer device. Receive and 
  *                parse touch event, then redirect events
  */
@@ -211,7 +211,7 @@ tm_errno_t tm_input_init_events()
     	if(dev == NULL)
     	    continue;
 
-        if( (threshold = getenv("QSI_TM_THRESHOLD")) == NULL )
+        if( (threshold = getenv("LST_TM_THRESHOLD")) == NULL )
             threshold = DEFAULT_THRESHOLD;
 
     	dev->panel = panel;

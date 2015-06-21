@@ -1,9 +1,9 @@
 /*
  *  tm_test.c
- *  Copyright © 2014 QSI Inc.
+ *  Copyright © 2014  
  *  All rights reserved.
  *  
- *       Author : Lester Yang <lester.yang@qsitw.com>
+ *       Author : Lester Yang <sab7412@yahoo.com.tw>
  *  Description : Test tools
  */
  
@@ -18,7 +18,7 @@
 #include <getopt.h>
 #include "tm_test.h"
 #include "fbutils.h"
-#include <qsi_ipc_client_lib.h>
+#include <lst_ipc_client_lib.h>
 
 
 struct test_conf{
@@ -134,9 +134,9 @@ struct pos_mode tetra_mode[] = {
 };
 
 struct ipc_data{
-        QSI_Channel *server;
-        QSI_RECV_EVENT recv_func;
-        QSI_PROTOCOL_ST status;
+        LST_Channel *server;
+        LST_RECV_EVENT recv_func;
+        LST_PROTOCOL_ST status;
         char *name;
         char *target;
 }g_ipc;
@@ -199,8 +199,8 @@ void tm_test_usage()
                     "                       [default: 3]\n"
                     "   -s  --split         enable split mode\n"
                     "   -c  --calibrate     calibrateon\n"
-                    "   -C  --client        IPC client [default: QSISY2]\n"
-                    "   -T  --target        IPC tm-daemon name [default: QSISY3]\n"
+                    "   -C  --client        IPC client [default: LSTSY2]\n"
+                    "   -T  --target        IPC tm-daemon name [default: LSTSY3]\n"
                     "   -h  --help          show usage\n"
                     "   -v  --version       show version\n");
     _exit(0);
@@ -254,7 +254,7 @@ int open_ipc()
 
     for(retry=0;;retry++)
     {
-        g_ipc.server = qsi_open_channel(g_ipc.name, 0, 0);
+        g_ipc.server = lst_open_channel(g_ipc.name, 0, 0);
 
         if(g_ipc.server != NULL)
             break;
@@ -268,7 +268,7 @@ int open_ipc()
         }
     }
     // set receiving event callback function
-    qsi_set_event(g_ipc.server, g_ipc.recv_func);
+    lst_set_event(g_ipc.server, g_ipc.recv_func);
 
     return 0;
 }
@@ -277,7 +277,7 @@ void tm_close_ipc()
 {
     if(g_ipc.server)
     {
-        qsi_close_channel(g_ipc.server);
+        lst_close_channel(g_ipc.server);
         g_ipc.server = NULL;
     }
 }
@@ -293,7 +293,7 @@ void send_ipc(tm_cmd_t* cmd)
   printf("\n");
 #endif
 
-   g_ipc.status=qsi_send_buffer(g_ipc.server, g_ipc.target, cmd->data, cmd->len, 0); 
+   g_ipc.status=lst_send_buffer(g_ipc.server, g_ipc.target, cmd->data, cmd->len, 0); 
 
    if(g_ipc.status!=PROTOCOL_ACK_OK)
        printf("send ipc error\n");
@@ -939,7 +939,7 @@ int main(int argc, const char *argv[])
 
     if(g_ipc.server)
     {
-        qsi_close_channel(g_ipc.server);
+        lst_close_channel(g_ipc.server);
         g_ipc.server = NULL;
     }
 
